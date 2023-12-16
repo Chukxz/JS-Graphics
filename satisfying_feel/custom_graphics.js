@@ -2151,6 +2151,7 @@
             const delaunay = _full_cdv[1];
             const new_v = [];
             const new_m = [];
+            const new_l = [];
             voronoi_history.push(points_ret_list); // push it to the history so we can see the change
             // get the circumcenters of all the triangles in the previously computed delaunay (or delone) triangulation
             // and store them in a list indexing them according to the index of their respective containing triangles
@@ -2295,7 +2296,7 @@
                     const intersect = _Linear.doIntersect(p1, q1, p2, q2);
                     if (intersect === true) {
                         voronoi_convex_hull_intersect.push(v_edge);
-                        new_v.push(new Ret(v_edge, "maroon", true, 5));
+                        new_v.push(new Ret(v_edge, "maroon", true, 5, "F"));
                         voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v, new Ret(edge, "lightsalmon", true, 10, "D")]); // push it to the history so we can see the change
                         break;
                     }
@@ -2316,7 +2317,7 @@
                     if (no_duplicate.includes(counter_duplicate))
                         continue;
                     var [p2, q2] = [...v2_edge.split("-").map((value) => { return voronoi_points_list[value]; })];
-                    voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v, new Ret(v1_edge, "yellow", true, 5, "F"), new Ret(v2_edge, "yellow", true, 5, "F")]); // push it to the history so we can see the change
+                    voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v, ...new_l, new Ret(v1_edge, "yellow", true, 5, "F"), new Ret(v2_edge, "yellow", true, 5, "F")]); // push it to the history so we can see the change
                     const intersect = _Linear.doIntersect(p1, q1, p2, q2);
                     if (intersect === true) {
                         // get the point that is the same for both edges
@@ -2330,7 +2331,7 @@
                         // get the points that exist outside the convex hull
                         const point = voronoi_points_list[v[0]];
                         const boundary_points = this.getCrossPoints(point, c_extremes, 10);
-                        voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v, new Ret(v1_edge, "darkgoldenrod", true, 5, "F"), new Ret(v2_edge, "darkgoldenrod", true, 5, "F"), new Ret(`${v[0]}`, "gray", false, 1, "C")]); // push it to the history so we can see the change
+                        voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v, ...new_l, new Ret(v1_edge, "darkgoldenrod", true, 5, "F"), new Ret(v2_edge, "darkgoldenrod", true, 5, "F"), new Ret(`${v[0]}`, "yellow", false, 1, "C")]); // push it to the history so we can see the change
                         const point_ph_intersect = this.convexHullIntersect(point, boundary_points.ph, pt_list, convex_hull_edges);
                         const point_qh_intersect = this.convexHullIntersect(point, boundary_points.qh, pt_list, convex_hull_edges);
                         const point_pv_intersect = this.convexHullIntersect(point, boundary_points.pv, pt_list, convex_hull_edges);
@@ -2339,13 +2340,15 @@
                         if (point_ph_intersect === true &&
                             point_qh_intersect === true &&
                             point_pv_intersect === true &&
-                            point_qv_intersect === true)
+                            point_qv_intersect === true) {
+                            voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v, ...new_l, new Ret(v1_edge, "red", true, 5, "F"), new Ret(v2_edge, "red", true, 5, "F"), new Ret(`${v[0]}`, "red", false, 1, "C")]); // push it to the history so we can see the change
                             continue;
+                        }
                         // If not then it is not inside the convex hull and we can safely do some work
                         // get the midpoint of the edges connecting the lines shared by this point
                         const a = v_a[v[1]];
                         const b = v_b.slice().splice(Number(v[1]), 1)[0];
-                        voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v, new Ret(v1_edge, "burlywood", true, 5, "F"), new Ret(v2_edge, "burlywood", true, 5, "F"), new Ret(`${v[0]}`, "darkred", false, 1, "C")]); // push it to the history so we can see the change
+                        voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v, ...new_l, new Ret(v1_edge, "burlywood", true, 5, "F"), new Ret(v2_edge, "burlywood", true, 5, "F"), new Ret(`${v[0]}`, "green", false, 1, "C")]); // push it to the history so we can see the change
                         var p1 = voronoi_points_list[a];
                         var q1 = voronoi_points_list[b];
                         const midpoint = _Linear.get_midpoint(p1, q1);
@@ -2354,13 +2357,12 @@
                         const end = _Linear.getLineFromPointGradient(inter, gradient, 50, p1.y < q1.y);
                         voronoi_points_list.push(end);
                         voronoi_edges_list.push(`${v[0]}-${end_pt_index}`);
-                        voronoi_edges_ret_list_last.push(new Ret(`${v[0]}-${end_pt_index}`, "coral", true, 5, "F"));
-                        voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v, new Ret(v1_edge, "burlywood", true, 5), new Ret(v2_edge, "burlywood", true, 5), new Ret(`${v[0]}`, "yellow", false, 1)]); // push it to the history so we can see the change
-                        voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v]); // push it to the history so we can see the change
+                        new_l.push(new Ret(`${v[0]}-${end_pt_index}`, "coral", true, 5, "F"), new Ret(v1_edge, "burlywood", true, 5, "F"), new Ret(v2_edge, "burlywood", true, 5, "F"), new Ret(`${v[0]}`, "green", false, 1, "C"));
+                        voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v, ...new_l]); // push it to the history so we can see the change
                         end_pt_index++;
                     }
                 }
-                voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v]); // push it to the history so we can see the change
+                voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v, ...new_l]); // push it to the history so we can see the change
             }
             console.log(voronoi_history.length);
             return [convex_hull, delaunay, { edges: voronoi_edges_list, full_point_list: voronoi_points_list, history: voronoi_history }, triangulation, convex_hull_edges, pt_list, points_ret_list, mid_pt_list];
