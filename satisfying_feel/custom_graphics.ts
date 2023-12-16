@@ -1956,8 +1956,8 @@
 
             switch (optical_type){
                 case "none" : return _ERROR_._OPTICAL_ELEMENT_OBJECT_ERROR_;
-                case "camera" : world_to_optical_object_space = this.optical_element_array[this.selected_camera_instances[0]].worldToOpticalObject(vertex);
-                case "light" : world_to_optical_object_space =  this.optical_element_array[this.selected_light_instances[0]].worldToOpticalObject(vertex);
+                case "camera" : world_to_optical_object_space = this.optical_element_array[this.selected_camera_instances[0]].worldToOpticalObject(vertex); break;
+                case "light" : world_to_optical_object_space =  this.optical_element_array[this.selected_light_instances[0]].worldToOpticalObject(vertex); break;
             }
 
             const optical_object_to_clip_space : _4D_VEC_ = _ClipSpace.opticalObjectToClip(world_to_optical_object_space);
@@ -2241,6 +2241,8 @@
             const point_ret_list : Ret[] = [];
             for(let point in points) point_ret_list.push(new Ret(point, color_list[(Number(point) % (color_list.length-1))+1], false, 1, "A"));
 
+            convex_hull_history.push(point_ret_list);
+
             const ret_list : Ret[] = [];
             var first : number;
             var now : number;
@@ -2314,13 +2316,6 @@
                 convex_hull_history.push([...point_ret_list, ...ret_list]); // push it to the history so we can see the change  
             } while (p != l); // While we don't come to first point
 
-            if (p === l){
-                prev = now;
-                now = l;
-                ret_list.push(new Ret(`${prev}-${now}`, "cyan", true, 10, "D"));
-                convex_hull_history.push([...point_ret_list, ...ret_list]); // push it to the history so we can see the change  
-            }
-
             return [{"hull" : hull, "points" : points_on_hull, history : convex_hull_history}, {list : [], full_point_list : [], history : []}, {edges : [], full_point_list : [], history : []}, triangulation, [], points, point_ret_list, []];
         }
     }
@@ -2357,7 +2352,7 @@
             }
 
             for (let val of _list){
-                ret_list.push(new Ret(val, "black", true, 5));
+                ret_list.push(new Ret(val, "black", true, 5, "E"));
             }
 
             return {"ret_list" : ret_list, "list" : _list};
@@ -2382,7 +2377,6 @@
             const points_ret_list = _full_cdv[6];
             const delaunay_history : Ret[][] = []; // Initialize the history
             const triangulation = new TriangularMeshDataStructure2D(pointList_len) // triangle data structure
-            const convex_hull_edges : string[] = _full_cdv[4];
 
             const [a,b,c] = this.superTriangle(pointList); // must be large enough to completely contain all the points in pointList
             // mark the super triangle points with values starting from length of pointlist to length of pointlist + 3 and add it to the triangle data structure
@@ -2399,7 +2393,7 @@
 
             delaunay_history.push([...points_ret_list,...super_points_ret]); // push it to the history so we can see the change
 
-            delaunay_history.push(this.get_edges(triangulation).ret_list); // push it to the history so we can see the change
+            delaunay_history.push([...points_ret_list,...super_points_ret, ...this.get_edges(triangulation).ret_list]); // push it to the history so we can see the change
 
             // add all the points one at a time to the triangulation
             for (let p in pointList){ 
@@ -2431,10 +2425,10 @@
                         const ret_b = new Ret( `${b}-${point_num}`,"red",true, 5, "E");
                         const ret_c = new Ret( `${c}-${point_num}`,"red",true, 5, "E");
 
-                        invalid_tri_list.push(...points_ret_list,...super_points_ret,...[new Ret( `${a}-${b}`,"red",true,5),new Ret( `${b}-${c}`,"red",true,5),new Ret( `${a}-${c}`,"red",true,5)]);
-                        gray_edges.push(...points_ret_list,...super_points_ret,...[new Ret( `${a}-${b}`,"gray",true,5),new Ret( `${b}-${c}`,"gray",true,5),new Ret( `${a}-${c}`,"gray",true,5)]);
-                        delaunay_history.push([...points_ret_list,...super_points_ret,...this.get_edges(triangulation).ret_list,...gray_edges,ret_a,ret_b,ret_c]); // push it to the history so we can see the change
-                        delaunay_history.push([...points_ret_list,...super_points_ret,...this.get_edges(triangulation).ret_list,...gray_edges,...invalid_tri_list]); // push it to the history so we can see the change
+                        invalid_tri_list.push(...[new Ret( `${a}-${b}`,"red",true,5,"E"),new Ret( `${b}-${c}`,"red",true,5,"E"),new Ret( `${a}-${c}`,"red",true,5,"E")]);
+                        gray_edges.push(...[new Ret( `${a}-${b}`,"gray",true,5,"E"),new Ret( `${b}-${c}`,"gray",true,5,"E"),new Ret( `${a}-${c}`,"gray",true,5,"E")]);
+                        delaunay_history.push([...points_ret_list,...super_points_ret,...this.get_edges(triangulation).ret_list,ret_a,ret_b,ret_c,...invalid_tri_list]); // push it to the history so we can see the change
+                        delaunay_history.push([...points_ret_list,...super_points_ret,...this.get_edges(triangulation).ret_list,...gray_edges]); // push it to the history so we can see the change
                     }
                 }
 
@@ -2469,7 +2463,7 @@
                 for (let bad_edge in bad_edges_dict){
                     if (bad_edges_dict[bad_edge] === 1){
                         polygon.push(bad_edge);
-                        poly_edge_ret.push(new Ret( bad_edge,"green",true,5,"E"));
+                        poly_edge_ret.push(new Ret(bad_edge,"green",true,5,"E"));
                         delaunay_history.push([...points_ret_list,...super_points_ret,...this.get_edges(triangulation).ret_list,...gray_edges,...poly_edge_ret]); // push it to the history so we can see the change
                     }
                 }
@@ -2478,7 +2472,7 @@
                 for (let polygonal_edge of polygon){
                     const [a,b] = polygonal_edge.split("-").map((value)=>{return Number(value)});
                     
-                    // add a new triangle with the vertices of polygonal_edge's vertice and the point number
+                    // add a new triangle with the vertices of polygonal_edge and the point number
                     triangulation.addtriangle(a, b, point_num);
 
                     delaunay_history.push([...points_ret_list,...super_points_ret,...poly_edge_ret,...this.get_edges(triangulation).ret_list]); // push it to the history so we can see the change
@@ -2491,6 +2485,7 @@
 
             // If triangle contains a vertex from original super-triangle remove triangle from triangulation
 
+
             const prune_list : number[][] = [];
             
             for (let triangle of triangulation.triangleList) {
@@ -2502,16 +2497,22 @@
                     }
                 }
             }
-            
+
+            console.log(prune_list)
+
             for (let triangle of prune_list) {
                 triangulation.removeTriangle(triangle[0], triangle[1], triangle[2]); // remove triangle containing vertices of super triangle
 
-                delaunay_history.push(this.get_edges(triangulation).ret_list); // push it to the history so we can see the change
+                delaunay_history.push([...points_ret_list,...super_points_ret,...this.get_edges(triangulation).ret_list]); // push it to the history so we can see the change
             }
 
 
             // get the vertices of the convex hull of the points list
             const convex_hull_vertices = convex_hull.points;
+
+            // get the edges of the convex hull from the previously gotten convex hull vertices
+            const convex_hull_edges = _Miscellanous.genEdgefromArray(convex_hull_vertices, true);
+            const convex_hull_edges_unsorted = _Miscellanous.genEdgefromArray(convex_hull_vertices, false);
 
             const convex_hull_edges_ret_list : Ret[] = [];
             // show the convex_hull edges
@@ -2519,10 +2520,7 @@
                 convex_hull_edges_ret_list.push(new Ret(edge, "cyan", true, 10, "D"));
             }
 
-            delaunay_history.push([...convex_hull_edges_ret_list, ...this.get_edges(triangulation).ret_list]); // push it to the history so we can see the change
-
-            // get the edges of the convex hull from the previously gotten convex hull vertices
-            const convex_hull_edges_unsorted = _Miscellanous.genEdgefromArray(convex_hull_vertices, false);
+            delaunay_history.push([...this.get_edges(triangulation).ret_list, ...convex_hull_edges_ret_list]); // push it to the history so we can see the change
 
             const ret_list : Ret[] = [];
             const _list = this.get_edges(triangulation).list;
@@ -2551,9 +2549,12 @@
 
                     ret_list.push(new Ret(convex_hull_edges[edge],"orange",true,5,"D"));
 
-                    delaunay_history.push([...this.get_edges(triangulation).ret_list,...ret_list]); // push it to the history so we can see the change
+                    delaunay_history.push([...this.get_edges(triangulation).ret_list, ...convex_hull_edges_ret_list,...ret_list]); // push it to the history so we can see the change
                 }
             }
+
+            delaunay_history.push([...this.get_edges(triangulation).ret_list, ...convex_hull_edges_ret_list,...ret_list]); // push it to the history so we can see the change
+            delaunay_history.push([...this.get_edges(triangulation).ret_list, ...ret_list]); // push it to the history so we can see the change
 
             return [convex_hull, {list : _list, full_point_list : fullPointList, history : delaunay_history}, {edges : [], full_point_list : [], history : []}, triangulation, convex_hull_edges, pointList, points_ret_list, []];
         }
@@ -2697,6 +2698,8 @@
             const mid_pt_edges_list : _MID_EDGES_LIST[] = [];
             const convex_hull = _full_cdv[0];
             const delaunay = _full_cdv[1];
+            const new_v : Ret[] = [];
+            const new_m : Ret[] = [];
 
             voronoi_history.push(points_ret_list); // push it to the history so we can see the change
 
@@ -2704,11 +2707,12 @@
             // and store them in a list indexing them according to the index of their respective containing triangles
             const voronoi_points_list = this.getTriCircumCircles(pt_list,triangulation.triangleList);
 
+
             // record changes
             const voronoi_points_ret_list : Ret[][] = [];
             for(let p_index in voronoi_points_list){
                 if (voronoi_points_ret_list.length > 0) voronoi_points_ret_list.push([...voronoi_points_ret_list[voronoi_points_ret_list.length - 1], new Ret(p_index, "darkred", false, 1, "C"), new Ret(p_index, "red", false, 1, "H")]);
-                else voronoi_points_ret_list.push([new Ret(p_index, "darkred", false, 1, "C"), new Ret(p_index, "red", false, 5, "H")]);
+                else voronoi_points_ret_list.push([new Ret(p_index, "darkred", false, 1, "C"), new Ret(p_index, "red", false, 1, "H")]);
                 voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list[p_index]]); // push it to the history so we can see the change
             }
 
@@ -2759,8 +2763,8 @@
             const voronoi_edges_ret_list : Ret[][] = [];
             for(let edge of voronoi_edges_list){
                 const [a,b] = edge.split("-");
-                if (voronoi_edges_ret_list.length > 0) voronoi_edges_ret_list.push([...voronoi_edges_ret_list[voronoi_edges_ret_list.length - 1], new Ret(edge, "coral", true, 5, "F"), new Ret(a, "yellow", false, 1, "C"), new Ret(b, "yellow", false, 1, "C")]);
-                else voronoi_edges_ret_list.push([new Ret(edge, "coral", true, 5, "F"), new Ret(a, "yellow", false, 1, "C"), new Ret(b, "yellow", false, 1, "C")]);
+                if (voronoi_edges_ret_list.length > 0) voronoi_edges_ret_list.push([...voronoi_edges_ret_list[voronoi_edges_ret_list.length - 1], new Ret(edge, "coral", true, 5, "F"), new Ret(a, "magenta", false, 1, "C"), new Ret(b, "magenta", false, 1, "C")]);
+                else voronoi_edges_ret_list.push([new Ret(edge, "coral", true, 5, "F"), new Ret(a, "magenta", false, 1, "C"), new Ret(b, "magenta", false, 1, "C")]);
                 voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...voronoi_edges_ret_list[voronoi_edges_ret_list.length-1]]); // push it to the history so we can see the change
             }
 
@@ -2787,13 +2791,15 @@
                 for (let v_edge of voronoi_edges_list){
                     var [p2,q2] = [...v_edge.split("-").map((value)=>{return voronoi_points_list[value]})];
 
-                    voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list[no_intersect_ret_list.length - 1], new Ret(edge, "yellow", true, 10, "D"), new Ret(v_edge, "yellow", true, 5, "F")]); // push it to the history so we can see the change
+                    if (no_intersect_ret_list.length <= 0) voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, new Ret(edge, "yellow", true, 10, "D"), new Ret(v_edge, "yellow", true, 5, "F")]); // push it to the history so we can see the change
+                    else voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list[no_intersect_ret_list.length - 1], new Ret(edge, "yellow", true, 10, "D"), new Ret(v_edge, "yellow", true, 5, "F")]); // push it to the history so we can see the change
                     
                     const intersect = _Linear.doIntersect(p1,q1,p2,q2);
                     if (intersect === true){
                         last_intersect = intersect;
 
-                        voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list[no_intersect_ret_list.length - 1], new Ret(edge, "red", true, 10, "D"), new Ret(v_edge, "red", true, 5, "F")]); // push it to the history so we can see the change
+                        if (no_intersect_ret_list.length <=0) voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, new Ret(edge, "red", true, 10, "D"), new Ret(v_edge, "red", true, 5, "F")]); // push it to the history so we can see the change
+                        else voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list[no_intersect_ret_list.length - 1], new Ret(edge, "red", true, 10, "D"), new Ret(v_edge, "red", true, 5, "F")]); // push it to the history so we can see the change
 
                         break;
                     }
@@ -2843,10 +2849,8 @@
                 voronoi_points_list.push(end);
                 voronoi_edges_list.push(`${val.circum_pt_index}-${end_pt_index}`);
                 voronoi_points_ret_list_last.push(new Ret(`${end_pt_index}`, "darkred", true, 1, "C"));
-                mid_no_intersect_ret_list_last[index]._ret = `${val.circum_pt_index}-${end_pt_index}`;
-                mid_no_intersect_ret_list_last[index]._color_code = "darkblue";
-                mid_no_intersect_ret_list_last[index]._type = "F";
-                voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...mid_no_intersect_ret_list_last]); // push it to the history so we can see the change
+                new_m.push(new Ret(`${val.circum_pt_index}-${end_pt_index}`, "darkblue", true, 5, "F"));
+                voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...mid_no_intersect_ret_list_last, ...new_m]); // push it to the history so we can see the change
                 end_pt_index++;
             }
 
@@ -2856,12 +2860,12 @@
                 var [p1,q1] = [...v_edge.split("-").map((value)=>{return voronoi_points_list[value]})];
                 for (let edge of convex_hull_edges){
                     var [p2,q2] = [...edge.split("-").map((value)=>{return pt_list[value]})];
-                    voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...mid_no_intersect_ret_list_last, new Ret(v_edge, "yellow", true, 5, "F"), new Ret(edge, "yellow", true, 10, "D")]); // push it to the history so we can see the change
+                    voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v, new Ret(v_edge, "yellow", true, 5, "F"), new Ret(edge, "yellow", true, 10, "D")]); // push it to the history so we can see the change
                     const intersect = _Linear.doIntersect(p1,q1,p2,q2);
                     if (intersect === true){
                         voronoi_convex_hull_intersect.push(v_edge);
-                        voronoi_edges_ret_list_last[v_index]._color_code = "maroon";
-                        voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...mid_no_intersect_ret_list_last, new Ret(edge, "lightsalmon", true, 10, "D")]); // push it to the history so we can see the change
+                        new_v.push(new Ret(v_edge, "maroon", true, 5));
+                        voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v, new Ret(edge, "lightsalmon", true, 10, "D")]); // push it to the history so we can see the change
                         break;
                     }
                 }
@@ -2884,7 +2888,7 @@
                     if (no_duplicate.includes(counter_duplicate)) continue;
                     var [p2,q2] = [...v2_edge.split("-").map((value)=>{return voronoi_points_list[value]})];
 
-                    voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...mid_no_intersect_ret_list_last, new Ret(v1_edge, "yellow", true, 5, "F"), new Ret(v2_edge, "yellow", true, 5, "F")]); // push it to the history so we can see the change
+                    voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v, new Ret(v1_edge, "yellow", true, 5, "F"), new Ret(v2_edge, "yellow", true, 5, "F")]); // push it to the history so we can see the change
 
                     const intersect = _Linear.doIntersect(p1, q1, p2, q2);
                     
@@ -2902,7 +2906,7 @@
                         const point = voronoi_points_list[v[0]];
                         const boundary_points = this.getCrossPoints(point,c_extremes,10);
 
-                        voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...mid_no_intersect_ret_list_last, new Ret(v1_edge, "darkgoldenrod", true, 5, "F"), new Ret(v2_edge, "darkgoldenrod", true, 5, "F"), new Ret(`${v[0]}`, "gray", false, 1, "C")]); // push it to the history so we can see the change
+                        voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v, new Ret(v1_edge, "darkgoldenrod", true, 5, "F"), new Ret(v2_edge, "darkgoldenrod", true, 5, "F"), new Ret(`${v[0]}`, "gray", false, 1, "C")]); // push it to the history so we can see the change
 
                         const point_ph_intersect = this.convexHullIntersect(point,boundary_points.ph,pt_list,convex_hull_edges);
                         const point_qh_intersect = this.convexHullIntersect(point,boundary_points.qh,pt_list,convex_hull_edges);
@@ -2921,7 +2925,7 @@
                         const a = v_a[v[1]];
                         const b = v_b.slice().splice(Number(v[1]),1)[0];
 
-                        voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...mid_no_intersect_ret_list_last, new Ret(v1_edge, "burlywood", true, 5, "F"), new Ret(v2_edge, "burlywood", true, 5, "F"), new Ret(`${v[0]}`, "darkred", false, 1, "C")]); // push it to the history so we can see the change
+                        voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v, new Ret(v1_edge, "burlywood", true, 5, "F"), new Ret(v2_edge, "burlywood", true, 5, "F"), new Ret(`${v[0]}`, "darkred", false, 1, "C")]); // push it to the history so we can see the change
 
                         var p1 = voronoi_points_list[a];
                         var q1 = voronoi_points_list[b];
@@ -2934,23 +2938,16 @@
                         voronoi_edges_list.push(`${v[0]}-${end_pt_index}`);
                         voronoi_edges_ret_list_last.push(new Ret(`${v[0]}-${end_pt_index}`, "coral", true, 5, "F"));
 
-                        voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...mid_no_intersect_ret_list_last, new Ret(v1_edge, "burlywood", true, 5), new Ret(v2_edge, "burlywood", true, 5), new Ret(`${v[0]}`, "yellow", false, 1)]); // push it to the history so we can see the change
-                        voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...mid_no_intersect_ret_list_last]); // push it to the history so we can see the change
+                        voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v, new Ret(v1_edge, "burlywood", true, 5), new Ret(v2_edge, "burlywood", true, 5), new Ret(`${v[0]}`, "yellow", false, 1)]); // push it to the history so we can see the change
+                        voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v]); // push it to the history so we can see the change
                         end_pt_index++;
                     }
                 }
 
-                voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...mid_no_intersect_ret_list_last]); // push it to the history so we can see the change
-
-                // revert all colors to black
-                for(let ret of voronoi_points_ret_list_last) ret._color_code = "black";
-                for(let ret of convex_hull_edges_ret_list) ret._color_code = "black";
-                for(let ret of voronoi_edges_ret_list_last) ret._color_code = "black";
-                for (let ret of no_intersect_ret_list_last) ret._color_code = "black";
-                for (let ret of mid_no_intersect_ret_list_last) ret._color_code = "black";
-
-                voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...mid_no_intersect_ret_list_last]); // push it to the history so we can see the change
+                voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v]); // push it to the history so we can see the change
             }
+
+            console.log(voronoi_history.length)
 
             return [convex_hull, delaunay, {edges : voronoi_edges_list, full_point_list : voronoi_points_list, history : voronoi_history}, triangulation, convex_hull_edges, pt_list, points_ret_list, mid_pt_list];
         }
@@ -2988,7 +2985,6 @@
 
             this.section = 0;
             this.ret_group_num = 0;
-            this.ret_num = 0;
 
             this.convex_hull = input[0];
             this.delaunay = input[1];
@@ -3001,14 +2997,18 @@
             this.super_points = this.delaunay.full_point_list;
             this.voronoi_points = this.voronoi.full_point_list;
 
+            console.log(this.convex_hull.history);
+            console.log(this.delaunay.history);
+            console.log(this.voronoi.history);
+
             switch (this.cdv_switch){
-                case 0 : length = 0;
-                case 1 : length = this.convex_hull.history.length;
-                case 2 : length = this.delaunay.history.length;
-                case 3 : length = this.voronoi.history.length;
-                case 4 : length = this.convex_hull.history.length + this.delaunay.history.length;
-                case 6 : length = this.delaunay.history.length + this.voronoi.history.length;
-                case 7 : length = this.convex_hull.history.length + this.delaunay.history.length + this.voronoi.history.length;  
+                case 0 : length = 0; break;
+                case 1 : length = this.convex_hull.history.length; break;
+                case 2 : length = this.delaunay.history.length; break;
+                case 3 : length = this.voronoi.history.length; break;
+                case 4 : length = this.convex_hull.history.length + this.delaunay.history.length; break;
+                case 6 : length = this.delaunay.history.length + this.voronoi.history.length; break;
+                case 7 : length = this.convex_hull.history.length + this.delaunay.history.length + this.voronoi.history.length; break;
             }
 
             anim_number_input.max = `${length - 1}`;
@@ -3021,17 +3021,16 @@
             this.cdv_switch = input;
             this.section = 0;
             this.ret_group_num = 0;
-            this.ret_num = 0;
             var length = 0;
             
             switch (this.cdv_switch){
-                case 0 : length = 0;
-                case 1 : length = this.convex_hull.history.length;
-                case 2 : length = this.delaunay.history.length;
-                case 3 : length = this.voronoi.history.length;
-                case 4 : length = this.convex_hull.history.length + this.delaunay.history.length;
-                case 6 : length = this.delaunay.history.length + this.voronoi.history.length;
-                case 7 : length = this.convex_hull.history.length + this.delaunay.history.length + this.voronoi.history.length;  
+                case 0 : length = 0; break;
+                case 1 : length = this.convex_hull.history.length; break;
+                case 2 : length = this.delaunay.history.length; break;
+                case 3 : length = this.voronoi.history.length; break;
+                case 4 : length = this.convex_hull.history.length + this.delaunay.history.length; break;
+                case 6 : length = this.delaunay.history.length + this.voronoi.history.length; break;
+                case 7 : length = this.convex_hull.history.length + this.delaunay.history.length + this.voronoi.history.length; break;
             }
 
             anim_number_input.max = `${length - 1}`;
@@ -3057,28 +3056,30 @@
                 case "B" :
                     point1 = super_points[Number(ret._ret)];
                     _Experimental.drawPoint(point1, ret._color_code, ret._color_code, ret._s_width);
-                
+                    break;                
                 case "C" :
                     point1 = voronoi_points[Number(ret._ret)];
                     _Experimental.drawPoint(point1, ret._color_code, ret._color_code, ret._s_width);
-
+                    break;
                 case "D" :
                 case "E" :
                     [point1, point2] = ret._ret.split("-").map((value)=>{return super_points[Number(value)]});
                     _Experimental.drawLine(point1, point2, ret._color_code, ret._s_width);
-
+                    break;
                 case "F" :
                     [point1, point2] = ret._ret.split("-").map((value)=>{return voronoi_points[Number(value)]});
                     _Experimental.drawLine(point1, point2, ret._color_code, ret._s_width);
-
+                    break;
                 case "G" :
                     var [a, b] = ret._ret.split("-").map((value)=>{return Number(value)});
                     point1 = midpoints[a];
                     point2 = voronoi_points[b];
-                
+                    _Experimental.drawLine(point1, point2, ret._color_code, ret._s_width);
+                    break;                
                 case "H" :
                     var [p, q, r] = triangle_list[Number(ret._ret)].split("-").map((value)=>{return super_points[Number(value)]});
-                    _Experimental.drawPolygon([p, q, r], ret._color_code, ret._color_code, ret._s_width, false)           
+                    _Experimental.drawPolygon([p, q, r], ret._color_code, ret._color_code, ret._s_width, false);
+                    break; 
             }
         }
 
@@ -3091,130 +3092,71 @@
         // 6 - Delaunay and Voronoi
         // 7 - Convex Hull, Delaunay and Voronoi
 
-        select_selection_system(index : number, cdv_switch : number) : number[]
+        select_selection_system() : number[]
         {
-            var ret_group_num = 0;
-            var num = index;
+            var num = this.cur_index;
 
-            switch (cdv_switch)
+            switch (this.cdv_switch)
             {
-                case 0 : return [0,0,0];
+                case 0 : return [0,0];
                 case 1 :
-                    for(let ret_group in this.convex_hull.history)
-                    {
-                        if(num <= (ret_group.length - 1)) return [0, ret_group_num, num];
-                        if (num > (ret_group.length - 1)) num = num - ret_group.length; ret_group_num++;
-                    }
-                    return [0,0,0];
+                    return [0, num];
                 case 2 :
-                    for(let ret_group in this.delaunay.history)
-                    {
-                        if(num <= (ret_group.length - 1)) return [1, ret_group_num, num];
-                        if (num > (ret_group.length - 1)) num = num - ret_group.length; ret_group_num++;
-                    }
-                    return [0,0,0];
+                    return [1, num];
                 case 3 :
-                    for(let ret_group in this.voronoi.history)
-                    {
-                        if(num <= (ret_group.length - 1)) return [2, ret_group_num, num];
-                        if (num > (ret_group.length - 1)) num = num - ret_group.length; ret_group_num++;
-                    }
-                    return [0,0,0];
+                    return [2, num];
                 case 4:
-                    for(let ret_group in this.convex_hull.history)
-                    {
-                        if(num <= (ret_group.length - 1)) return [0, ret_group_num, num];
-                        if (num > (ret_group.length - 1)) num = num - ret_group.length; ret_group_num++;
-                    }
-                    for(let ret_group in this.delaunay.history)
-                    {
-                        if(num <= (ret_group.length - 1)) return [1, ret_group_num, num];
-                        if (num > (ret_group.length - 1)) num = num - ret_group.length; ret_group_num++;
-                    }
-                    return [0,0,0];                
+                    if (num < this.convex_hull.history.length) return [0, num];
+                    else return [1, num - this.convex_hull.history.length];                    
                 case 5:
-                    for(let ret_group in this.convex_hull.history)
-                    {
-                        if(num <= (ret_group.length - 1)) return [0, ret_group_num, num];
-                        if (num > (ret_group.length - 1)) num = num - ret_group.length; ret_group_num++;
-                    }
-                    for(let ret_group in this.voronoi.history)
-                    {
-                        if(num <= (ret_group.length - 1)) return [2, ret_group_num, num];
-                        if (num > (ret_group.length - 1)) num = num - ret_group.length; ret_group_num++;
-                    }
-                    return [0,0,0];  
+                    if (num < this.convex_hull.history.length) return [0, num];
+                    else return [2, num - this.convex_hull.history.length]; 
                 case 6:
-                    for(let ret_group in this.delaunay.history)
-                    {
-                        if(num <= (ret_group.length - 1)) return [1, ret_group_num, num];
-                        if (num > (ret_group.length - 1)) num = num - ret_group.length; ret_group_num++;
-                    }
-                    for(let ret_group in this.voronoi.history)
-                    {
-                        if(num <= (ret_group.length - 1)) return [2, ret_group_num, num];
-                        if (num > (ret_group.length - 1)) num = num - ret_group.length; ret_group_num++;
-                    }
-                    return [0,0,0];
+                    if (num < this.delaunay.history.length) return [1, num];
+                    else return [2, num - this.delaunay.history.length]; 
                 case 7:
-                    for(let ret_group in this.convex_hull.history)
-                    {
-                        if(num <= (ret_group.length - 1)) return [0, ret_group_num, num];
-                        if (num > (ret_group.length - 1)) num = num - ret_group.length; ret_group_num++;
-                    }
-                    for(let ret_group in this.delaunay.history)
-                    {
-                        if(num <= (ret_group.length - 1)) return [1, ret_group_num, num];
-                        if (num > (ret_group.length - 1)) num = num - ret_group.length; ret_group_num++;
-                    }
-                    for(let ret_group in this.voronoi.history)
-                    {
-                        if(num <= (ret_group.length - 1)) return [2, ret_group_num, num];
-                        if (num > (ret_group.length - 1)) num = num - ret_group.length; ret_group_num++;
-                    return [0,0,0];                              
-                    }
-                default : return [0,0,0];
+                    if (num < this.convex_hull.history.length) return [0, num];
+                    else num = num - this.convex_hull.history.length;
+                    
+                    if(num < this.delaunay.history.length) return [1, num];
+                    else return [2, num - this.delaunay.history.length];
+
+                default : return [0,0];
             }
         }
 
-        selection_system(section : number, ret_group_num : number, ret_num : number, group_length : number, stops : number[]) : number[]
+        selection_system(section : number, ret_group_num : number,  stops : number[]) : number[]
         {
-            if (ret_num < (group_length - 1)){
-                ret_num++;
-                this.cur_index++;
-                return [section, ret_group_num, ret_num];
-            }
-
             if(ret_group_num < (stops[section] - 1)){
                 ret_group_num++;
-                ret_num = 0;
                 this.cur_index++;
-                return [section, ret_group_num, ret_num];
+                return [section, ret_group_num];
             }
 
             if(section < 2){
                 section++;
                 ret_group_num = 0;
-                ret_num = 0;
                 this.cur_index++;
-                return [section, ret_group_num, ret_num];
+                return [section, ret_group_num];
             }
 
             else{
                 section = 0;
                 ret_group_num = 0;
-                ret_num = 0;
                 this.cur_index = 0;
                 this.running = false;
-                return [section, ret_group_num, ret_num];
+                return [section, ret_group_num];
             }
         }
 
-        history_snapshot(cdv_switch : _CDV_SWITCH_, cur_index: number)
+        history_snapshot()
         {
             this.running = false;
-            this.cur_index = cur_index;
-            [this.section, this.ret_group_num, this.ret_num] = this.select_selection_system(cur_index, cdv_switch);
+            [this.section, this.ret_group_num] = this.select_selection_system();
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            console.log(this.section, this.ret_group_num);
             
             status.innerHTML = `Current count: ${this.cur_index}`;
             anim_number_input.value = `${this.cur_index}`;
@@ -3222,51 +3164,55 @@
 
             if (this.section === 0)
             {
-                if (cdv_switch === 1 || cdv_switch === 4 || cdv_switch === 5 || cdv_switch === 7)
+                if (this.cdv_switch === 1 || this.cdv_switch === 4 || this.cdv_switch === 5 || this.cdv_switch === 7)
                 {
                     const group = this.convex_hull.history[this.ret_group_num];
-                    const ret = group[this.ret_num]
-                    this.render_ret(ret, this.super_points, this.voronoi_points, this.midpoints, this.triangle_list);
+                    for (let ret of group){
+                        this.render_ret(ret, this.super_points, this.voronoi_points, this.midpoints, this.triangle_list);
+                    }
                 }
             }
     
             if (this.section === 1)
             {
-                if (cdv_switch === 2 || cdv_switch === 4 || cdv_switch === 6 || cdv_switch === 7)
+                if (this.cdv_switch === 2 || this.cdv_switch === 4 || this.cdv_switch === 6 || this.cdv_switch === 7)
                 {
                     const group = this.delaunay.history[this.ret_group_num];
-                    const ret = group[this.ret_num];
-                    this.render_ret(ret, this.super_points, this.voronoi_points, this.midpoints, this.triangle_list);
+                    for (let ret of group){
+                        this.render_ret(ret, this.super_points, this.voronoi_points, this.midpoints, this.triangle_list);
+                    }
                 }
             }
     
             if (this.section === 2)
             {
-                if (cdv_switch === 3 || cdv_switch === 5 || cdv_switch === 6 || cdv_switch === 7)
+                if (this.cdv_switch === 3 || this.cdv_switch === 5 || this.cdv_switch === 6 || this.cdv_switch === 7)
                 {
                     const group = this.voronoi.history[this.ret_group_num];
-                    const ret = group[this.ret_num]
-                    this.render_ret(ret, this.super_points, this.voronoi_points, this.midpoints, this.triangle_list);
+                    for (let ret of group){
+                        this.render_ret(ret, this.super_points, this.voronoi_points, this.midpoints, this.triangle_list);
+                    }
                 }
             }
         }
 
-        animate_history(cdv_switch : _CDV_SWITCH_, cur_index : number)
+        animate_history()
         {
             var length : number = 0;
             var stops = [this.convex_hull.history.length, this.delaunay.history.length, this.voronoi.history.length];
-            this.cur_index = cur_index;
-            [this.section, this.ret_group_num, this.ret_num] = this.select_selection_system(cur_index, cdv_switch);
+            [this.section, this.ret_group_num] = this.select_selection_system();
             
-            switch (cdv_switch){
-                case 0 : length = 0;
-                case 1 : length = this.convex_hull.history.length;
-                case 2 : length = this.delaunay.history.length;
-                case 3 : length = this.voronoi.history.length;
-                case 4 : length = this.convex_hull.history.length + this.delaunay.history.length;
-                case 6 : length = this.delaunay.history.length + this.voronoi.history.length;
-                case 7 : length = this.convex_hull.history.length + this.delaunay.history.length + this.voronoi.history.length;  
+            switch (this.cdv_switch){
+                case 0 : length = 0; break;
+                case 1 : length = this.convex_hull.history.length; break;
+                case 2 : length = this.delaunay.history.length; break;
+                case 3 : length = this.voronoi.history.length; break;
+                case 4 : length = this.convex_hull.history.length + this.delaunay.history.length; break;
+                case 6 : length = this.delaunay.history.length + this.voronoi.history.length; break;
+                case 7 : length = this.convex_hull.history.length + this.delaunay.history.length + this.voronoi.history.length; break;
             }
+
+            console.log(length, this.cdv_switch, this.section, this.ret_group_num);
 
             if (length <= 0) return;
 
@@ -3284,50 +3230,54 @@
 
                     if (this.section === 0)
                     {
-                        if (cdv_switch === 1 || cdv_switch === 4 || cdv_switch === 5 || cdv_switch === 7)
+                        if (this.cdv_switch === 1 || this.cdv_switch === 4 || this.cdv_switch === 5 || this.cdv_switch === 7)
                         {
                             const group = this.convex_hull.history[this.ret_group_num];
-                            const group_length = group.length;
-                            const ret = group[this.ret_num]
-                            this.render_ret(ret, this.super_points, this.voronoi_points, this.midpoints, this.triangle_list);
-                            [this.section, this.ret_group_num, this.ret_num] = this.selection_system(this.section, this.ret_group_num, this.ret_num, group_length, stops);
+                            for (let ret of group){
+                                this.render_ret(ret, this.super_points, this.voronoi_points, this.midpoints, this.triangle_list);
+                            }
+                            [this.section, this.ret_group_num] = this.selection_system(this.section, this.ret_group_num, stops);
                         }
                     }
         
                     if (this.section === 1)
                     {
-                        if (cdv_switch === 2 || cdv_switch === 4 || cdv_switch === 6 || cdv_switch === 7)
+                        if (this.cdv_switch === 2 || this.cdv_switch === 4 || this.cdv_switch === 6 || this.cdv_switch === 7)
                         {
-                            const group = this.delaunay.history.length[this.ret_group_num];
-                            const group_length = group.length;
-                            const ret = group[this.ret_num];
-                            this.render_ret(ret, this.super_points, this.voronoi_points, this.midpoints, this.triangle_list);
-                            [this.section, this.ret_group_num, this.ret_num] = this.selection_system(this.section, this.ret_group_num, this.ret_num, group_length, stops);
+                            const group = this.delaunay.history[this.ret_group_num];
+                            for (let ret of group){
+                                this.render_ret(ret, this.super_points, this.voronoi_points, this.midpoints, this.triangle_list);
+                            }
+                            [this.section, this.ret_group_num] = this.selection_system(this.section, this.ret_group_num, stops);
                         }
                     }
         
                     if (this.section === 2)
                     {
-                        if (cdv_switch === 3 || cdv_switch === 5 || cdv_switch === 6 || cdv_switch === 7)
+                        if (this.cdv_switch === 3 || this.cdv_switch === 5 || this.cdv_switch === 6 || this.cdv_switch === 7)
                         {
-                            const group = this.voronoi.history.length[this.ret_group_num];
-                            const group_length = group.length;
-                            const ret = group[this.ret_num]
-                            this.render_ret(ret, this.super_points, this.voronoi_points, this.midpoints, this.triangle_list);
-                            [this.section, this.ret_group_num, this.ret_num] = this.selection_system(this.section, this.ret_group_num, this.ret_num, group_length, stops);
+                            const group = this.voronoi.history[this.ret_group_num];
+                            for (let ret of group){
+                                this.render_ret(ret, this.super_points, this.voronoi_points, this.midpoints, this.triangle_list);
+                            }
+                            [this.section, this.ret_group_num] = this.selection_system(this.section, this.ret_group_num, stops);
                         }
                     }
 
-                    if (this.cur_index >= (length - 1) || this.running === false)
+                    if (this.cur_index >= length || this.running === false)
                     {
                         clearInterval(id);
                         this.running = false;
-                        if(this.cur_index >= (length - 1)) status.innerHTML = "Done";
+                        if(this.cur_index >= length) 
+                        {
+                            status.innerHTML = "Done"; 
+                            this.cur_index = 0;
+                        }
                         else 
                         {
                             anim_number_input.value = `${this.cur_index}`;
                             anim_number.innerHTML = anim_number_input.value;
-                            status.innerHTML = `Paused, count: ${this.cur_index-1}`;
+                            status.innerHTML = `Paused, count: ${this.cur_index}`;
                         }
                     }
                 }, this.time
@@ -3354,7 +3304,11 @@
             this.d_result = _Delaunay.bowyer_watson(this.c_result);
             this.v_result = _Voronoi2D.compute_voronoi(this.d_result);
             this.animate = new Linear_Algebra_Animate(this.v_result, cdv_switch, cur_index);
-            this.time = 1000;
+            this.time = 1000 // fallback time;
+            this.cur_index = cur_index;
+            this.cdv_switch = cdv_switch;
+            this.animate.cur_index = this.cur_index;
+            this.animate.cdv_switch = this.cdv_switch;
         }
 
         changeCDVSwitch(input : _CDV_SWITCH_){
@@ -3375,12 +3329,12 @@
 
         runAnimation()
         {
-            this.animate.animate_history(this.cdv_switch, this.cur_index);
+            this.animate.animate_history();
         }
 
         takeSnapshot()
         {
-            this.animate.history_snapshot(this.cdv_switch, this.cur_index);
+            this.animate.history_snapshot();
         }
     }
   
@@ -3739,7 +3693,7 @@
            pos4 = e.clientY;
 
            dX = pos1 / dt;
-           dY = pos1 / dt;
+           dY = pos2 / dt;
 
            prev = now;
            now = Date.now();
@@ -3758,7 +3712,7 @@
            pos4 = e.touches[0].clientY;
 
            dX = pos1 / dt;
-           dY = pos1 / dt;
+           dY = pos2 / dt;
 
            prev = now;
            now = Date.now();
@@ -4081,9 +4035,10 @@
 
     const pts_mod = _Miscellanous.toPoints(pts);
 
-        const color_list = _Miscellanous.ranHexCol(20);
+    const color_list = _Miscellanous.ranHexCol(20);
 
     const _LinearAlgebraSupport = new LinearAlgebraSupport(pts_mod, 3);
+    _LinearAlgebraSupport.animate.time = Number(anim_speed_input.value); // actual time
 
     anim_number_input.oninput = function(){
         _LinearAlgebraSupport.animate.running = false;
