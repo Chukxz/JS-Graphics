@@ -30,6 +30,10 @@
 
     const after_anim1 = document.getElementById("after_anim1") as HTMLElement;
 
+    const c_1 = document.getElementById("c_1") as HTMLButtonElement;
+    const c_2 = document.getElementById("c_2") as HTMLButtonElement;
+    const c_3 = document.getElementById("c_3") as HTMLButtonElement;
+
     interface PICK {
         color: HTMLElement | null;
         pixel: HTMLElement | null;
@@ -3104,11 +3108,11 @@
             {
                 case 0 : return [0,0];
                 case 1 :
-                    return [0, num];
+                    return [0, num % this.convex_hull.history.length];
                 case 2 :
-                    return [1, num];
+                    return [1, num % this.delaunay.history.length];
                 case 3 :
-                    return [2, num];
+                    return [2, num % this.voronoi.history.length];
                 case 4:
                     if (num < this.convex_hull.history.length) return [0, num];
                     else return [1, num - this.convex_hull.history.length];                    
@@ -3301,6 +3305,10 @@
         points : Point2D[];
         animate : Linear_Algebra_Animate;
 
+        c_1 : boolean;
+        c_2 : boolean;
+        c_3 : boolean;
+
         constructor(points : Point2D[], cdv_switch : _CDV_SWITCH_  = 0, cur_index = 0)
         {
             this.points = points;
@@ -3313,6 +3321,34 @@
             this.cdv_switch = cdv_switch;
             this.animate.cur_index = this.cur_index;
             this.animate.cdv_switch = this.cdv_switch;
+            this.c_1 = false;
+            this.c_2 = false;
+            this.c_3 = false;
+            this.setC_S();
+        }
+
+        checkC_S(){
+            if (this.c_1 === false && this.c_2 === false && this.c_3 === false) this.cdv_switch = 0;
+            if (this.c_1 === true && this.c_2 === false && this.c_3 === false) this.cdv_switch = 1;
+            if (this.c_1 === false && this.c_2 === true && this.c_3 === false) this.cdv_switch = 2;
+            if (this.c_1 === false && this.c_2 === false && this.c_3 === true) this.cdv_switch = 3;
+            if (this.c_1 === true && this.c_2 === true && this.c_3 === false) this.cdv_switch = 4;
+            if (this.c_1 === true && this.c_2 === false && this.c_3 === true) this.cdv_switch = 5;
+            if (this.c_1 === false && this.c_2 === true && this.c_3 === true) this.cdv_switch = 6;
+            if (this.c_1 === true && this.c_2 === true && this.c_3 === true)  this.cdv_switch = 7;
+
+            this.changeCDVSwitch(this.cdv_switch);
+        }
+
+        setC_S(){
+            if (this.cdv_switch = 0) {this.c_1 === false, this.c_2 === false, this.c_3 === false;}
+            if (this.cdv_switch = 1) {this.c_1 === true, this.c_2 === false, this.c_3 === false;}
+            if (this.cdv_switch = 2) {this.c_1 === false, this.c_2 === true, this.c_3 === false;}
+            if (this.cdv_switch = 3) {this.c_1 === false, this.c_2 === false, this.c_3 === true;}
+            if (this.cdv_switch = 4) {this.c_1 === true, this.c_2 === true, this.c_3 === false;}
+            if (this.cdv_switch = 5) {this.c_1 === true, this.c_2 === false, this.c_3 === true;}
+            if (this.cdv_switch = 6) {this.c_1 === false, this.c_2 === true, this.c_3 === true;}
+            if (this.cdv_switch = 7) {this.c_1 === true, this.c_2 === true, this.c_3 === true;}
         }
 
         changeCDVSwitch(input : _CDV_SWITCH_){
@@ -4041,7 +4077,7 @@
 
     const color_list = _Miscellanous.ranHexCol(20);
 
-    const _LinearAlgebraSupport = new LinearAlgebraSupport(pts_mod, 3);
+    const _LinearAlgebraSupport = new LinearAlgebraSupport(pts_mod, 0);
     _LinearAlgebraSupport.animate.time = Number(anim_speed_input.value); // actual time
 
     anim_number_input.oninput = function(){
@@ -4064,6 +4100,58 @@
         else{
             _LinearAlgebraSupport.animate.running = false;
         }
+
+    }
+
+    c_1.onclick = function(){
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        _LinearAlgebraSupport.animate.running = false;
+        if (_LinearAlgebraSupport.c_1 === true){
+            _LinearAlgebraSupport.c_1 = false;
+            c_1.style.backgroundColor = "rgb(27, 103, 70)";
+            _LinearAlgebraSupport.checkC_S();
+        }
+
+        else if(_LinearAlgebraSupport.c_1 === false){
+            _LinearAlgebraSupport.c_1 = true;
+            c_1.style.backgroundColor = "rgb(106, 231, 11)";
+            _LinearAlgebraSupport.checkC_S();
+        }
+        _LinearAlgebraSupport.takeSnapshot();
+    }
+
+    c_2.onclick = function(){
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        _LinearAlgebraSupport.animate.running = false;
+        if (_LinearAlgebraSupport.c_2 === true){
+            _LinearAlgebraSupport.c_2 = false;
+            c_2.style.backgroundColor = "rgb(27, 103, 70)";
+            _LinearAlgebraSupport.checkC_S();
+        }
+
+        else if(_LinearAlgebraSupport.c_2 === false){
+            _LinearAlgebraSupport.c_2 = true;
+            c_2.style.backgroundColor = "rgb(106, 231, 11)";
+            _LinearAlgebraSupport.checkC_S();
+        }
+        _LinearAlgebraSupport.takeSnapshot();
+    }
+
+    c_3.onclick = function(){
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        _LinearAlgebraSupport.animate.running = false;
+        if (_LinearAlgebraSupport.c_3 === true){
+            _LinearAlgebraSupport.c_3 = false;
+            c_3.style.backgroundColor = "rgb(27, 103, 70)";
+            _LinearAlgebraSupport.checkC_S();
+        }
+
+        else if(_LinearAlgebraSupport.c_3 === false){
+            _LinearAlgebraSupport.c_3 = true;
+            c_3.style.backgroundColor = "rgb(106, 231, 11)";
+            _LinearAlgebraSupport.checkC_S();
+        }
+        _LinearAlgebraSupport.takeSnapshot();
     }
 
     // var Slider = {
