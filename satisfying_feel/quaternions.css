@@ -141,7 +141,8 @@
 }
 
 .cdv_elem {
-    height: 20px;
+    height: 28px;
+    width: 100px;
     padding: 3px 2px 3px 2px;
     cursor: pointer;
     text-align: center;
@@ -152,8 +153,4 @@
     border: none;
     border-radius: 5px;
     margin: 0px 5px 0px 5px;
-}
-
-.cdv_elem:hover {
-    background-color: rgb(27, 103, 70);
 }

@@ -33,6 +33,7 @@
     const c_1 = document.getElementById("c_1") as HTMLButtonElement;
     const c_2 = document.getElementById("c_2") as HTMLButtonElement;
     const c_3 = document.getElementById("c_3") as HTMLButtonElement;
+    const c_elems = document.getElementsByClassName("cdv_elem") as HTMLCollectionOf<HTMLButtonElement>;
 
     interface PICK {
         color: HTMLElement | null;
@@ -4108,7 +4109,7 @@
         _LinearAlgebraSupport.animate.running = false;
         if (_LinearAlgebraSupport.c_1 === true){
             _LinearAlgebraSupport.c_1 = false;
-            c_1.style.backgroundColor = "rgb(27, 103, 70)";
+            c_1.style.backgroundColor = "#4CAF50";
             _LinearAlgebraSupport.checkC_S();
         }
 
@@ -4125,7 +4126,7 @@
         _LinearAlgebraSupport.animate.running = false;
         if (_LinearAlgebraSupport.c_2 === true){
             _LinearAlgebraSupport.c_2 = false;
-            c_2.style.backgroundColor = "rgb(27, 103, 70)";
+            c_2.style.backgroundColor = "#4CAF50";
             _LinearAlgebraSupport.checkC_S();
         }
 
@@ -4142,7 +4143,7 @@
         _LinearAlgebraSupport.animate.running = false;
         if (_LinearAlgebraSupport.c_3 === true){
             _LinearAlgebraSupport.c_3 = false;
-            c_3.style.backgroundColor = "rgb(27, 103, 70)";
+            c_3.style.backgroundColor = "#4CAF50";
             _LinearAlgebraSupport.checkC_S();
         }
 
@@ -4152,6 +4153,11 @@
             _LinearAlgebraSupport.checkC_S();
         }
         _LinearAlgebraSupport.takeSnapshot();
+    }
+
+    for (let elem of c_elems){
+        elem.addEventListener("mouseover", (ev)=>{elem.style.border = "3px solid burlywood"});
+        elem.addEventListener("mouseout", ()=>{elem.style.border = "none"});
     }
 
     // var Slider = {

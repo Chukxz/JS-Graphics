@@ -21,6 +21,7 @@
     const c_1 = document.getElementById("c_1");
     const c_2 = document.getElementById("c_2");
     const c_3 = document.getElementById("c_3");
+    const c_elems = document.getElementsByClassName("cdv_elem");
     const hovered = { color: document.getElementById('hoveredColor'), pixel: document.getElementById('hoveredPixel') };
     const selected = { color: document.getElementById('selectedColor'), pixel: document.getElementById('selectedPixel') };
     var drop = document.getElementById('drop');
@@ -3349,7 +3350,7 @@
         _LinearAlgebraSupport.animate.running = false;
         if (_LinearAlgebraSupport.c_1 === true) {
             _LinearAlgebraSupport.c_1 = false;
-            c_1.style.backgroundColor = "rgb(27, 103, 70)";
+            c_1.style.backgroundColor = "#4CAF50";
             _LinearAlgebraSupport.checkC_S();
         }
         else if (_LinearAlgebraSupport.c_1 === false) {
@@ -3364,7 +3365,7 @@
         _LinearAlgebraSupport.animate.running = false;
         if (_LinearAlgebraSupport.c_2 === true) {
             _LinearAlgebraSupport.c_2 = false;
-            c_2.style.backgroundColor = "rgb(27, 103, 70)";
+            c_2.style.backgroundColor = "#4CAF50";
             _LinearAlgebraSupport.checkC_S();
         }
         else if (_LinearAlgebraSupport.c_2 === false) {
@@ -3379,7 +3380,7 @@
         _LinearAlgebraSupport.animate.running = false;
         if (_LinearAlgebraSupport.c_3 === true) {
             _LinearAlgebraSupport.c_3 = false;
-            c_3.style.backgroundColor = "rgb(27, 103, 70)";
+            c_3.style.backgroundColor = "#4CAF50";
             _LinearAlgebraSupport.checkC_S();
         }
         else if (_LinearAlgebraSupport.c_3 === false) {
@@ -3389,6 +3390,10 @@
         }
         _LinearAlgebraSupport.takeSnapshot();
     };
+    for (let elem of c_elems) {
+        elem.addEventListener("mouseover", (ev) => { elem.style.border = "3px solid burlywood"; });
+        elem.addEventListener("mouseout", () => { elem.style.border = "none"; });
+    }
     // var Slider = {
     //     slider : null,
     //     Start : function(i){
