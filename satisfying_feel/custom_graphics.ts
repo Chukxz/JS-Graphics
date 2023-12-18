@@ -14,10 +14,52 @@
     // var speed = 0;
     // var prev = Date.now()
 
+    const main_nav = document.getElementById("main_nav") as HTMLUListElement;
+
+    main_nav.style.width = `${window.innerWidth - 80}px`;
+
+    const editing = document.getElementById("Editing") as HTMLLIElement;
+    const animation = document.getElementById("Aditing") as HTMLLIElement;
+    const sculpting = document.getElementById("Sculpting") as HTMLLIElement;
+    const rendering = document.getElementById("Rendering") as HTMLLIElement;
+
+    const drop = document.getElementById("main_drop") as HTMLDivElement;
+    var drop_v = false;
+    const drop_content = document.getElementById("main_drop_c") as HTMLDivElement;
+
+    drop.onclick = function(){
+        if (drop_v === true)
+        {
+            drop_content.style.display = "none";
+            drop_v = false;
+        }
+
+        else if(drop_v === false)
+        {
+            drop_content.style.display = "inline-block";
+            drop_v = true;
+        }
+    }
+    
+
+    drop.addEventListener("mouseover", ()=>{if (drop_v === false) drop_content.style.display = "inline-block"});
+    drop.addEventListener("mouseout", ()=>{if (drop_v === false) drop_content.style.display = "none"});
+
     const canvas = document.getElementsByTagName('canvas')[0];
 
-    const ctx = canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
+    drop_content.addEventListener("click", (ev)=>{
+        ev.stopPropagation();
+    });
 
+    canvas.addEventListener("click", ()=>{
+        if (drop_v === true)
+        {
+            drop_content.style.display = "none";
+            drop_v = false;
+        }
+    })
+
+    const ctx = canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
     const status = document.getElementById("status") as HTMLElement;
 
     const anim_number = document.getElementById("anim1_value") as HTMLElement;
@@ -43,8 +85,6 @@
     const hovered : PICK = { color: document.getElementById('hoveredColor'), pixel: document.getElementById('hoveredPixel') };
 
     const selected : PICK = { color: document.getElementById('selectedColor'), pixel: document.getElementById('selectedPixel') };
-
-    var drop = document.getElementById('drop');
 
     type _ANGLE_UNIT_ = "deg" | "rad" | "grad";
 
@@ -176,7 +216,6 @@
         _HALF_Y : number,
         _PROJECTION_MAT : _16D_VEC_,
         _INV_PROJECTION_MAT : _16D_VEC_,
-        _OPEN_SIDEBAR : boolean,
     }
 
     const DEFAULT_PARAMS : _BASIC_PARAMS_ =
@@ -210,7 +249,6 @@
         _HALF_Y : 1,
         _PROJECTION_MAT : [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
         _INV_PROJECTION_MAT : [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        _OPEN_SIDEBAR : false,
         }
 
     const MODIFIED_PARAMS : _BASIC_PARAMS_ = JSON.parse(JSON.stringify(DEFAULT_PARAMS))
@@ -318,8 +356,7 @@
         setCanvas(): void
         {
             // Canvas
-            var width = window.innerWidth - 80;
-            if (MODIFIED_PARAMS._OPEN_SIDEBAR === true) width = window.innerWidth - 300;
+            var width = window.innerWidth - 50;
 
             const height = window.innerHeight - 100;
 

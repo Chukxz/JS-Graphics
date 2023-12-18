@@ -12,18 +12,16 @@
 
 <body>
 
-    <canvas></canvas>
-
-    <ul>
-        <li><a class="active" href="#home">Home</a></li>
-        <li><a href="#news">News</a></li>
-        <li><a href="#contact">Contact</a></li>
-        <li><a href="#about">About</a></li>
+    <ul class="nav" id="main_nav">
+        <li class="nav"><a class="active nav" id="Editing">Editing</a></li>
+        <li class="nav"><a class="nav" id="Animation">Animation</a></li>
+        <li class="nav"><a class="nav" id="Sculpting">Sculpting</a></li>
+        <li class="nav"><a class="nav" id="Rendering">Rendering</a></li>
     </ul>
 
-    <div class="dropdown" id="drop">
+    <div class="drop" id="main_drop">
         <span>&ThickSpace;&LeftAngleBracket;</span>
-        <div class="dropdown-content one">
+        <div class="drop-content" id="main_drop_c">
             <form>
                 Rotate X:<br/>
                 <input id="rotx" type="number" value=0><br/> Rotate Y:<br/>
@@ -42,7 +40,10 @@
         </div>
     </div>
 
-    <div id="animation">
+    <canvas></canvas>
+
+    <!--Animation-->
+    <div id="animation" style="display : none;">
         <div class="inline-div anim_input" id="anim1">
             <label for="animation_number">Animation Number : <span id="anim1_value">Null</span></label>
             <input type="range" min="0" max="100" value="0" id="animation_number">
@@ -55,13 +56,13 @@
         <button id="anim_info">Animation Status: <span id="status">Null</span></button>
     </div>
 
-    <div class="dropdown" id="vertexinfo cdv">
+    <div class="dropdown" id="vertexinfo cdv" style="display: none;">
         <button class="cdv_elem" id="c_1">Convex Hull</button>
         <button class="cdv_elem" id="c_2">Delaunay</button>
         <button class="cdv_elem" id="c_3">Voronoi</button>
     </div>
 
-    <div id="info">
+    <div id="info" style="display: none;">
         <div id="hovered">
             <p id="hoveredColor">null</p>
             <div class="dropdown" id="vertexinfo">

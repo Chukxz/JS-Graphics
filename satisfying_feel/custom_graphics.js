@@ -9,7 +9,39 @@
     // var prevH = 0;
     // var speed = 0;
     // var prev = Date.now()
+    const main_nav = document.getElementById("main_nav");
+    main_nav.style.width = `${window.innerWidth - 80}px`;
+    const editing = document.getElementById("Editing");
+    const animation = document.getElementById("Aditing");
+    const sculpting = document.getElementById("Sculpting");
+    const rendering = document.getElementById("Rendering");
+    const drop = document.getElementById("main_drop");
+    var drop_v = false;
+    const drop_content = document.getElementById("main_drop_c");
+    drop.onclick = function () {
+        if (drop_v === true) {
+            drop_content.style.display = "none";
+            drop_v = false;
+        }
+        else if (drop_v === false) {
+            drop_content.style.display = "inline-block";
+            drop_v = true;
+        }
+    };
+    drop.addEventListener("mouseover", () => { if (drop_v === false)
+        drop_content.style.display = "inline-block"; });
+    drop.addEventListener("mouseout", () => { if (drop_v === false)
+        drop_content.style.display = "none"; });
     const canvas = document.getElementsByTagName('canvas')[0];
+    drop_content.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+    });
+    canvas.addEventListener("click", () => {
+        if (drop_v === true) {
+            drop_content.style.display = "none";
+            drop_v = false;
+        }
+    });
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     const status = document.getElementById("status");
     const anim_number = document.getElementById("anim1_value");
@@ -24,7 +56,6 @@
     const c_elems = document.getElementsByClassName("cdv_elem");
     const hovered = { color: document.getElementById('hoveredColor'), pixel: document.getElementById('hoveredPixel') };
     const selected = { color: document.getElementById('selectedColor'), pixel: document.getElementById('selectedPixel') };
-    var drop = document.getElementById('drop');
     let _ERROR_;
     (function (_ERROR_) {
         _ERROR_[_ERROR_["_NO_ERROR_"] = 1000000000000] = "_NO_ERROR_";
@@ -73,7 +104,6 @@
         _HALF_Y: 1,
         _PROJECTION_MAT: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         _INV_PROJECTION_MAT: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        _OPEN_SIDEBAR: false,
     };
     const MODIFIED_PARAMS = JSON.parse(JSON.stringify(DEFAULT_PARAMS));
     class BackwardsCompatibilitySettings {
@@ -165,9 +195,7 @@
         }
         setCanvas() {
             // Canvas
-            var width = window.innerWidth - 80;
-            if (MODIFIED_PARAMS._OPEN_SIDEBAR === true)
-                width = window.innerWidth - 300;
+            var width = window.innerWidth - 50;
             const height = window.innerHeight - 100;
             MODIFIED_PARAMS._CANVAS_WIDTH = width;
             MODIFIED_PARAMS._CANVAS_HEIGHT = height;
