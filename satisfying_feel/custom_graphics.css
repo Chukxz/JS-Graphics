@@ -16,18 +16,19 @@ ul.nav {
     background-color: #333;
     position: static;
     top: 0;
-    width: 80%;
+    width: 75%;
     display: inline-block;
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
+    border-radius: 5px;
 }
 
 li.nav {
     float: left;
 }
 
-li.nav a.nav {
+li.nav {
     display: block;
     color: white;
     text-align: center;
@@ -35,13 +36,13 @@ li.nav a.nav {
     text-decoration: none;
 }
 
-li.nav a.nav:hover:not(.active) {
+
+/* li.nav a.nav:hover:not(.active) {
     background-color: #111;
 }
 
 .nav.active {
-    background-color: #4CAF50;
-}
+} */
 
 
 /* Dropdown */

@@ -15,49 +15,15 @@
     // var prev = Date.now()
 
     const main_nav = document.getElementById("main_nav") as HTMLUListElement;
-
     main_nav.style.width = `${window.innerWidth - 80}px`;
 
-    const editing = document.getElementById("Editing") as HTMLLIElement;
-    const animation = document.getElementById("Aditing") as HTMLLIElement;
-    const sculpting = document.getElementById("Sculpting") as HTMLLIElement;
-    const rendering = document.getElementById("Rendering") as HTMLLIElement;
 
     const drop = document.getElementById("main_drop") as HTMLDivElement;
     var drop_v = false;
     const drop_content = document.getElementById("main_drop_c") as HTMLDivElement;
 
-    drop.onclick = function(){
-        if (drop_v === true)
-        {
-            drop_content.style.display = "none";
-            drop_v = false;
-        }
-
-        else if(drop_v === false)
-        {
-            drop_content.style.display = "inline-block";
-            drop_v = true;
-        }
-    }
-    
-
-    drop.addEventListener("mouseover", ()=>{if (drop_v === false) drop_content.style.display = "inline-block"});
-    drop.addEventListener("mouseout", ()=>{if (drop_v === false) drop_content.style.display = "none"});
-
     const canvas = document.getElementsByTagName('canvas')[0];
 
-    drop_content.addEventListener("click", (ev)=>{
-        ev.stopPropagation();
-    });
-
-    canvas.addEventListener("click", ()=>{
-        if (drop_v === true)
-        {
-            drop_content.style.display = "none";
-            drop_v = false;
-        }
-    })
 
     const ctx = canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
     const status = document.getElementById("status") as HTMLElement;
@@ -160,6 +126,12 @@
         circum_pt_index : number;
     }
 
+    type _CONNECTIVITY_ = {
+        faces : string[];
+        edges : string[];
+        vertices : number[];
+    }
+
     enum _ERROR_ 
     {
         _NO_ERROR_ = 1e12,
@@ -216,6 +188,7 @@
         _HALF_Y : number,
         _PROJECTION_MAT : _16D_VEC_,
         _INV_PROJECTION_MAT : _16D_VEC_,
+        _ACTIVE : string,
     }
 
     const DEFAULT_PARAMS : _BASIC_PARAMS_ =
@@ -249,6 +222,7 @@
         _HALF_Y : 1,
         _PROJECTION_MAT : [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
         _INV_PROJECTION_MAT : [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        _ACTIVE : "",
         }
 
     const MODIFIED_PARAMS : _BASIC_PARAMS_ = JSON.parse(JSON.stringify(DEFAULT_PARAMS))
@@ -334,14 +308,56 @@
         private hovered_vertices_array : [];
         private pre_selected_vertices_array : [];
         private selected_vertices_array : [];
+        private _last_active : HTMLLIElement;
 
         constructor()
         {
             (drop as HTMLElement).style.top = `${-(drop as HTMLElement).offsetTop + canvas.offsetTop}px`;
-            this.setCanvas()
-            this.resetCanvasToDefault()
+            this.setCanvas();
+            this.resetCanvasToDefault();
 
-            window.addEventListener("resize", () => this.refreshCanvas());
+            drop.onclick = function(){
+                if (drop_v === true)
+                {
+                    drop_content.style.display = "none";
+                    drop_v = false;
+                }
+        
+                else if(drop_v === false)
+                {
+                    drop_content.style.display = "inline-block";
+                    drop_v = true;
+                }
+            }    
+        
+            drop.addEventListener("mouseover", ()=>{if (drop_v === false) drop_content.style.display = "inline-block"});
+            drop.addEventListener("mouseout", ()=>{if (drop_v === false) drop_content.style.display = "none"});
+            drop_content.addEventListener("click", (ev)=>{
+                ev.stopPropagation();
+            });
+        
+            canvas.addEventListener("click", ()=>{
+                if (drop_v === true)
+                {
+                    drop_content.style.display = "none";
+                    drop_v = false;
+                }
+            });
+
+            window.addEventListener("resize", () => {
+                this.refreshCanvas();
+             main_nav.style.width = `${window.innerWidth - 80}px`;
+            });
+
+            var numero = 0;
+            for (let child of main_nav.children){
+                const _child = document.getElementById(child.id) as HTMLLIElement;
+                if(numero === 0) this.modifyState(child.id,_child, true);
+                numero++;
+                _child.addEventListener("mouseenter", ()=>{this.hoverState(child.id, _child)});
+                _child.addEventListener("mouseout", ()=>{this.unhoverState(child.id, _child)});
+                _child.addEventListener("click", ()=>{this.modifyState(child.id, _child)});
+            }
         }
 
         setGlobalAlpha (alpha : number)
@@ -371,17 +387,6 @@
             // Perspective Projection
             MODIFIED_PARAMS._ASPECT_RATIO = width / height;
         }
-
-        // initCanvas() {
-        //     this.ocanvas.width = this.canvW;
-        //     this.ocanvas.height = this.canvH;
-        //     this.canvas.style.borderStyle = this.bordStyle;
-        //     this.canvas.style.borderWidth = `${this.bordW}px`;
-        //     this.canvas.style.borderColor = this.color;
-        //     this.canvas.style.opacity = this.opacity;
-        //     this.canvas.width = this.canvW;
-        //     this.canvas.height = this.canvH;
-        // }
 
         resetCanvasToDefault()
         {
@@ -424,9 +429,58 @@
             else if (angle_unit === 'grad') return 200/Math.PI; // rad to grad
             else return _ERROR_._SETTINGS_ERROR_;
         }
+
+        unhoverState(value : string, elem : HTMLLIElement)
+        {
+            if(value !== MODIFIED_PARAMS._ACTIVE){
+                elem.style.backgroundColor = "#333";
+            } 
+        }
+
+        hoverState(value : string, elem : HTMLLIElement){
+            if(value !== MODIFIED_PARAMS._ACTIVE){
+                elem.style.backgroundColor = "#111";
+            } 
+        }
+        
+        modifyState(value : string, elem : HTMLLIElement, first = false)
+        {
+            if(value !== MODIFIED_PARAMS._ACTIVE){
+                MODIFIED_PARAMS._ACTIVE = value;
+                this.refreshState();
+                elem.style.backgroundColor = "#4CAF50";
+                if (first === false) this._last_active.style.backgroundColor = "#333";
+                this._last_active = elem;
+            }
+        }
+
+        refreshState(){}
     }
 
     const _BasicSettings = new BasicSettings();
+
+    _BasicSettings.setGlobalAlpha(0.6);
+
+    class DrawCanvas {
+        protected static drawCount = 0;
+        constructor()
+        {
+            window.addEventListener("resize", () => this.drawCanvas());
+        }
+        drawCanvas() {
+            ctx.globalAlpha = MODIFIED_PARAMS._GLOBAL_ALPHA;
+            canvas.style.borderStyle = MODIFIED_PARAMS._BORDER_STYLE;
+            canvas.style.borderWidth = MODIFIED_PARAMS._BORDER_WIDTH;
+            canvas.style.borderColor = MODIFIED_PARAMS._BORDER_COLOR;
+            canvas.style.opacity = MODIFIED_PARAMS._CANVAS_OPACITY;
+            canvas.width = MODIFIED_PARAMS._CANVAS_WIDTH;
+            canvas.height = MODIFIED_PARAMS._CANVAS_HEIGHT;
+
+            DrawCanvas.drawCount++;
+        }
+    }   
+
+    const _DrawCanvas = new DrawCanvas();
     
     class Miscellanous {
         constructor() {}
@@ -632,10 +686,37 @@
             return res;
         }
 
-        toPoints(pointList : any[]) {
+        toPoints2D(pointList : any[]) : Point2D[]
+         {
             const retList : Point2D[] = [];
             for (let point in pointList) {
                 retList[point] = new Point2D(pointList[point][0], pointList[point][1]);
+            }
+            return retList;
+        }
+
+        toPoints3D(pointList : any[]) : Point3D[]
+        {
+            const retList : Point3D[] = [];
+            for (let point in pointList) {
+                retList[point] = new Point3D(pointList[point][0], pointList[point][1], pointList[2]);
+            }
+            return retList;
+        }
+
+        points2DTo3D(pointList : Point2D[]) : Point3D[]{
+            const retList : Point3D[];
+            for(let point of pointList){
+                retList.push(new Point3D(point.x, point.y, point.z));
+            }
+            return retList;
+        }
+
+        points3DTo2D(pointList : Point3D[]) : Point2D[]
+        {
+            const retList : Point2D[];
+            for(let point of pointList){
+                retList.push(new Point2D(point.x, point.y));
             }
             return retList;
         }
@@ -1059,18 +1140,24 @@
             this.theta = DEFAULT_PARAMS._THETA;
         }
     
-        vector(input_vec : _3D_VEC_)
+        vector(input_vec : _3D_VEC_, normalized = true)
         { // recommended if vector is not a unit vector i.e non-normalized
             // normalize flag to normalize vector (create a unit vector)
-            if (this.normalize === false) this.q_vector = input_vec;
+            if (normalized === true) this.q_vector = input_vec;
             else {
                 const [v1,v2,v3] = input_vec
                 const inv_mag = Math.pow(v1 ** 2 + v2 ** 2 + v3, -0.5);
                 this.q_vector = [v1 * inv_mag, v2 * inv_mag, v3 * inv_mag];
             }
         }
+
+        q_mag(quart : _4D_VEC_)
+        {
+            const [w, x, y, z] = quart;
+            return Math.pow(w**2 + x**2 + y**2 + z**2, 0.5);
+        }
     
-        quarternion()
+        quarternion(normalized = true)
         
         {
             // quarternion
@@ -1078,15 +1165,28 @@
             const [v1, v2, v3] = this.q_vector;
             const [a, b] = [Math.cos(this.theta * 0.5), Math.sin(this.theta * 0.5)];
             this.q_quarternion = [a, v1 * b, v2 * b, v3 * b];
+
+            if (normalized === false) // normalize the quartenion
+            {
+                const [w, x, y, z] = this.q_quarternion;
+                const inv_mag = Math.pow(w**2 + x**2 + y**2 + z**2, -0.5);
+                this.q_quarternion = [w * inv_mag, x * inv_mag, y * inv_mag, z * inv_mag];
+            }
         };
     
-        inv_quartenion()
-        
+        inv_quartenion(normalized = true)        
         {
             // inverse quarternion           
             const [v1, v2, v3] = this.q_vector;
             const [a, b] = [Math.cos(this.theta * 0.5), Math.sin(this.theta * 0.5)];
             this.q_inv_quarternion = [a, -v1 * b, -v2 * b, -v3 * b];
+
+            if (normalized === false) // normalize the quartenion
+            {
+                const [w, x, y, z] = this.q_inv_quarternion;
+                const inv_mag = Math.pow(w**2 + x**2 + y**2 + z**2, -0.5);
+                this.q_inv_quarternion = [w * inv_mag, x * inv_mag, y * inv_mag, z * inv_mag];
+            }
         };
     
         q_mult(quart_A : _4D_VEC_, quart_B : _4D_VEC_) : _4D_VEC_
@@ -1106,6 +1206,15 @@
 
             return this.q_mult(this.q_quarternion, this.q_mult(output_vec, this.q_inv_quarternion)).splice(1) as _3D_VEC_;
         }
+
+        q_v_q_mult(input_vec : _3D_VEC_) : _3D_VEC_
+        {
+            // quarternion _ vector _ inverse quarternion multiplication for point and vector reflection
+            // with additional translating (for points) and scaling (for point and vectors) capabilities
+            const output_vec : _4D_VEC_ = [0,...input_vec]
+
+            return this.q_mult(this.q_quarternion, this.q_mult(output_vec, this.q_quarternion)).splice(1) as _3D_VEC_;
+        }
     
         q_rot(_angle : number = 0 , _vector : _3D_VEC_ = [0, 0, 1], _point : _3D_VEC_ = [0, 0, 0]) : _3D_VEC_
         {
@@ -1114,6 +1223,14 @@
             this.quarternion();
             this.inv_quartenion()
             return this.q_v_invq_mult(_point);
+        }
+
+        q_ref(_angle : number = 0 , _vector : _3D_VEC_ = [0, 0, 1], _point : _3D_VEC_ = [0, 0, 0]) : _3D_VEC_
+        {
+            this.theta = MODIFIED_PARAMS._ANGLE_CONSTANT*_angle;
+            this.vector(_vector);
+            this.quarternion();
+            return this.q_v_q_mult(_point);
         }
     }
 
@@ -2208,6 +2325,17 @@
         }
     }
 
+    class Point3D{
+        x: number;
+        y: number;
+        z : number;
+        constructor(x : number, y: number, z : number){
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+    }
+
     class Ret{
         public _ret : string;
         public _color_code : string;
@@ -2539,8 +2667,6 @@
                     }
                 }
             }
-
-            console.log(prune_list)
 
             for (let triangle of prune_list) {
                 triangulation.removeTriangle(triangle[0], triangle[1], triangle[2]); // remove triangle containing vertices of super triangle
@@ -2993,8 +3119,6 @@
                 voronoi_history.push([...points_ret_list, ...voronoi_points_ret_list_last, ...convex_hull_edges_ret_list, ...voronoi_edges_ret_list_last, ...no_intersect_ret_list_last, ...new_m, ...new_v, ...new_l]); // push it to the history so we can see the change
             }
 
-            console.log(voronoi_history.length);
-
             return [convex_hull, delaunay, {edges : voronoi_edges_list, full_point_list : voronoi_points_list, history : voronoi_history}, triangulation, convex_hull_edges, pt_list, points_ret_list, mid_pt_list];
         }
     }
@@ -3043,9 +3167,9 @@
             this.super_points = this.delaunay.full_point_list;
             this.voronoi_points = this.voronoi.full_point_list;
 
-            console.log(this.convex_hull.history);
-            console.log(this.delaunay.history);
-            console.log(this.voronoi.history);
+            // console.log(this.convex_hull.history);
+            // console.log(this.delaunay.history);
+            // console.log(this.voronoi.history);
 
             switch (this.cdv_switch){
                 case 0 : length = 0; break;
@@ -3201,8 +3325,6 @@
             [this.section, this.ret_group_num] = this.select_selection_system();
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            console.log(this.section, this.ret_group_num);
             
             status.innerHTML = `Current count: ${this.cur_index}`;
             anim_number_input.value = `${this.cur_index}`;
@@ -3257,8 +3379,6 @@
                 case 6 : length = this.delaunay.history.length + this.voronoi.history.length; break;
                 case 7 : length = this.convex_hull.history.length + this.delaunay.history.length + this.voronoi.history.length; break;
             }
-
-            console.log(length, this.cdv_switch, this.section, this.ret_group_num);
 
             if (length <= 0) return;
 
@@ -3441,6 +3561,691 @@
     class PhongShading{}
 
     class BlinnPhongShading{}
+
+
+    // We implement a function closure here by binding the variable 'implementDrag'
+    // to a local function and invoking the local function, this ensures that we have
+    // some sort of private variables
+    var implementDrag : DRAG =
+    (function() {
+       var pos1 = 0,
+           pos2 = 0,
+           pos3 = 0,
+           pos4 = 0,
+           prev = 0,
+           now = Date.now(),
+           dt = now - prev + 1,
+           dX = 0,
+           dY = 0,
+           sens = 10,
+
+           // We invoke the local functions (changeSens and startDrag) as methods
+           // of the object 'retObject' and set the return value of the local function
+           // to 'retObject'
+
+           retObject : DRAG = {
+               change: changeSens,
+               start: drag,
+               sensitivity: getSens()
+           };
+
+       function changeSens(value : number) 
+       {
+           sens = value;
+       }
+       
+       function getSens() : number{
+           return sens;
+       }
+
+       function drag(element : any)
+       {
+           startDragMobile(element);
+           startDrag(element);
+       }
+
+       function startDrag(element : any)
+       {
+           element.onmousedown = dragMouseDown;
+       }
+
+       function startDragMobile(element : any)
+       {
+           element.addEventListener('touchstart', dragTouchstart, { 'passive': true });
+       }
+
+       function dragMouseDown(e : any) {
+           e = e || window.event;
+           e.preventDefault();
+
+           pos3 = e.clientX;
+           pos4 = e.clientY;
+
+           document.onmouseup = dragMouseup;
+           document.onmousemove = dragMousemove;
+       }
+
+       function dragTouchstart(e : any) {
+           e = e || window.event;
+
+           pos3 = e.touches[0].clientX;
+           pos4 = e.touches[0].clientY;
+
+           document.addEventListener('touchend', dragTouchend, { 'passive': true });
+           document.addEventListener('touchmove', dragTouchmove, { 'passive': true });
+       }
+
+       function dragMousemove(e : any) {
+           e = e || window.event;
+           e.preventDefault();
+
+           pos1 = e.clientX - pos3;
+           pos2 = e.clientY - pos4;
+           pos3 = e.clientX;
+           pos4 = e.clientY;
+
+           dX = pos1 / dt;
+           dY = pos2 / dt;
+
+           prev = now;
+           now = Date.now();
+           dt = now - prev + 1;
+
+           console.log(`X: ${dX*sens}`);
+           console.log(`Y: ${dY*sens}`);
+       }
+
+       function dragTouchmove(e : any) {
+           e = e || window.event;
+
+           pos1 = e.touches[0].clientX - pos3;
+           pos2 = e.touches[0].clientY - pos4;
+           pos3 = e.touches[0].clientX;
+           pos4 = e.touches[0].clientY;
+
+           dX = pos1 / dt;
+           dY = pos2 / dt;
+
+           prev = now;
+           now = Date.now();
+           dt = now - prev + 1;
+
+
+           console.log(`X: ${dX*sens}`);
+           console.log(`Y: ${dY*sens}`);
+       }
+
+       function dragMouseup() {
+           document.onmouseup = null;
+           document.onmousemove = null;
+       }
+
+       function dragTouchend() {
+           document.addEventListener('touchend', () => null, { 'passive': true });
+           document.addEventListener('touchmove', () => null, { 'passive': true });
+       }
+
+       return retObject;
+   })()
+
+   implementDrag.start(canvas);
+
+   function pick(event : MouseEvent, destination : PICK) {
+        const bounding = canvas.getBoundingClientRect();
+        const x = event.clientX - bounding.left;
+        const y = event.clientY - bounding.top;
+
+        const pixel = ctx.getImageData(x, y, 1, 1);
+        const data = pixel.data;
+
+        const rgba = `rgba(${data[0]}, ${data[1]}, ${data[2]}, ${data[3] / 255})`;
+        (destination.color as HTMLElement).innerHTML = rgba;
+        (destination.pixel as HTMLElement).innerHTML = `(${x},${y})`;
+
+        return rgba;
+    }
+
+    canvas.addEventListener("mousemove", (event) => pick(event, hovered));
+    canvas.addEventListener("click", (event) => pick(event, selected));
+
+   const _Classes = (bases: any) : object =>
+   {
+   class Bases
+   {
+       constructor()
+       {
+       bases.foreach((base: new () => any) => Object.assign(this,new base()));
+       }
+   }
+
+       bases.forEach((base : new() => any) => 
+       {
+       Object.getOwnPropertyNames(base.prototype)
+           .filter(prop => prop != 'constructor')
+           .forEach(prop => Bases.prototype[prop] = base.prototype[prop]);
+       }
+       )
+   return Bases
+   }
+
+
+
+
+    class Experimental{
+        constructor(){}
+        draw(coords : Point2D[], fill_style = "red", stroke_style = "black", stroke_width = 1, fill_bool = false) {
+            ctx.globalAlpha = MODIFIED_PARAMS._GLOBAL_ALPHA;
+            if (coords.length === 1){
+                const a = coords[0];
+                if (a.r === 0) this.drawPoint(a,fill_style,stroke_style);
+                else this.drawCircle(a.x,a.y,a.r,fill_style,stroke_style);
+
+            }
+            if (coords.length === 2){
+                const [a,b] = [...coords];
+                this.drawLine(a, b, stroke_style,stroke_width);
+            }
+
+            if (coords.length === 3){
+                const [p,q,r] = [...coords];
+                this.drawTriangle(p, q, r,fill_style,stroke_style);
+            }  else if (coords.length > 3) {
+                this.drawPolygon(coords, fill_style, stroke_style, stroke_width, fill_bool);
+            }          
+        }
+
+        getCircumCircle_(coords : Point2D[]){
+            const [a,b,c] = [...coords];
+            return _Linear.getCircumCircle(a,b,c);
+        }
+
+        getInCircle_(coords : Point2D[]){
+            const [a,b,c] = [...coords];
+            return _Linear.getInCircle(a,b,c);
+
+        }
+
+        drawTriangle(a : Point2D, b : Point2D, c :Point2D, fill_style = "red", stroke_style = "black") {
+            if(typeof a !== "undefined" && typeof b !== "undefined"  && typeof c !== "undefined")
+            {
+                ctx.beginPath();
+                ctx.moveTo(a.x, a.y);
+                ctx.lineTo(b.x, b.y);
+                ctx.lineTo(c.x, c.y);
+                ctx.closePath();
+        
+                const _a = (Math.sqrt((c.x - b.x) ** 2 + (c.y - b.y) ** 2));
+                const _b = (Math.sqrt((c.x - a.x) ** 2 + (c.y - a.y) ** 2));
+                const _c = (Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2));
+        
+                const perimeter = _a + _b + _c;
+                const semiperimeter = perimeter * 0.5;
+                const area = Math.sqrt(semiperimeter * (semiperimeter - _a) * (semiperimeter - _b) * (semiperimeter - _c));
+        
+                const stroke_width = Math.round(Math.sqrt(area / perimeter));
+        
+                ctx.fillStyle = fill_style;
+                ctx.fill();
+        
+                ctx.strokeStyle = stroke_style;
+                ctx.lineWidth = stroke_width;
+                ctx.stroke();
+            }
+        }
+
+        drawPolygon(coords : Point2D[], fill_style = "red", stroke_style = "black", stroke_width = 1, fill_bool = false) {
+            ctx.beginPath();
+            ctx.moveTo(coords[0].x, coords[0].y);
+
+            for (let coord of coords) {
+                ctx.lineTo(coord.x, coord.y);
+            }
+
+            ctx.closePath();
+
+            if (fill_bool === true) {
+                ctx.fillStyle = fill_style;
+                ctx.fill();
+            }
+            
+            ctx.strokeStyle = stroke_style;
+            ctx.lineWidth = stroke_width;
+            ctx.stroke();
+        }
+    
+        drawCircle(x : number, y : number, r : number, fill_style = "red", stroke_style = "black") {
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, 2 * Math.PI);
+            ctx.closePath();
+    
+            const circumference = 2 * Math.PI * r;
+            const area = Math.PI * r ** 2;
+    
+            const stroke_width = Math.round(Math.sqrt(area / circumference));
+    
+            ctx.fillStyle = fill_style;
+            ctx.fill();
+    
+            ctx.strokeStyle = stroke_style;
+            ctx.lineWidth = stroke_width;
+    
+            ctx.stroke();
+        }
+    
+    
+        drawPoint(o : Point2D, fill_style = "black", stroke_style = "black", stroke_width = 1) {
+            if(typeof o !== "undefined")
+            {
+                ctx.beginPath();
+                ctx.arc(o.x, o.y, 5, 0, 2 * Math.PI);
+                ctx.closePath();
+            
+                ctx.fillStyle = fill_style;
+                ctx.fill();
+        
+                ctx.strokeStyle = stroke_style;
+                ctx.lineWidth = stroke_width;
+        
+                ctx.stroke();
+            }
+        }
+    
+        drawText(x : number, y : number, text : string, fill_style = "black") {
+            ctx.fillStyle = fill_style;
+            ctx.lineWidth = 5;
+            ctx.fillText(text, x, y);
+        }
+    
+        drawLineFromPointGradient(p : Point2D, gradient : number, x_scale : number, stroke_style = "black", width = 1) {
+            const intercept = p.y - gradient * p.x;
+            const new_x = p.x + x_scale;
+            const new_y = gradient * new_x + intercept;
+    
+            this.drawLine(new Point2D(p.x, p.y), new Point2D(new_x, new_y), stroke_style, width);
+        }
+    
+        drawLine(a : Point2D, b : Point2D, stroke_style = "black", stroke_width = 1) {
+            if(typeof a !== "undefined" && typeof b !== "undefined")
+            {
+                ctx.beginPath();
+                ctx.moveTo(a.x, a.y);
+                ctx.lineTo(b.x, b.y);
+            
+                ctx.strokeStyle = stroke_style;
+                ctx.lineWidth = stroke_width;
+                ctx.stroke();
+            }
+        }
+
+        drawDelaunay(delaunay : _DELAUNAY, stroke_style = "black", stroke_width = 1) {
+            const edges = delaunay.list;
+            const point_list = delaunay.full_point_list;
+            for (let edge of edges) {
+                const [start,end] = edge.split("-").map((value)=>{return point_list[Number(value)]});
+                this.drawLine(start, end, stroke_style, stroke_width);
+            }
+        }
+
+        drawPoints(points : Point2D[], fill_style = "red", stroke_style = "red", stroke_width = 1, divide = points.length)
+        {
+            for (let pt_index in points){
+                if (Number(pt_index) >= divide) continue;
+                const point = points[pt_index];
+                this.drawPoint(point, fill_style, stroke_style, stroke_width);
+            }
+        }
+        
+        labelPoints(points : Point2D[], fill_style = "orange", x_offset = 5, y_offset = -5, divide = points.length)
+        {
+            for (let pt_index in points){
+                if (Number(pt_index) >= divide) continue;
+                const point = points[pt_index];
+                this.drawText(point.x + x_offset, point.y + y_offset, pt_index, fill_style);
+            }
+        }
+    }
+
+    const _Experimental = new Experimental();
+
+    // const tricoords = [200, 400, 300, 100, 500, 450];
+
+        const points_Set = [
+        // [23, 29],
+        // [328, 87],
+        // [98, 234],
+        // [892, 382],
+        // [745, 342],
+        // [442, 298],
+        // [232, 450],
+        // [900, 23],
+        // [500, 500],
+        // [573, 18],
+
+        [294, 289],
+        [423, 200],
+        [234, 234],
+        [300, 213],
+        [278, 258],
+        [352, 331]
+    ]
+
+    const pts = [
+        [302,447],
+        [519,406],
+        [354,321],
+        [555,427],
+        [357,502],
+        [365,511],
+        [401,488],
+        [335,320],
+        [531,449],
+        [418,336]
+    ]
+
+    pts.forEach((value,index)=>{pts[index] = [value[0]/3+200, value[1]/3+200]})
+
+    // console.log(pts)
+
+    _DrawCanvas.drawCanvas();
+
+    // const gen_points = _Miscellanous.generatePointsArray(300,600,300,550,10,false);
+
+    // const gen_points = _Miscellanous.generatePointsArray(300,900,150,380,50,true);
+
+    // const gen_points = _Miscellanous.generatePointsArray(50,1200,50,500,20,false);
+
+    // const mod_points_Set = _Miscellanous.toPoints(gen_points);
+
+
+    // const start = new Date().getTime();
+    // const end = new Date().getTime();
+
+    // if (d_result[5] === true) console.log(`Time taken for bowyer-watson with animation logging: ${end - start}`);
+    // if (d_result[5] === false) 
+    // console.log(`Time taken for voronoi diagram without animation logging: ${end - start}`);
+
+    const pts_mod = _Miscellanous.toPoints(pts);
+
+    const color_list = _Miscellanous.ranHexCol(20);
+
+    const _LinearAlgebraSupport = new LinearAlgebraSupport(pts_mod, 0);
+    _LinearAlgebraSupport.animate.time = Number(anim_speed_input.value); // actual time
+
+    anim_number_input.oninput = function(){
+        _LinearAlgebraSupport.animate.running = false;
+        anim_number.innerHTML = anim_number_input.value;
+        _LinearAlgebraSupport.changeCurIndex(Number(anim_number_input.value));
+        _LinearAlgebraSupport.takeSnapshot();
+    }
+    
+    anim_speed_input.oninput = function(){
+        _LinearAlgebraSupport.animate.running = false;
+        anim_speed.innerHTML = anim_speed_input.value;
+        _LinearAlgebraSupport.animate.time = Number(anim_speed_input.value);
+    }
+
+    anim_info_btn.onclick = function(){
+        if(_LinearAlgebraSupport.animate.running === false){
+            _LinearAlgebraSupport.runAnimation();
+        }
+        else{
+            _LinearAlgebraSupport.animate.running = false;
+        }
+
+    }
+
+    c_1.onclick = function(){
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        _LinearAlgebraSupport.animate.running = false;
+        if (_LinearAlgebraSupport.c_1 === true){
+            _LinearAlgebraSupport.c_1 = false;
+            c_1.style.backgroundColor = "#4CAF50";
+            _LinearAlgebraSupport.checkC_S();
+        }
+
+        else if(_LinearAlgebraSupport.c_1 === false){
+            _LinearAlgebraSupport.c_1 = true;
+            c_1.style.backgroundColor = "rgb(106, 231, 11)";
+            _LinearAlgebraSupport.checkC_S();
+        }
+        _LinearAlgebraSupport.takeSnapshot();
+    }
+
+    c_2.onclick = function(){
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        _LinearAlgebraSupport.animate.running = false;
+        if (_LinearAlgebraSupport.c_2 === true){
+            _LinearAlgebraSupport.c_2 = false;
+            c_2.style.backgroundColor = "#4CAF50";
+            _LinearAlgebraSupport.checkC_S();
+        }
+
+        else if(_LinearAlgebraSupport.c_2 === false){
+            _LinearAlgebraSupport.c_2 = true;
+            c_2.style.backgroundColor = "rgb(106, 231, 11)";
+            _LinearAlgebraSupport.checkC_S();
+        }
+        _LinearAlgebraSupport.takeSnapshot();
+    }
+
+    c_3.onclick = function(){
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        _LinearAlgebraSupport.animate.running = false;
+        if (_LinearAlgebraSupport.c_3 === true){
+            _LinearAlgebraSupport.c_3 = false;
+            c_3.style.backgroundColor = "#4CAF50";
+            _LinearAlgebraSupport.checkC_S();
+        }
+
+        else if(_LinearAlgebraSupport.c_3 === false){
+            _LinearAlgebraSupport.c_3 = true;
+            c_3.style.backgroundColor = "rgb(106, 231, 11)";
+            _LinearAlgebraSupport.checkC_S();
+        }
+        _LinearAlgebraSupport.takeSnapshot();
+    }
+
+    for (let elem of c_elems){
+        elem.addEventListener("mouseover", (ev)=>{elem.style.border = "3px solid burlywood"});
+        elem.addEventListener("mouseout", ()=>{elem.style.border = "none"});
+    }
+
+
+    // EDITING
+
+    // ANIMATION
+
+    // SCULPTING
+
+    class CatmullClark{
+        connectivity_matrix : _CONNECTIVITY_;
+        points_list : Point3D[];
+        vertex : string[];
+        edges : string[];
+        faces : string[];
+        face_vertex_num : number;
+        face_points : Point3D[];
+        edge_points : Point3D[];
+
+        getEdgeVertices(edge : string) : Point3D[]
+        {
+            return edge.split("-").map((value)=>{return this.points_list[Number(value)]});
+        }
+
+        getFaceVertices(face : string) : Point3D[]
+        {
+            return face.split("-").map((value)=>{return this.points_list[Number(value)]});
+            
+        }
+
+        sumPoints(points : Point3D[], dim : number)
+        {
+            var res = 0;
+            for(let point of points){
+                switch(dim){
+                    case 0: res+=point.x; break;
+                    case 1: res+=point.y; break;
+                    case 2: res+=point.z; break;               
+                }
+            }
+            return res;
+        }
+
+        isTouchingVertex(elem : string, vertex : number) : boolean
+        {
+            const arr = elem.split("-").map((value)=>{return Number(value)});
+            for(let val of arr){
+                if (val === vertex) return true;
+            }
+            return false;
+        }
+
+        constructor(points_list : Point3D[], connectivity_matrix : _CONNECTIVITY_, face_vertex_num){
+            this.points_list = points_list;
+            this.connectivity_matrix = connectivity_matrix;
+            this.face_vertex_num = face_vertex_num;
+        }
+
+        getEdgesFromFace(face : string)
+        {
+            const arr = face.split("-");
+            const arr_len = arr.length;
+            const ret_list : string[] = [];
+
+            for(let i = 0; i<arr_len; i++)
+            {
+                if(i === arr_len-1){
+                    ret_list.push(arr[i]+"-"+arr[0]);
+                    return ret_list;
+                }
+
+                ret_list.push(arr[i]+"-"+arr[i+1]);
+            }
+
+            return ret_list;
+        }
+
+        iterate(iteration_num = 1){
+            if (iteration_num <= 0) return;
+            iteration_num--;
+
+            for (let face of this.connectivity_matrix.faces)
+            {
+                const face_vertices = this.getFaceVertices(face);
+                const sum_x = this.sumPoints(face_vertices, 0);
+                const sum_y = this.sumPoints(face_vertices, 1);
+                const sum_z = this.sumPoints(face_vertices, 2);
+
+                const face_point = new Point3D(sum_x/this.face_vertex_num, sum_y/this.face_vertex_num, sum_z/this.face_vertex_num);
+                this.face_points.push(face_point);
+            }
+
+            for(let edge of this.connectivity_matrix.edges)
+            {
+                const edge_vertices_full : Point3D[] = [];
+                const[f_p_a, f_p_b] = edge.split("-").map((value)=>{return this.face_points[Number(value)]});
+                const edge_vertices = this.getEdgeVertices(edge);
+                edge_vertices_full.push(...edge_vertices, f_p_a, f_p_b);
+                const sum_x = this.sumPoints(edge_vertices_full, 0);
+                const sum_y = this.sumPoints(edge_vertices_full, 1);
+                const sum_z = this.sumPoints(edge_vertices_full, 2);
+
+                const edge_point = new Point3D(sum_x/4, sum_y/4, sum_z/4);
+                this.edge_points.push(edge_point);
+            }
+
+            for(let point_index in this.points_list)
+            {
+                const P = this.points_list[point_index];
+                const F_list : Point3D[] = [];
+                const R_list : Point3D[] = [];
+                var n = 0;
+
+                for(let face_point_index in this.face_points)
+                {
+                    const face = this.connectivity_matrix.faces[face_point_index];
+                    if(this.isTouchingVertex(face, Number(point_index)))
+                    {
+                        F_list.push(this.face_points[face_point_index]);
+                        n++;
+                    }
+                }
+
+                for(let edge of this.connectivity_matrix.edges)
+                {
+                    if(this.isTouchingVertex(edge, Number(point_index)))
+                    {
+                        const edge_vertices = this.getEdgeVertices(edge);
+                        const sum_x = this.sumPoints(edge_vertices, 0);
+                        const sum_y = this.sumPoints(edge_vertices, 1);
+                        const sum_z = this.sumPoints(edge_vertices, 2);
+        
+                        const edge_midpoint = new Point3D(sum_x/2, sum_y/2, sum_z/2);
+
+                        R_list.push(edge_midpoint);
+                        n++;
+                    }
+                }
+
+                n /= 2;
+
+                const f_sum_x = this.sumPoints(F_list, 0);
+                const f_sum_y = this.sumPoints(F_list, 1);
+                const f_sum_z = this.sumPoints(F_list, 2);
+
+                const r_sum_x = this.sumPoints(R_list, 0);
+                const r_sum_y = this.sumPoints(R_list, 1);
+                const r_sum_z = this.sumPoints(R_list, 2);
+
+                const F = new Point3D(f_sum_x/n, f_sum_y/n, f_sum_z/n);
+                const R = new Point3D(r_sum_x/n, r_sum_y/n, r_sum_z/n);
+
+                const X = (F.x + 2*R.x + (n - 3)*P.x) / n;
+                const Y = (F.y + 2*R.y + (n - 3)*P.y) / n;
+                const Z = (F.z + 2*R.z + (n - 3)*P.z) / n;
+
+                this.points_list[point_index] = new Point3D(X, Y, Z);
+            }
+
+            const p_len = this.points_list.length;
+            const f_len = this.face_points.length;
+            const r_len = this.edge_points.length;
+            var c_f = this.connectivity_matrix.faces.length;
+            var c_e = this.connectivity_matrix.edges.length;
+            var c_v = this.connectivity_matrix.vertices.length;
+
+            this.points_list.push(...this.face_points, ...this.edge_points);
+
+            for(let face_point_index in this.face_points)
+            {
+                const boundary : string[] = [];
+                const edges = this.getEdgesFromFace(this.connectivity_matrix.faces[face_point_index]);
+                for(let edge of edges)
+                {
+                    var c_edge_index = 0;
+                    for(let c_edge of this.connectivity_matrix.edges){
+                        if (edge === c_edge)
+                        {
+                            const b = c_edge_index + p_len + f_len;
+                            const [a,c] = edge.split("-");
+                            boundary.push(a+`-${b}`, `${b}-`+c);
+                        }
+                        else c_edge_index++;
+                    }
+                }
+
+                var o = 0;
+                if (this.face_vertex_num === 3) n = 1
+                else if (this.face_vertex_num === 4) n = 2;
+            }
+        }
+
+        display(){}
+
+
+    }
+
+    // RENDERING
 
     //   class RENDER {
 
@@ -3689,513 +4494,6 @@
         //     octx.drawImage(ocanvas, 0, 0, MODIFIED_PARAMS._CANVAS_WIDTH * 0.5, MODIFIED_PARAMS._CANVAS_HEIGHT * 0.5);
         //     ctx.drawImage(ocanvas, 0, 0, MODIFIED_PARAMS._CANVAS_WIDTH * 0.5, MODIFIED_PARAMS._CANVAS_HEIGHT * 0.5, 0, 0, MODIFIED_PARAMS._CANVAS_WIDTH, MODIFIED_PARAMS._CANVAS_HEIGHT);
     
-    // We implement a function closure here by binding the variable 'implementDrag'
-    // to a local function and invoking the local function, this ensures that we have
-    // some sort of private variables
-    var implementDrag : DRAG =
-    (function() {
-       var pos1 = 0,
-           pos2 = 0,
-           pos3 = 0,
-           pos4 = 0,
-           prev = 0,
-           now = Date.now(),
-           dt = now - prev + 1,
-           dX = 0,
-           dY = 0,
-           sens = 10,
-
-           // We invoke the local functions (changeSens and startDrag) as methods
-           // of the object 'retObject' and set the return value of the local function
-           // to 'retObject'
-
-           retObject : DRAG = {
-               change: changeSens,
-               start: drag,
-               sensitivity: getSens()
-           };
-
-       function changeSens(value : number) 
-       {
-           sens = value;
-       }
-       
-       function getSens() : number{
-           return sens;
-       }
-
-       function drag(element : any)
-       {
-           startDragMobile(element);
-           startDrag(element);
-       }
-
-       function startDrag(element : any)
-       {
-           element.onmousedown = dragMouseDown;
-       }
-
-       function startDragMobile(element : any)
-       {
-           element.addEventListener('touchstart', dragTouchstart, { 'passive': true });
-       }
-
-       function dragMouseDown(e : any) {
-           e = e || window.event;
-           e.preventDefault();
-
-           pos3 = e.clientX;
-           pos4 = e.clientY;
-
-           document.onmouseup = dragMouseup;
-           document.onmousemove = dragMousemove;
-       }
-
-       function dragTouchstart(e : any) {
-           e = e || window.event;
-
-           pos3 = e.touches[0].clientX;
-           pos4 = e.touches[0].clientY;
-
-           document.addEventListener('touchend', dragTouchend, { 'passive': true });
-           document.addEventListener('touchmove', dragTouchmove, { 'passive': true });
-       }
-
-       function dragMousemove(e : any) {
-           e = e || window.event;
-           e.preventDefault();
-
-           pos1 = e.clientX - pos3;
-           pos2 = e.clientY - pos4;
-           pos3 = e.clientX;
-           pos4 = e.clientY;
-
-           dX = pos1 / dt;
-           dY = pos2 / dt;
-
-           prev = now;
-           now = Date.now();
-           dt = now - prev + 1;
-
-           console.log(`X: ${dX*sens}`);
-           console.log(`Y: ${dY*sens}`);
-       }
-
-       function dragTouchmove(e : any) {
-           e = e || window.event;
-
-           pos1 = e.touches[0].clientX - pos3;
-           pos2 = e.touches[0].clientY - pos4;
-           pos3 = e.touches[0].clientX;
-           pos4 = e.touches[0].clientY;
-
-           dX = pos1 / dt;
-           dY = pos2 / dt;
-
-           prev = now;
-           now = Date.now();
-           dt = now - prev + 1;
-
-
-           console.log(`X: ${dX*sens}`);
-           console.log(`Y: ${dY*sens}`);
-       }
-
-       function dragMouseup() {
-           document.onmouseup = null;
-           document.onmousemove = null;
-       }
-
-       function dragTouchend() {
-           document.addEventListener('touchend', () => null, { 'passive': true });
-           document.addEventListener('touchmove', () => null, { 'passive': true });
-       }
-
-       return retObject;
-   })()
-
-   implementDrag.start(canvas);
-
-   function pick(event : MouseEvent, destination : PICK) {
-        const bounding = canvas.getBoundingClientRect();
-        const x = event.clientX - bounding.left;
-        const y = event.clientY - bounding.top;
-
-        const pixel = ctx.getImageData(x, y, 1, 1);
-        const data = pixel.data;
-
-        const rgba = `rgba(${data[0]}, ${data[1]}, ${data[2]}, ${data[3] / 255})`;
-        (destination.color as HTMLElement).innerHTML = rgba;
-        (destination.pixel as HTMLElement).innerHTML = `(${x},${y})`;
-
-        return rgba;
-    }
-
-    canvas.addEventListener("mousemove", (event) => pick(event, hovered));
-    canvas.addEventListener("click", (event) => pick(event, selected));
-
-   const _Classes = (bases: any) : object =>
-   {
-   class Bases
-   {
-       constructor()
-       {
-       bases.foreach((base: new () => any) => Object.assign(this,new base()));
-       }
-   }
-
-       bases.forEach((base : new() => any) => 
-       {
-       Object.getOwnPropertyNames(base.prototype)
-           .filter(prop => prop != 'constructor')
-           .forEach(prop => Bases.prototype[prop] = base.prototype[prop]);
-       }
-       )
-   return Bases
-   }
-
-   _BasicSettings.setGlobalAlpha(0.6);
-
-    class DrawCanvas {
-        protected static drawCount = 0;
-        constructor()
-        {
-            window.addEventListener("resize", () => this.drawCanvas());
-        }
-        drawCanvas() {
-            ctx.globalAlpha = MODIFIED_PARAMS._GLOBAL_ALPHA;
-            canvas.style.borderStyle = MODIFIED_PARAMS._BORDER_STYLE;
-            canvas.style.borderWidth = MODIFIED_PARAMS._BORDER_WIDTH;
-            canvas.style.borderColor = MODIFIED_PARAMS._BORDER_COLOR;
-            canvas.style.opacity = MODIFIED_PARAMS._CANVAS_OPACITY;
-            canvas.width = MODIFIED_PARAMS._CANVAS_WIDTH;
-            canvas.height = MODIFIED_PARAMS._CANVAS_HEIGHT;
-
-            DrawCanvas.drawCount++;
-        }
-    }   
-
-    const _DrawCanvas = new DrawCanvas()
-
-
-    class Experimental{
-        constructor(){}
-        draw(coords : Point2D[], fill_style = "red", stroke_style = "black", stroke_width = 1, fill_bool = false) {
-            ctx.globalAlpha = MODIFIED_PARAMS._GLOBAL_ALPHA;
-            if (coords.length === 1){
-                const a = coords[0];
-                if (a.r === 0) this.drawPoint(a,fill_style,stroke_style);
-                else this.drawCircle(a.x,a.y,a.r,fill_style,stroke_style);
-
-            }
-            if (coords.length === 2){
-                const [a,b] = [...coords];
-                this.drawLine(a, b, stroke_style,stroke_width);
-            }
-
-            if (coords.length === 3){
-                const [p,q,r] = [...coords];
-                this.drawTriangle(p, q, r,fill_style,stroke_style);
-            }  else if (coords.length > 3) {
-                this.drawPolygon(coords, fill_style, stroke_style, stroke_width, fill_bool);
-            }          
-        }
-
-        getCircumCircle_(coords : Point2D[]){
-            const [a,b,c] = [...coords];
-            return _Linear.getCircumCircle(a,b,c);
-        }
-
-        getInCircle_(coords : Point2D[]){
-            const [a,b,c] = [...coords];
-            return _Linear.getInCircle(a,b,c);
-
-        }
-
-        drawTriangle(a : Point2D, b : Point2D, c :Point2D, fill_style = "red", stroke_style = "black") {
-            if(typeof a !== "undefined" && typeof b !== "undefined"  && typeof c !== "undefined")
-            {
-                ctx.beginPath();
-                ctx.moveTo(a.x, a.y);
-                ctx.lineTo(b.x, b.y);
-                ctx.lineTo(c.x, c.y);
-                ctx.closePath();
-        
-                const _a = (Math.sqrt((c.x - b.x) ** 2 + (c.y - b.y) ** 2));
-                const _b = (Math.sqrt((c.x - a.x) ** 2 + (c.y - a.y) ** 2));
-                const _c = (Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2));
-        
-                const perimeter = _a + _b + _c;
-                const semiperimeter = perimeter * 0.5;
-                const area = Math.sqrt(semiperimeter * (semiperimeter - _a) * (semiperimeter - _b) * (semiperimeter - _c));
-        
-                const stroke_width = Math.round(Math.sqrt(area / perimeter));
-        
-                ctx.fillStyle = fill_style;
-                ctx.fill();
-        
-                ctx.strokeStyle = stroke_style;
-                ctx.lineWidth = stroke_width;
-                ctx.stroke();
-            }
-        }
-
-        drawPolygon(coords : Point2D[], fill_style = "red", stroke_style = "black", stroke_width = 1, fill_bool = false) {
-            ctx.beginPath();
-            ctx.moveTo(coords[0].x, coords[0].y);
-
-            for (let coord of coords) {
-                ctx.lineTo(coord.x, coord.y);
-            }
-
-            ctx.closePath();
-
-            if (fill_bool === true) {
-                ctx.fillStyle = fill_style;
-                ctx.fill();
-            }
-            
-            ctx.strokeStyle = stroke_style;
-            ctx.lineWidth = stroke_width;
-            ctx.stroke();
-        }
-    
-        drawCircle(x : number, y : number, r : number, fill_style = "red", stroke_style = "black") {
-            ctx.beginPath();
-            ctx.arc(x, y, r, 0, 2 * Math.PI);
-            ctx.closePath();
-    
-            const circumference = 2 * Math.PI * r;
-            const area = Math.PI * r ** 2;
-    
-            const stroke_width = Math.round(Math.sqrt(area / circumference));
-    
-            ctx.fillStyle = fill_style;
-            ctx.fill();
-    
-            ctx.strokeStyle = stroke_style;
-            ctx.lineWidth = stroke_width;
-    
-            ctx.stroke();
-        }
-    
-    
-        drawPoint(o : Point2D, fill_style = "black", stroke_style = "black", stroke_width = 1) {
-            if(typeof o !== "undefined")
-            {
-                ctx.beginPath();
-                ctx.arc(o.x, o.y, 5, 0, 2 * Math.PI);
-                ctx.closePath();
-            
-                ctx.fillStyle = fill_style;
-                ctx.fill();
-        
-                ctx.strokeStyle = stroke_style;
-                ctx.lineWidth = stroke_width;
-        
-                ctx.stroke();
-            }
-        }
-    
-        drawText(x : number, y : number, text : string, fill_style = "black") {
-            ctx.fillStyle = fill_style;
-            ctx.lineWidth = 5;
-            ctx.fillText(text, x, y);
-        }
-    
-        drawLineFromPointGradient(p : Point2D, gradient : number, x_scale : number, stroke_style = "black", width = 1) {
-            const intercept = p.y - gradient * p.x;
-            const new_x = p.x + x_scale;
-            const new_y = gradient * new_x + intercept;
-    
-            this.drawLine(new Point2D(p.x, p.y), new Point2D(new_x, new_y), stroke_style, width);
-        }
-    
-        drawLine(a : Point2D, b : Point2D, stroke_style = "black", stroke_width = 1) {
-            if(typeof a !== "undefined" && typeof b !== "undefined")
-            {
-                ctx.beginPath();
-                ctx.moveTo(a.x, a.y);
-                ctx.lineTo(b.x, b.y);
-            
-                ctx.strokeStyle = stroke_style;
-                ctx.lineWidth = stroke_width;
-                ctx.stroke();
-            }
-        }
-
-        drawDelaunay(delaunay : _DELAUNAY, stroke_style = "black", stroke_width = 1) {
-            const edges = delaunay.list;
-            const point_list = delaunay.full_point_list;
-            for (let edge of edges) {
-                const [start,end] = edge.split("-").map((value)=>{return point_list[Number(value)]});
-                this.drawLine(start, end, stroke_style, stroke_width);
-            }
-        }
-
-        drawPoints(points : Point2D[], fill_style = "red", stroke_style = "red", stroke_width = 1, divide = points.length)
-        {
-            for (let pt_index in points){
-                if (Number(pt_index) >= divide) continue;
-                const point = points[pt_index];
-                this.drawPoint(point, fill_style, stroke_style, stroke_width);
-            }
-        }
-        
-        labelPoints(points : Point2D[], fill_style = "orange", x_offset = 5, y_offset = -5, divide = points.length)
-        {
-            for (let pt_index in points){
-                if (Number(pt_index) >= divide) continue;
-                const point = points[pt_index];
-                this.drawText(point.x + x_offset, point.y + y_offset, pt_index, fill_style);
-            }
-        }
-    }
-
-    const _Experimental = new Experimental();
-
-    // const tricoords = [200, 400, 300, 100, 500, 450];
-
-        const points_Set = [
-        // [23, 29],
-        // [328, 87],
-        // [98, 234],
-        // [892, 382],
-        // [745, 342],
-        // [442, 298],
-        // [232, 450],
-        // [900, 23],
-        // [500, 500],
-        // [573, 18],
-
-        [294, 289],
-        [423, 200],
-        [234, 234],
-        [300, 213],
-        [278, 258],
-        [352, 331]
-    ]
-
-    const pts = [
-        [302,447],
-        [519,406],
-        [354,321],
-        [555,427],
-        [357,502],
-        [365,511],
-        [401,488],
-        [335,320],
-        [531,449],
-        [418,336]
-    ]
-
-    pts.forEach((value,index)=>{pts[index] = [value[0]/3+200, value[1]/3+200]})
-
-    console.log(pts)
-
-    _DrawCanvas.drawCanvas();
-
-    // const gen_points = _Miscellanous.generatePointsArray(300,600,300,550,10,false);
-
-    // const gen_points = _Miscellanous.generatePointsArray(300,900,150,380,50,true);
-
-    // const gen_points = _Miscellanous.generatePointsArray(50,1200,50,500,20,false);
-
-    // const mod_points_Set = _Miscellanous.toPoints(gen_points);
-
-
-    // const start = new Date().getTime();
-    // const end = new Date().getTime();
-
-    // if (d_result[5] === true) console.log(`Time taken for bowyer-watson with animation logging: ${end - start}`);
-    // if (d_result[5] === false) 
-    // console.log(`Time taken for voronoi diagram without animation logging: ${end - start}`);
-
-    const pts_mod = _Miscellanous.toPoints(pts);
-
-    const color_list = _Miscellanous.ranHexCol(20);
-
-    const _LinearAlgebraSupport = new LinearAlgebraSupport(pts_mod, 0);
-    _LinearAlgebraSupport.animate.time = Number(anim_speed_input.value); // actual time
-
-    anim_number_input.oninput = function(){
-        _LinearAlgebraSupport.animate.running = false;
-        anim_number.innerHTML = anim_number_input.value;
-        _LinearAlgebraSupport.changeCurIndex(Number(anim_number_input.value));
-        _LinearAlgebraSupport.takeSnapshot();
-    }
-    
-    anim_speed_input.oninput = function(){
-        _LinearAlgebraSupport.animate.running = false;
-        anim_speed.innerHTML = anim_speed_input.value;
-        _LinearAlgebraSupport.animate.time = Number(anim_speed_input.value);
-    }
-
-    anim_info_btn.onclick = function(){
-        if(_LinearAlgebraSupport.animate.running === false){
-            _LinearAlgebraSupport.runAnimation();
-        }
-        else{
-            _LinearAlgebraSupport.animate.running = false;
-        }
-
-    }
-
-    c_1.onclick = function(){
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        _LinearAlgebraSupport.animate.running = false;
-        if (_LinearAlgebraSupport.c_1 === true){
-            _LinearAlgebraSupport.c_1 = false;
-            c_1.style.backgroundColor = "#4CAF50";
-            _LinearAlgebraSupport.checkC_S();
-        }
-
-        else if(_LinearAlgebraSupport.c_1 === false){
-            _LinearAlgebraSupport.c_1 = true;
-            c_1.style.backgroundColor = "rgb(106, 231, 11)";
-            _LinearAlgebraSupport.checkC_S();
-        }
-        _LinearAlgebraSupport.takeSnapshot();
-    }
-
-    c_2.onclick = function(){
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        _LinearAlgebraSupport.animate.running = false;
-        if (_LinearAlgebraSupport.c_2 === true){
-            _LinearAlgebraSupport.c_2 = false;
-            c_2.style.backgroundColor = "#4CAF50";
-            _LinearAlgebraSupport.checkC_S();
-        }
-
-        else if(_LinearAlgebraSupport.c_2 === false){
-            _LinearAlgebraSupport.c_2 = true;
-            c_2.style.backgroundColor = "rgb(106, 231, 11)";
-            _LinearAlgebraSupport.checkC_S();
-        }
-        _LinearAlgebraSupport.takeSnapshot();
-    }
-
-    c_3.onclick = function(){
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        _LinearAlgebraSupport.animate.running = false;
-        if (_LinearAlgebraSupport.c_3 === true){
-            _LinearAlgebraSupport.c_3 = false;
-            c_3.style.backgroundColor = "#4CAF50";
-            _LinearAlgebraSupport.checkC_S();
-        }
-
-        else if(_LinearAlgebraSupport.c_3 === false){
-            _LinearAlgebraSupport.c_3 = true;
-            c_3.style.backgroundColor = "rgb(106, 231, 11)";
-            _LinearAlgebraSupport.checkC_S();
-        }
-        _LinearAlgebraSupport.takeSnapshot();
-    }
-
-    for (let elem of c_elems){
-        elem.addEventListener("mouseover", (ev)=>{elem.style.border = "3px solid burlywood"});
-        elem.addEventListener("mouseout", ()=>{elem.style.border = "none"});
-    }
 
     // var Slider = {
     //     slider : null,
