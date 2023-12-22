@@ -129,7 +129,6 @@
     type _CONNECTIVITY_ = {
         faces : string[];
         edges : string[];
-        vertices : number[];
     }
 
     enum _ERROR_ 
@@ -687,7 +686,7 @@
         }
 
         toPoints2D(pointList : any[]) : Point2D[]
-         {
+        {
             const retList : Point2D[] = [];
             for (let point in pointList) {
                 retList[point] = new Point2D(pointList[point][0], pointList[point][1]);
@@ -699,22 +698,27 @@
         {
             const retList : Point3D[] = [];
             for (let point in pointList) {
-                retList[point] = new Point3D(pointList[point][0], pointList[point][1], pointList[2]);
+                retList[point] = new Point3D(pointList[point][0], pointList[point][1], pointList[point][2]);
             }
             return retList;
         }
 
-        points2DTo3D(pointList : Point2D[]) : Point3D[]{
-            const retList : Point3D[];
+        points2DTo3D(pointList : Point2D[], z_coords : number[], use_z_coords = false) : Point3D[]{
+            const retList : Point3D[] = [];
+            var index = 0;
             for(let point of pointList){
-                retList.push(new Point3D(point.x, point.y, point.z));
+                if (use_z_coords === true) {
+                    retList.push(new Point3D(point.x, point.y, z_coords[index]));
+                    index++;
+                }
+                else retList.push(new Point3D(point.x, point.y, 0));
             }
             return retList;
         }
 
         points3DTo2D(pointList : Point3D[]) : Point2D[]
         {
-            const retList : Point2D[];
+            const retList : Point2D[] = [];
             for(let point of pointList){
                 retList.push(new Point2D(point.x, point.y));
             }
@@ -3964,7 +3968,7 @@
     // if (d_result[5] === false) 
     // console.log(`Time taken for voronoi diagram without animation logging: ${end - start}`);
 
-    const pts_mod = _Miscellanous.toPoints(pts);
+    const pts_mod = _Miscellanous.toPoints2D(pts);
 
     const color_list = _Miscellanous.ranHexCol(20);
 
@@ -4058,14 +4062,15 @@
     // SCULPTING
 
     class CatmullClark{
-        connectivity_matrix : _CONNECTIVITY_;
         points_list : Point3D[];
-        vertex : string[];
+        connectivity_matrix : _CONNECTIVITY_;
         edges : string[];
         faces : string[];
         face_vertex_num : number;
         face_points : Point3D[];
         edge_points : Point3D[];
+        new_edges : string[];
+        new_faces : string[];
 
         getEdgeVertices(edge : string) : Point3D[]
         {
@@ -4074,14 +4079,13 @@
 
         getFaceVertices(face : string) : Point3D[]
         {
-            return face.split("-").map((value)=>{return this.points_list[Number(value)]});
-            
+            return face.split("-").map((value)=>{return this.points_list[Number(value)]});            
         }
 
         sumPoints(points : Point3D[], dim : number)
         {
             var res = 0;
-            for(let point of points){
+            for(const point of points){
                 switch(dim){
                     case 0: res+=point.x; break;
                     case 1: res+=point.y; break;
@@ -4094,16 +4098,20 @@
         isTouchingVertex(elem : string, vertex : number) : boolean
         {
             const arr = elem.split("-").map((value)=>{return Number(value)});
-            for(let val of arr){
+            for(const val of arr){
                 if (val === vertex) return true;
             }
             return false;
         }
 
-        constructor(points_list : Point3D[], connectivity_matrix : _CONNECTIVITY_, face_vertex_num){
+        constructor(points_list : Point3D[], connectivity_matrix : _CONNECTIVITY_, face_vertex_num : number){
             this.points_list = points_list;
             this.connectivity_matrix = connectivity_matrix;
             this.face_vertex_num = face_vertex_num;
+            this.face_points = [];
+            this.edge_points = [];
+            this.new_faces = [];
+            this.new_edges = [];
         }
 
         getEdgesFromFace(face : string)
@@ -4125,11 +4133,31 @@
             return ret_list;
         }
 
+        getEdgeNeighbouringFacePoints(edge : string)
+        {
+            const ret_list : Point3D[] = [];
+            const [a, b] = edge.split("-");
+            var index = 0;
+            for (const face of this.connectivity_matrix.faces)
+            {
+                let num = 0;
+                const face_vertices = face.split("-");
+                for(const vertex of face_vertices){
+                    if (vertex === a || vertex === b) num++;
+                }
+                if (num === 2) ret_list.push(this.face_points[index]);
+                index++;
+            }
+
+            return ret_list;
+        }
+
         iterate(iteration_num = 1){
+
             if (iteration_num <= 0) return;
             iteration_num--;
 
-            for (let face of this.connectivity_matrix.faces)
+            for (const face of this.connectivity_matrix.faces)
             {
                 const face_vertices = this.getFaceVertices(face);
                 const sum_x = this.sumPoints(face_vertices, 0);
@@ -4140,10 +4168,10 @@
                 this.face_points.push(face_point);
             }
 
-            for(let edge of this.connectivity_matrix.edges)
+            for(const edge of this.connectivity_matrix.edges)
             {
                 const edge_vertices_full : Point3D[] = [];
-                const[f_p_a, f_p_b] = edge.split("-").map((value)=>{return this.face_points[Number(value)]});
+                const[f_p_a, f_p_b] = this.getEdgeNeighbouringFacePoints(edge);
                 const edge_vertices = this.getEdgeVertices(edge);
                 edge_vertices_full.push(...edge_vertices, f_p_a, f_p_b);
                 const sum_x = this.sumPoints(edge_vertices_full, 0);
@@ -4154,14 +4182,14 @@
                 this.edge_points.push(edge_point);
             }
 
-            for(let point_index in this.points_list)
+            for(const point_index in this.points_list)
             {
                 const P = this.points_list[point_index];
                 const F_list : Point3D[] = [];
                 const R_list : Point3D[] = [];
                 var n = 0;
 
-                for(let face_point_index in this.face_points)
+                for(const face_point_index in this.face_points)
                 {
                     const face = this.connectivity_matrix.faces[face_point_index];
                     if(this.isTouchingVertex(face, Number(point_index)))
@@ -4171,7 +4199,7 @@
                     }
                 }
 
-                for(let edge of this.connectivity_matrix.edges)
+                for(const edge of this.connectivity_matrix.edges)
                 {
                     if(this.isTouchingVertex(edge, Number(point_index)))
                     {
@@ -4209,22 +4237,22 @@
 
             const p_len = this.points_list.length;
             const f_len = this.face_points.length;
-            const r_len = this.edge_points.length;
-            var c_f = this.connectivity_matrix.faces.length;
-            var c_e = this.connectivity_matrix.edges.length;
-            var c_v = this.connectivity_matrix.vertices.length;
 
             this.points_list.push(...this.face_points, ...this.edge_points);
 
-            for(let face_point_index in this.face_points)
+            for(const face_point_index in this.face_points)
             {
+                const face_vertex = Number(face_point_index) + p_len;
                 const boundary : string[] = [];
                 const edges = this.getEdgesFromFace(this.connectivity_matrix.faces[face_point_index]);
-                for(let edge of edges)
-                {
+                for (let edge of edges) {                    
                     var c_edge_index = 0;
-                    for(let c_edge of this.connectivity_matrix.edges){
-                        if (edge === c_edge)
+
+                    for (const c_edge of this.connectivity_matrix.edges) {
+                        const [a, b] = c_edge.split("-");
+                        const counter_c_edge = `${b}-${a}`;
+
+                        if (edge === c_edge || edge === counter_c_edge)
                         {
                             const b = c_edge_index + p_len + f_len;
                             const [a,c] = edge.split("-");
@@ -4234,15 +4262,85 @@
                     }
                 }
 
-                var o = 0;
-                if (this.face_vertex_num === 3) n = 1
-                else if (this.face_vertex_num === 4) n = 2;
+                const iter_num = boundary.length/2;
+                for(let i = 0; i<iter_num; i++)
+                {
+                    const sub_boundary : string[] = [];
+
+                    let num = 0;
+                    while(num < 2) {
+                        sub_boundary.push(boundary[(i * 2 + num + 1)%boundary.length]);
+                        num++;
+                    }
+
+                    const [a, c] = sub_boundary[0].split("-")
+                    const b = sub_boundary[sub_boundary.length - 1].split("-")[1];
+
+                    const a_list = `${face_vertex}-${a}`;
+                    const b_list = `${b}-${face_vertex}`;
+
+                    this.new_edges.push(a_list, ...sub_boundary, b_list);
+
+                    for(let j = 0; j<iter_num; j++) this.new_faces.push(`${face_vertex}-${a}-${c}-${b}`);
+                }
             }
+
+            this.new_faces = [...new Set(this.new_faces)];
+            this.new_edges = [...new Set(this.new_edges)];
+
+            this.connectivity_matrix.edges = this.new_edges;
+            this.connectivity_matrix.faces = this.new_faces;
+
+            this.face_points = [];
+            this.edge_points = [];
+            this.new_edges = [];
+            this.new_faces = [];
+
+            this.iterate(iteration_num);
         }
 
-        display(){}
+        getMinMax(list : number[])
+        {
+            return [Math.min(...list), Math.max(...list)];
+        }
 
+        triangulate(){
+            const triangulated_points_list : Point3D[] = [];
+            const triangulated_connectivity_matrix : _CONNECTIVITY_ = {faces : [], edges : []};
+            triangulated_points_list.push(...this.points_list);
 
+            for (const face of this.connectivity_matrix.faces)
+            {
+                const face_edges = this.getEdgesFromFace(face);
+
+                const vertex_indexes = face.split("-").map((value)=>{return Number(value)});
+                const vertices = vertex_indexes.map((value)=>{return this.points_list[value]});
+
+                const x_list = vertices.map((value)=>{return value.x});
+                const y_list = vertices.map((value)=>{return value.y});
+                const z_list = vertices.map((value)=>{return value.z});
+
+                const [x_min, x_max] = this.getMinMax(x_list);
+                const [y_min, y_max] = this.getMinMax(y_list);
+                const [z_min, z_max] = this.getMinMax(z_list);
+
+                const avg_point = new Point3D((x_min + x_max)/2, (y_min + y_max)/2, (z_min + z_max)/2);
+                const avg_point_index = triangulated_points_list.push(avg_point);
+                
+                for(const edge of face_edges)
+                {
+                    const [a, b] = edge.split("-");
+                    triangulated_connectivity_matrix.edges.push(`${avg_point_index}-${a}`, `${edge}`, `${b}-${avg_point_index}`);
+                    triangulated_connectivity_matrix.faces.push(`${a}-${avg_point_index}-${b}`);
+                }
+            }
+
+            return {"points" : triangulated_points_list, connectivity : triangulated_connectivity_matrix};
+        }
+
+        display(){
+            return {"points" : this.points_list, connectivity : this.connectivity_matrix};
+        }
     }
 
     // RENDERING
