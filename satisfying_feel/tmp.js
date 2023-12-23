@@ -19,6 +19,131 @@
             this.z = z;
         }
     }
+    class MeshDataStructure {
+        HalfEdgeDict;
+        face_tmp;
+        faces;
+        prev;
+        next;
+        temp;
+        face_vertices_tmp;
+        edge_no;
+        vertex_no;
+        constructor(vertex_num) {
+            this.HalfEdgeDict = {};
+            this.face_tmp = [];
+            this.faces = [];
+            this.prev = null;
+            this.next = null;
+            this.temp = null;
+            this.face_vertices_tmp = "-";
+            this.edge_no = 0;
+            this.vertex_no = vertex_num;
+        }
+        halfEdge(start, end) {
+            return {
+                vertices: [start, end],
+                face_vertices: "-",
+                twin: "-",
+                prev: "-",
+                next: "-",
+            };
+        }
+        setHalfEdge(a, b) {
+            let halfEdgeKey = `${a}-${b}`;
+            let twinHalfEdgeKey = `${b}-${a}`;
+            // If halfedge does exist in halfedge dict switch halfedge key to twin halfedge key and vice-versa
+            if (this.HalfEdgeDict[halfEdgeKey]) {
+                const halfEdgeKeyTemp = twinHalfEdgeKey;
+                twinHalfEdgeKey = halfEdgeKey;
+                halfEdgeKey = halfEdgeKeyTemp;
+            }
+            // If halfedge does not exist in halfedge dict, create halfedge and increment the edge number
+            if (!this.HalfEdgeDict[halfEdgeKey]) {
+                this.HalfEdgeDict[halfEdgeKey] = this.halfEdge(a, b);
+                this.edge_no++;
+                this.HalfEdgeDict[halfEdgeKey].face_vertices = this.face_vertices_tmp;
+            }
+            // if twin halfedge also does exist in halfedge dict, decrement the edge number
+            if (this.HalfEdgeDict[halfEdgeKey]) {
+                this.HalfEdgeDict[halfEdgeKey].twin = twinHalfEdgeKey;
+                this.HalfEdgeDict[halfEdgeKey].twin = halfEdgeKey;
+                this.edge_no--;
+            }
+            return halfEdgeKey;
+        }
+        addFace(face) {
+            // sort the face vertices in ascending order
+            this.face_vertices_tmp = [...face].sort((a, b) => a - b).join("-");
+            // If face is not found in faces add face to faces and set its halfedges
+            if (!this.faces.includes(this.face_vertices_tmp)) {
+                this.faces.push(this.face_vertices_tmp);
+                for (const i in face) {
+                    const halfEdgeKey = this.setHalfEdge(face[i], face[(Number(i) + 1) % face.length]);
+                    const [a, b] = halfEdgeKey.split("-");
+                    if (this.temp === null) {
+                        this.prev = "null-" + a;
+                    }
+                    else {
+                        this.prev = this.temp + "-" + a;
+                    }
+                    if (this.HalfEdgeDict[halfEdgeKey] !== undefined) {
+                        this.HalfEdgeDict[halfEdgeKey].next = halfEdgeKey;
+                    }
+                    this.next = b + "-null";
+                    this.HalfEdgeDict[halfEdgeKey].prev = this.prev;
+                    this.HalfEdgeDict[halfEdgeKey].next = this.next;
+                    this.temp = a + "-" + b;
+                }
+                // reset temp, prev and next
+                this.temp = null;
+                this.prev = null;
+                this.next = null;
+            }
+        }
+        removeFace(face) {
+            let found_edges = 0;
+            // sort the face vertices in ascending order
+            this.face_vertices_tmp = [...face].sort((a, b) => a - b).join("-");
+            // Check if face is found in faces, if yes remove it
+            if (this.faces.includes(this.face_vertices_tmp)) {
+                // iterate through the edges until an edge's face marching the face is found
+                for (const edge in this.HalfEdgeDict) {
+                    // If the edge's face marches the face then crawl with next until the found edges tally with the face's length
+                    if (this.HalfEdgeDict[edge].face_vertices === this.face_vertices_tmp) {
+                        found_edges++;
+                        let cur_halfEdge = this.HalfEdgeDict[edge].next; // update the halfedge
+                        let twinHalfEdgeKey = this.HalfEdgeDict[edge].twin;
+                        if (!this.HalfEdgeDict[edge])
+                            this.edge_no--; // If the twin does not exist decrease edge number
+                        delete this.HalfEdgeDict[edge]; // delete the previous halfedge
+                        while (found_edges < face.length) {
+                            cur_halfEdge = this.HalfEdgeDict[edge].next; // update the halfedge
+                            twinHalfEdgeKey = this.HalfEdgeDict[edge].twin;
+                            if (!this.HalfEdgeDict[edge])
+                                this.edge_no--; // If the twin does not exist decrease edge number   
+                            delete this.HalfEdgeDict[edge]; // delete the previous halfedge
+                            found_edges++;
+                        }
+                    }
+                }
+            }
+        }
+        getEdgesofFace(face) {
+            return face.map((value, index) => { return `${value}-${face[(index + 1) % face.length]}`; });
+        }
+        splitFace() { }
+        mergeface() { }
+        addEdge() { }
+        removeEdge() { }
+        splitEdge() { }
+        getFacesofEdge(edge) {
+            return [this.HalfEdgeDict[edge].face_vertices, this.HalfEdgeDict[this.HalfEdgeDict[edge].twin].face_vertices];
+        }
+        addVertex() { }
+        removeVertex() { }
+        triangulate() { }
+    }
     class CatmullClark {
         points_list;
         connectivity_matrix;
@@ -263,23 +388,23 @@
     const mod_triangular_pyramid_points = toPoints3D(triangular_pyramid_points);
     const cube_catmull_clark = new CatmullClark(mod_cube_points, cube_connectivity_matrix, 4);
     const triangular_pyramid_catmull_clark = new CatmullClark(mod_triangular_pyramid_points, triangular_pyramid_connectivity_matrix, 4);
-    console.log("cube :");
-    // console.log(cube_catmull_clark.display().points)
-    // console.log(cube_catmull_clark.display().connectivity)
-    cube_catmull_clark.iterate(1);
-    console.log(cube_catmull_clark.display().points);
-    console.log(cube_catmull_clark.display().connectivity);
-    // const tc = cube_catmull_clark.triangulate();
-    // console.log(tc.points)
-    // console.log(tc.connectivity);
-    console.log("triangular pyramid : ");
-    console.log(triangular_pyramid_catmull_clark.display().points);
-    console.log(triangular_pyramid_catmull_clark.display().connectivity);
-    triangular_pyramid_catmull_clark.iterate(1);
-    console.log(triangular_pyramid_catmull_clark.display().points);
-    console.log(triangular_pyramid_catmull_clark.display().connectivity);
-    // const tt = triangular_pyramid_catmull_clark.triangulate();
-    // console.log(tt.points);
-    // console.log(tt.connectivity)
-    console.log("done");
+    //   console.log("cube :")
+    //     // console.log(cube_catmull_clark.display().points)
+    //     // console.log(cube_catmull_clark.display().connectivity)
+    //   cube_catmull_clark.iterate(1);
+    //   console.log(cube_catmull_clark.display().points)
+    //   console.log(cube_catmull_clark.display().connectivity)
+    //   // const tc = cube_catmull_clark.triangulate();
+    //   // console.log(tc.points)
+    //   // console.log(tc.connectivity);
+    //   console.log("triangular pyramid : ")
+    //     console.log(triangular_pyramid_catmull_clark.display().points)
+    //     console.log(triangular_pyramid_catmull_clark.display().connectivity)
+    //   triangular_pyramid_catmull_clark.iterate(1);
+    //   console.log(triangular_pyramid_catmull_clark.display().points)
+    //   console.log(triangular_pyramid_catmull_clark.display().connectivity)
+    //   // const tt = triangular_pyramid_catmull_clark.triangulate();
+    //   // console.log(tt.points);
+    //   // console.log(tt.connectivity)
+    //   console.log("done");
 })();

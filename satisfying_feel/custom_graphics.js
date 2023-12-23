@@ -1700,8 +1700,6 @@
         vertex_no;
         constructor(vertex_num) {
             this.HalfEdgeDict = {};
-            // this.vert_len = vertex_indexes.length;
-            // this.vert_array = vertex_indexes;
             this.triangle = [];
             this.triangleList = [];
             this.edge_no = 0;
