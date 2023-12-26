@@ -739,7 +739,6 @@
         }
 
         iterate(iteration_num = 1) {
-            console.log(this.mesh.HalfEdgeDict)
 
             if(iteration_num <= 0) return;
             iteration_num--;
@@ -754,7 +753,6 @@
             }
 
             for(const edge in this.mesh.HalfEdgeDict) {
-                console.log(edge)
                 const edge_vertices_full: Point3D[] = [];
                 const [a,b] = edge.split("-");
                 const twinHalfEdgeKey = `${b}-${a}`;
@@ -770,7 +768,6 @@
 
                     const edge_points = this.getPoints(edge_vertices);
                     edge_vertices_full.push(...edge_points,f_p_a,f_p_b);
-                    console.log(edge_vertices_full)
                     const sum = this.sumPoints(edge_vertices_full);
 
                     const edge_point = new Point3D(sum.x / 4,sum.y / 4,sum.z / 4);
@@ -950,42 +947,24 @@
     const cube_catmull_clark = new CatmullClark(mod_cube_points,cube_mesh);
     const pyramid_catmull_clark = new CatmullClark(mod_pyramid_points,pyramid_mesh);
 
-    // console.log(cube_catmull_clark.display().points)
+    console.log(cube_catmull_clark.display().points)
     console.log(cube_catmull_clark.display().mesh.faces)
 
-    cube_catmull_clark.iterate(2);
+    console.log("cube")
+    cube_catmull_clark.iterate(1);
 
-    // console.log(cube_catmull_clark.display().points)
+    console.log(cube_catmull_clark.display().points)
     console.log(cube_catmull_clark.display().mesh.faces)
 
-    // console.log(pyramid_catmull_clark.display().points)
+    console.log(pyramid_catmull_clark.display().points)
     console.log(pyramid_catmull_clark.display().mesh.faces)
 
-    pyramid_catmull_clark.iterate(2);
+    console.log("pyramid")
+    pyramid_catmull_clark.iterate(1);
 
-    // console.log(pyramid_catmull_clark.display().points)
+    console.log(pyramid_catmull_clark.display().points)
     console.log(pyramid_catmull_clark.display().mesh.faces)
 
-    //   console.log("cube :")
-    //     // console.log(cube_catmull_clark.display().points)
-    //     // console.log(cube_catmull_clark.display().connectivity)
-    //   cube_catmull_clark.iterate(1);
-    //   console.log(cube_catmull_clark.display().points)
-    //   console.log(cube_catmull_clark.display().connectivity)
-    //   // const tc = cube_catmull_clark.triangulate();
-    //   // console.log(tc.points)
-    //   // console.log(tc.connectivity);
-
-    //   console.log("triangular pyramid : ")
-    //     console.log(triangular_pyramid_catmull_clark.display().points)
-    //     console.log(triangular_pyramid_catmull_clark.display().connectivity)
-    //   triangular_pyramid_catmull_clark.iterate(1);
-    //   console.log(triangular_pyramid_catmull_clark.display().points)
-    //   console.log(triangular_pyramid_catmull_clark.display().connectivity)
-    //   // const tt = triangular_pyramid_catmull_clark.triangulate();
-    //   // console.log(tt.points);
-    //   // console.log(tt.connectivity)
-
-    //   console.log("done");
+    console.log("done");
 
 })()
