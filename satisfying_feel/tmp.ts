@@ -68,7 +68,7 @@
                 }
                 for(let i = startIndex; i < arr.length; i++) {
                     currentCombination.push(arr[i]);
-                    backtrack(i + 1,currentCombination);
+                    backtrack(i+1,currentCombination);
                     currentCombination.pop();
                 }
             }
@@ -121,6 +121,39 @@
         }
     }
 
+    abstract class BinarySearch<T>{
+
+        abstract satisfies(): -1 | 0 | 1;
+
+        recursive(elem: T,arr: T[],min: number,max: number) // min = 0, max = inputArray.length - 1
+        {
+            if(min > max) return -1;
+
+            else {
+                let mid = Math.floor((min + max) / 2);
+
+                if(this.satisfies() === 0) return mid;
+                else if(this.satisfies() === -1) return this.recursive(elem,arr,min,mid - 1);
+                else return this.recursive(elem,arr,mid + 1,max);
+            }
+        }
+
+        iterative(arr: T[]) {
+            let min = 0;
+            let max = arr.length - 1;
+
+            while(min <= max) {
+                let mid = Math.floor((min + max) / 2);
+
+                if(this.satisfies() === 0) return mid;
+                else if(this.satisfies() === -1) max = mid - 1;
+                else min = mid + 1;
+            }
+
+            return -1;
+        }
+    }
+
     class MeshDataStructure {
         HalfEdgeDict: {};
         face_tmp: number[];
@@ -132,6 +165,7 @@
         edge_no: number;
         vertex_no: number;
         vertex_indexes: Set<number>;
+        multiplier = 10;
 
         constructor (vertex_num = 0) {
             this.HalfEdgeDict = {};
@@ -150,6 +184,8 @@
             this.vertex_indexes.add(start);
             this.vertex_indexes.add(end);
             this.vertex_no = [...this.vertex_indexes].length;
+            const comp = Math.max(start, end);
+            if(this.multiplier % comp === this.multiplier) this.multiplier*=10;
             return {
                 vertices: [start,end],
                 face_vertices: [],
@@ -204,13 +240,13 @@
 
             // if vertex a belongs to only one face remove it and modify the face vertices
             if(get_faces === true) {
-                if(this.getFacesofVertex(a).length <= 1) {
+                if(this.getFacesofVertexGeneric(a).length <= 1) {
                     this.vertex_indexes.delete(Number(a));
                     new_face_vertices.delete(Number(a));
                 }
 
                 // if vertex b belongs to only one face remove it and modify the face vertices
-                if(this.getFacesofVertex(b).length <= 1) {
+                if(this.getFacesofVertexGeneric(b).length <= 1) {
                     this.vertex_indexes.delete(Number(b));
                     new_face_vertices.delete(Number(b));
                 }
@@ -284,29 +320,37 @@
             return count;
         }
 
+        getEdgesOfVertexFast(vertex : number, edge_num_list : number[]){
+            const edge_list : string[] = [];
+            edge_num_list.map((value)=>{
+                const min = value % this.multiplier;
+                const max = (value - min) / this.multiplier;
+                if (vertex === min || vertex === max) edge_list.push(`${min}-${max}`);
+            });
+            return edge_list;
+        }
+
         getEdgesofVertex(vertex: string | number,no_half_edge = false) {
             const edge_list: string[] = [];
 
             for(const edge in this.HalfEdgeDict) {
-                if(no_half_edge === true) {
                     const [a,b] = edge.split("-");
                     var rev = b + "-" + a;
 
-                    if((edge.split("-").includes(`${vertex}`)) && !edge_list.includes(edge) && !edge_list.includes(rev)) edge_list.push(edge);
-                }
+                    if(no_half_edge === true) if (edge_list.includes(rev)) continue
 
-                else {
-                    if((edge.split("-").includes(`${vertex}`)) && !edge_list.includes(edge)) edge_list.push(edge); // edge touches vertex and is not in the edge_list
+                    if(edge_list.includes(edge)) continue;
+
+                    // edge touches vertex and is not in the edge_list
+                    if(edge.split("-").includes(`${vertex}`)) edge_list.push(edge);
                 }
-            }
 
             return edge_list;
         }
 
-        getFacesofVertex(vertex: string | number) {
+        getFacesofVertexSpecific(edge_list : string[]) {
             const face_list: string[] = [];
             const faces: number[][] = [];
-            const edge_list = this.getEdgesofVertex(vertex);
 
             for(const edge of edge_list) {
                 const face = (this.HalfEdgeDict[edge] as _HALFEDGE_).face_vertices;
@@ -317,6 +361,11 @@
             }
 
             return faces;
+        }
+
+        getFacesofVertexGeneric(vertex : string | number){
+            const edge_list = this.getEdgesofVertex(vertex);
+            return this.getFacesofVertexSpecific(edge_list);
         }
 
 
@@ -495,6 +544,16 @@
             if(typeof edge === "object") edge = edge.join("-");
             const twinHalfEdgeKey = (this.HalfEdgeDict[edge] as _HALFEDGE_).twin;
             return [(this.HalfEdgeDict[edge] as _HALFEDGE_).face_vertices,(this.HalfEdgeDict[twinHalfEdgeKey] as _HALFEDGE_).face_vertices];
+        }
+
+        edgeToNumber(){
+            const edge_num_set : Set<number> = new Set();
+            for (const edge in (this.HalfEdgeDict as _HALFEDGE_)){
+                const [a,b] = edge.split("-").map((value)=>Number(value));
+                const [min, max] = [Math.min(a,b), Math.max(a,b)];
+                edge_num_set.add(max*this.multiplier+min);
+            }
+            return [...edge_num_set];
         }
 
         addFace(face: number[]) {
@@ -738,11 +797,24 @@
             return [halfEdgeKey_1,halfEdgeKey_2];
         }
 
-        iterate(iteration_num = 1) {
+        iterate(iteration_num = 1, orig_iter = iteration_num+1) {
 
             if(iteration_num <= 0) return;
+            const overall_start = new Date().getTime();
+            console.log(`Iteration Number : ${orig_iter-iteration_num}`);
+            console.log(`Points List Length : ${this.points_list.length}`);
+            console.log(`Object Faces Length : ${this.mesh.faces.length}`);
+            console.log(`Object Edges Length : ${Object.keys(this.mesh.HalfEdgeDict).length/2}`);
+
             iteration_num--;
 
+            const start = new Date().getTime();
+            const fast_edge_list = this.mesh.edgeToNumber();
+            const end = new Date().getTime();
+            console.log(`Time taken to get fast edge list : ${end - start} ms`)
+            
+
+            const face_start = new Date().getTime()
             for(const face of this.mesh.faces) {
                 const face_points = this.getFacePoints(face);
                 const sum = this.sumPoints(face_points);
@@ -751,7 +823,11 @@
                 const face_point = new Point3D(sum.x / len,sum.y / len,sum.z / len);
                 this.face_points.push(face_point);
             }
+            const face_end = new Date().getTime()
+            console.log(`Time taken for face iteration : ${face_end - face_start} ms`)
 
+
+            const edge_start = new Date().getTime()
             for(const edge in this.mesh.HalfEdgeDict) {
                 const edge_vertices_full: Point3D[] = [];
                 const [a,b] = edge.split("-");
@@ -777,7 +853,12 @@
                     this.done_indexes.push(edge_index, edge_index);
                 }
             }
+            const edge_end = new Date().getTime()
+            console.log(`Time taken for edge iteration : ${edge_end - edge_start} ms`)
 
+            const point_start = new Date().getTime()
+            var FofV = 0;
+            var EofV = 0
             for(const point_index in this.points_list) {
                 const P = this.points_list[point_index];
                 const F_list: Point3D[] = [];
@@ -785,20 +866,28 @@
                 var n_f = 0;
                 var n_e = 0;
 
-                this.mesh.getFacesofVertex(point_index).map((value) => {
-                    const face_index = this.mesh.faces.indexOf(value.join("-"));
-                    const face_point = this.face_points[face_index];
-                    F_list.push(face_point);
-                    n_f++;
-                })
+                const EofV_start = new Date().getTime();
+                const edge_list = this.mesh.getEdgesOfVertexFast(Number(point_index), fast_edge_list);
 
-                this.mesh.getEdgesofVertex(point_index,true).map((value) => {
+                edge_list.map((value) => {
                     const edge_vertices = value.split("-").map((value) => this.points_list[value]);
                     const sum = this.sumPoints(edge_vertices);
                     const edge_midpoint = new Point3D(sum.x / 2,sum.y / 2,sum.z / 2);
                     R_list.push(edge_midpoint);
                     n_e++;
                 })
+                const EofV_end = new Date().getTime();
+                EofV += EofV_end-EofV_start;
+
+                const FofV_start = new Date().getTime()
+                this.mesh.getFacesofVertexSpecific(edge_list).map((value) => {
+                    const face_index = this.mesh.faces.indexOf(value.join("-"));
+                    const face_point = this.face_points[face_index];
+                    F_list.push(face_point);
+                    n_f++;
+                })
+                const FofV_end = new Date().getTime();
+                FofV += FofV_end-FofV_start;
 
                 const n = (n_f + n_e) / 2
 
@@ -814,12 +903,20 @@
 
                 this.points_list[point_index] = new Point3D(X,Y,Z);
             }
+            const point_end = new Date().getTime()
+            console.log(this.mesh.multiplier)
+            console.log(`Time taken to get edges of vertex : ${EofV} ms`)
+            console.log(`Time taken to get faces of vertex : ${FofV} ms`)
+            console.log(`Time taken for point iteration : ${point_end - point_start} ms`)
+
+
 
             const p_len = this.points_list.length;
             const mesh_faces_len = this.mesh.faces.length;
 
             this.points_list.push(...this.face_points,...this.edge_points);
 
+            const face_index_start = new Date().getTime()
             for(const face_index in this.mesh.faces) {
                 const face = this.mesh.faces[face_index];
                 const face_edges = this.mesh.getEdgesofFace(face.split("-").map((value) => Number(value)));
@@ -852,14 +949,22 @@
                     edge_index++;
                 }
             }
+            const face_index_end = new Date().getTime()
+            console.log(`Time taken for face iteration to get boundary : ${face_index_end - face_index_start} ms`)
+
+
 
             this.mesh.faces.splice(0, mesh_faces_len);
             this.face_points = [];
             this.edge_points = [];
             this.done_edges = [];
             this.done_indexes = [];
+            const overall_end = new Date().getTime();
+            console.log(`Total time taken : ${overall_end - overall_start} ms`)
 
-            this.iterate(iteration_num);
+            console.log("\n\n")
+
+            this.iterate(iteration_num, orig_iter);
         }
 
         // triangulate() {
@@ -947,24 +1052,24 @@
     const cube_catmull_clark = new CatmullClark(mod_cube_points,cube_mesh);
     const pyramid_catmull_clark = new CatmullClark(mod_pyramid_points,pyramid_mesh);
 
-    console.log(cube_catmull_clark.display().points)
-    console.log(cube_catmull_clark.display().mesh.faces)
+    // console.log(cube_catmull_clark.display().points)
+    // console.log(cube_catmull_clark.display().mesh.faces)
 
-    console.log("cube")
-    cube_catmull_clark.iterate(1);
+    console.log("CUBE\n\n\n")
+    cube_catmull_clark.iterate(6);
 
-    console.log(cube_catmull_clark.display().points)
-    console.log(cube_catmull_clark.display().mesh.faces)
+    // console.log(cube_catmull_clark.display().points)
+    // console.log(cube_catmull_clark.display().mesh.faces)
 
-    console.log(pyramid_catmull_clark.display().points)
-    console.log(pyramid_catmull_clark.display().mesh.faces)
+    // console.log(pyramid_catmull_clark.display().points)
+    // console.log(pyramid_catmull_clark.display().mesh.faces)
 
-    console.log("pyramid")
-    pyramid_catmull_clark.iterate(1);
+    console.log("PYRAMID\n\n\n")
+    pyramid_catmull_clark.iterate(6);
 
-    console.log(pyramid_catmull_clark.display().points)
-    console.log(pyramid_catmull_clark.display().mesh.faces)
+    // console.log(pyramid_catmull_clark.display().points)
+    // console.log(pyramid_catmull_clark.display().mesh.faces)
 
-    console.log("done");
+    console.log("DONE");
 
 })()
