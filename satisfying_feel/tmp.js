@@ -718,8 +718,7 @@
                     const twin_edge_vertices = this.mesh.HalfEdgeDict[twinHalfEdgeKey].face_vertices;
                     const twin_edge_face_index = this.mesh.faces.indexOf(twin_edge_vertices.join("-"));
                     const f_p_b = this.face_points[twin_edge_face_index];
-                    const edge_points = this.getPoints(edge_vertices);
-                    edge_vertices_full.push(...edge_points, f_p_a, f_p_b);
+                    edge_vertices_full.push(this.points_list[Number(a)], this.points_list[Number(b)], f_p_a, f_p_b);
                     const sum = this.sumPoints(edge_vertices_full);
                     const edge_point = new Point3D(sum.x / 4, sum.y / 4, sum.z / 4);
                     const edge_index = this.edge_points.push(edge_point) - 1 + this.face_points.length + this.points_list.length;
@@ -881,17 +880,17 @@
     const cube_mesh = cube.mesh;
     const cube_catmull_clark = new CatmullClark(mod_cube_points, cube_mesh);
     const pyramid_catmull_clark = new CatmullClark(mod_pyramid_points, pyramid_mesh);
-    // console.log(cube_catmull_clark.display().points)
-    // console.log(cube_catmull_clark.display().mesh.faces)
+    console.log(cube_catmull_clark.display().points);
+    console.log(cube_catmull_clark.display().mesh.faces);
     console.log("CUBE\n\n\n");
-    cube_catmull_clark.iterate(6);
-    // console.log(cube_catmull_clark.display().points)
-    // console.log(cube_catmull_clark.display().mesh.faces)
-    // console.log(pyramid_catmull_clark.display().points)
-    // console.log(pyramid_catmull_clark.display().mesh.faces)
+    cube_catmull_clark.iterate(1);
+    console.log(cube_catmull_clark.display().points);
+    console.log(cube_catmull_clark.display().mesh.faces);
+    console.log(pyramid_catmull_clark.display().points);
+    console.log(pyramid_catmull_clark.display().mesh.faces);
     console.log("PYRAMID\n\n\n");
-    pyramid_catmull_clark.iterate(6);
-    // console.log(pyramid_catmull_clark.display().points)
-    // console.log(pyramid_catmull_clark.display().mesh.faces)
+    pyramid_catmull_clark.iterate(1);
+    console.log(pyramid_catmull_clark.display().points);
+    console.log(pyramid_catmull_clark.display().mesh.faces);
     console.log("DONE");
 })();
