@@ -563,7 +563,75 @@
         }
         splitFace() { }
         mergeface() { }
-        triangulate() { }
+        sumPoints(points) {
+            var res = new Point3D(0, 0, 0);
+            for (const point of points) {
+                res.x += point.x;
+                res.y += point.y;
+                res.z += point.z;
+            }
+            return res;
+        }
+        getMinMax(points) {
+            var minX = Infinity;
+            var maxX = -Infinity;
+            var minY = Infinity;
+            var maxY = -Infinity;
+            var minZ = Infinity;
+            var maxZ = -Infinity;
+            for (const point of points) {
+                if (minX > point.x)
+                    minX = point.x;
+                if (maxX < point.x)
+                    maxX = point.x;
+                if (minY > point.y)
+                    minY = point.y;
+                if (maxY < point.y)
+                    maxY = point.y;
+                if (minZ > point.z)
+                    minZ = point.z;
+                if (maxZ < point.z)
+                    maxZ = point.z;
+            }
+            return [minX, maxX, minY, maxY, minZ, maxZ];
+        }
+        triangulate(points_list) {
+            const start = new Date().getTime();
+            const triangulated_points_list = [];
+            triangulated_points_list.push(...points_list);
+            const new_mesh = new MeshDataStructure();
+            for (const face of this.faces) {
+                const vertex_indexes = face.split("-").map((value) => Number(value));
+                const face_edges = this.getEdgesofFace(vertex_indexes);
+                const vertices = vertex_indexes.map((value) => { return points_list[value]; });
+                const [x_min, x_max, y_min, y_max, z_min, z_max] = this.getMinMax(vertices);
+                const avg_point = new Point3D((x_min + x_max) / 2, (y_min + y_max) / 2, (z_min + z_max) / 2);
+                const avg_point_index = triangulated_points_list.push(avg_point) - 1;
+                new_mesh.addFace(vertex_indexes);
+                new_mesh.faces.pop();
+                for (const edge of face_edges) {
+                    const [a, b] = edge.split("-");
+                    const prev = `${avg_point_index}-${a}`;
+                    const next = `${b}-${avg_point_index}`;
+                    const new_vertex_indexes = [avg_point_index, Number(a), Number(b)];
+                    new_mesh.setHalfEdge(avg_point_index, Number(a));
+                    new_mesh.setHalfEdge(Number(b), avg_point_index);
+                    new_mesh.HalfEdgeDict[prev].face_vertices = new_vertex_indexes;
+                    new_mesh.HalfEdgeDict[next].face_vertices = new_vertex_indexes;
+                    new_mesh.HalfEdgeDict[edge].face_vertices = new_vertex_indexes;
+                    new_mesh.HalfEdgeDict[prev].prev = next;
+                    new_mesh.HalfEdgeDict[prev].next = edge;
+                    new_mesh.HalfEdgeDict[edge].prev = prev;
+                    new_mesh.HalfEdgeDict[edge].next = next;
+                    new_mesh.HalfEdgeDict[next].prev = edge;
+                    new_mesh.HalfEdgeDict[next].next = prev;
+                    new_mesh.faces.push(`${avg_point_index}-${a}-${b}`);
+                }
+            }
+            const end = new Date().getTime();
+            console.log(`Time taken to triangulate : ${end - start} ms`);
+            return { "points": triangulated_points_list, mesh: new_mesh };
+        }
     }
     class CreateBox {
         width;
@@ -656,15 +724,6 @@
         getPoints(array) {
             return array.map((value) => this.points_list[value]);
         }
-        sumPoints(points) {
-            var res = new Point3D(0, 0, 0);
-            for (const point of points) {
-                res.x += point.x;
-                res.y += point.y;
-                res.z += point.z;
-            }
-            return res;
-        }
         insertVertexInHalfEdge(vertex, edge) {
             const [a, b] = edge.split("-").map((value) => Number(value));
             const twin = `${b}-${a}`;
@@ -699,7 +758,7 @@
             const face_start = new Date().getTime();
             for (const face of this.mesh.faces) {
                 const face_points = this.getFacePoints(face);
-                const sum = this.sumPoints(face_points);
+                const sum = this.mesh.sumPoints(face_points);
                 const len = face_points.length;
                 const face_point = new Point3D(sum.x / len, sum.y / len, sum.z / len);
                 this.face_points.push(face_point);
@@ -719,7 +778,7 @@
                     const twin_edge_face_index = this.mesh.faces.indexOf(twin_edge_vertices.join("-"));
                     const f_p_b = this.face_points[twin_edge_face_index];
                     edge_vertices_full.push(this.points_list[Number(a)], this.points_list[Number(b)], f_p_a, f_p_b);
-                    const sum = this.sumPoints(edge_vertices_full);
+                    const sum = this.mesh.sumPoints(edge_vertices_full);
                     const edge_point = new Point3D(sum.x / 4, sum.y / 4, sum.z / 4);
                     const edge_index = this.edge_points.push(edge_point) - 1 + this.face_points.length + this.points_list.length;
                     this.done_edges.push(edge, twinHalfEdgeKey);
@@ -741,7 +800,7 @@
                 const edge_list = this.mesh.getEdgesOfVertexFast(Number(point_index), fast_edge_list);
                 edge_list.map((value) => {
                     const edge_vertices = value.split("-").map((value) => this.points_list[value]);
-                    const sum = this.sumPoints(edge_vertices);
+                    const sum = this.mesh.sumPoints(edge_vertices);
                     const edge_midpoint = new Point3D(sum.x / 2, sum.y / 2, sum.z / 2);
                     R_list.push(edge_midpoint);
                     n_e++;
@@ -758,8 +817,8 @@
                 const FofV_end = new Date().getTime();
                 FofV += FofV_end - FofV_start;
                 const n = (n_f + n_e) / 2;
-                const f_sum = this.sumPoints(F_list);
-                const r_sum = this.sumPoints(R_list);
+                const f_sum = this.mesh.sumPoints(F_list);
+                const r_sum = this.mesh.sumPoints(R_list);
                 const F = new Point3D(f_sum.x / n, f_sum.y / n, f_sum.z / n);
                 const R = new Point3D(r_sum.x / n, r_sum.y / n, r_sum.z / n);
                 const X = (F.x + 2 * R.x + (n - 3) * P.x) / n;
@@ -813,30 +872,9 @@
             console.log("\n\n");
             this.iterate(iteration_num, orig_iter);
         }
-        // triangulate() {
-        //     const triangulated_points_list: Point3D[] = [];
-        //     const triangulated_connectivity_matrix: _CONNECTIVITY_ = { faces: [],edges: [] };
-        //     triangulated_points_list.push(...this.points_list);
-        //     for(const face of this.connectivity_matrix.faces) {
-        //         const face_edges = this.getEdgesFromFace(face);
-        //         const vertex_indexes = face.split("-").map((value) => Number(value));
-        //         const vertices = vertex_indexes.map((value) => { return this.points_list[value] });
-        //         const x_list = vertices.map((value) => value.x);
-        //         const y_list = vertices.map((value) => value.y);
-        //         const z_list = vertices.map((value) => value.z);
-        //         const [x_min,x_max] = this.getMinMax(x_list);
-        //         const [y_min,y_max] = this.getMinMax(y_list);
-        //         const [z_min,z_max] = this.getMinMax(z_list);
-        //         const avg_point = new Point3D((x_min + x_max) / 2,(y_min + y_max) / 2,(z_min + z_max) / 2);
-        //         const avg_point_index = triangulated_points_list.push(avg_point);
-        //         for(const edge of face_edges) {
-        //             const [a,b] = edge.split("-");
-        //             triangulated_connectivity_matrix.edges.push(`${avg_point_index}-${a}`,`${edge}`,`${b}-${avg_point_index}`);
-        //             triangulated_connectivity_matrix.faces.push(`${a}-${avg_point_index}-${b}`);
-        //         }
-        //     }
-        //     return { "points": triangulated_points_list,connectivity: triangulated_connectivity_matrix };
-        // }
+        triangulate() {
+            return this.mesh.triangulate(this.points_list);
+        }
         display() {
             return { points: this.points_list, mesh: this.mesh };
         }
@@ -880,17 +918,29 @@
     const cube_mesh = cube.mesh;
     const cube_catmull_clark = new CatmullClark(mod_cube_points, cube_mesh);
     const pyramid_catmull_clark = new CatmullClark(mod_pyramid_points, pyramid_mesh);
+    console.log("CUBE\n\n\n");
     console.log(cube_catmull_clark.display().points);
     console.log(cube_catmull_clark.display().mesh.faces);
-    console.log("CUBE\n\n\n");
+    var cutr = cube_catmull_clark.triangulate();
+    console.log(cutr.points);
+    console.log(cutr.mesh.faces);
     cube_catmull_clark.iterate(1);
     console.log(cube_catmull_clark.display().points);
     console.log(cube_catmull_clark.display().mesh.faces);
+    cutr = cube_catmull_clark.triangulate();
+    console.log(cutr.points);
+    console.log(cutr.mesh.faces);
+    console.log("PYRAMID\n\n\n");
     console.log(pyramid_catmull_clark.display().points);
     console.log(pyramid_catmull_clark.display().mesh.faces);
-    console.log("PYRAMID\n\n\n");
+    var pytr = pyramid_catmull_clark.triangulate();
+    console.log(pytr.points);
+    console.log(pytr.mesh.faces);
     pyramid_catmull_clark.iterate(1);
     console.log(pyramid_catmull_clark.display().points);
     console.log(pyramid_catmull_clark.display().mesh.faces);
+    pytr = pyramid_catmull_clark.triangulate();
+    console.log(pytr.points);
+    console.log(pytr.mesh.faces);
     console.log("DONE");
 })();
