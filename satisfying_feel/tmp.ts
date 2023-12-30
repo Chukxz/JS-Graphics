@@ -158,10 +158,12 @@
         HalfEdgeDict: {};
         face_tmp: number[];
         faces: string[];
+        sorted_faces : string[];
         prev: string | null;
         next: string | null;
         temp: string | null;
-        face_vertices_tmp: number[];
+        face_vertices_tmp: string[];
+        face_indexes_tmp : number[];
         edge_no: number;
         vertex_no: number;
         vertex_indexes: Set<number>;
@@ -171,10 +173,12 @@
             this.HalfEdgeDict = {};
             this.face_tmp = [];
             this.faces = [];
+            this.sorted_faces = [];
             this.prev = null;
             this.next = null;
             this.temp = null;
             this.face_vertices_tmp = [];
+            this.face_indexes_tmp = [];
             this.edge_no = 0;
             this.vertex_no = vertex_num;
             this.vertex_indexes = new Set();
@@ -210,7 +214,7 @@
             if(!(this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_) && set_halfEdge === true) {
                 (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_) = this.halfEdge(a,b);
                 this.edge_no++;
-                (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_).face_vertices = this.face_vertices_tmp;
+                (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_).face_vertices = this.face_indexes_tmp;
             }
             else twinHalfEdgeKey;
 
@@ -259,7 +263,7 @@
                 let cur_halfEdgeKey = "-";
 
                 // If the previous halfedge exists
-                if(prev_halfEdgeKey !== "-") {
+                if(prev_halfEdgeKey === undefined || prev_halfEdgeKey !== "-") {
                     (this.HalfEdgeDict[prev_halfEdgeKey] as _HALFEDGE_).next = "-";
 
                     while(prev_halfEdgeKey !== "-") {
@@ -271,7 +275,7 @@
                 }
 
                 // If the next halfedge exists
-                if(next_halfEdgeKey !== "-") {
+                if(next_halfEdgeKey === undefined || next_halfEdgeKey !== "-") {
                     (this.HalfEdgeDict[next_halfEdgeKey] as _HALFEDGE_).prev = "-";
 
                     while(next_halfEdgeKey !== "-") {
@@ -556,15 +560,27 @@
             return [...edge_num_set];
         }
 
-        addFace(face: number[]) {
-            this.face_vertices_tmp = face;
+        addFace(face: string) {
+            this.face_vertices_tmp = face.split("-");
+            this.face_indexes_tmp = this.face_vertices_tmp.map((value)=>Number(value)).sort((a,b)=>a-b);
+            const sorted_face = this.face_indexes_tmp.join("-")
 
             // If face is not found in faces add face to faces and set its halfedges
-            if(!this.faces.includes(this.face_vertices_tmp.join("-"))) {
-                this.faces.push(this.face_vertices_tmp.join("-"));
+            if(!this.faces.includes(face) && this.face_vertices_tmp.length > 2 && !this.sorted_faces.includes(sorted_face)) {
+                this.faces.push(face);
+                this.sorted_faces.push(sorted_face);
 
-                for(const i in face) {
-                    const halfEdgeKey = this.setHalfEdge(face[i],face[(Number(i) + 1) % face.length]);
+                const first_index = this.face_vertices_tmp[0];
+                const second_index = this.face_vertices_tmp[1];
+                const last_index = this.face_vertices_tmp[this.face_vertices_tmp.length-1];
+                console.log(this.face_vertices_tmp,"_____")
+                console.log(last_index, "****")
+
+                for(let p in this.face_vertices_tmp) {
+                    const index = Number(p);
+                    const i = Number(this.face_vertices_tmp[p]);
+                    const j = Number(this.face_vertices_tmp[(index + 1) % this.face_vertices_tmp.length])
+                    const halfEdgeKey = this.setHalfEdge(i, j);
                     const [a,b] = halfEdgeKey.split("-");
 
                     if(this.temp === null) {
@@ -583,6 +599,10 @@
                     (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_).next = this.next;
 
                     this.temp = a;
+
+                    if(index === 0) (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_).prev = `${last_index}-${first_index}`;
+                    if(index === this.face_vertices_tmp.length-1) (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_).next = `${first_index}-${second_index}`;
+
                 }
 
                 // reset temp, prev and next
@@ -597,17 +617,18 @@
             return false; // face not added
         }
 
-        removeFace(face: number[]) {
+        removeFace(face: string) {
+            const sorted_face = face.split("-").map((value)=>Number(value)).sort((a,b)=>a-b).join("-");
             let found_edges = 0;
 
             const face_len = face.length;
 
             // Check if face is found in faces, if yes remove it
-            if(this.faces.includes(face.join("-"))) {
+            if(this.faces.includes(face)) {
                 // iterate through the edges until an edge's face marching the face is found
                 for(const edge in this.HalfEdgeDict) {
                     // Check if the edge's vertices marches the face's vertices
-                    if((this.HalfEdgeDict[edge] as _HALFEDGE_).face_vertices.join("-") === face.join("-")) {
+                    if((this.HalfEdgeDict[edge] as _HALFEDGE_).face_vertices.join("-") === sorted_face) {
                         let old_halfEdgeKey = edge;
                         let new_halfEdgeKey = (this.HalfEdgeDict[old_halfEdgeKey] as _HALFEDGE_).next;
                         // remove the halfedge later (we are postponing the removal of the original halfedge here)
@@ -616,7 +637,7 @@
                         // Try to crawl with next until the found edges tally with the face's length
                         while(found_edges < face_len) {
                             // If the next halfedge is non-existent break the while loop
-                            if(new_halfEdgeKey === "-") {
+                            if(new_halfEdgeKey === undefined || new_halfEdgeKey === "-") {
                                 new_halfEdgeKey = edge;
                                 break;
                             }
@@ -629,7 +650,7 @@
 
                         // If the found edges do not yet tally try to crawl with previous until the found edges tally with the face's length
                         while(found_edges < face_len) {
-                            if(new_halfEdgeKey === "-") break; // If the previous halfedge is non-existent break the while loop
+                            if(new_halfEdgeKey === undefined || new_halfEdgeKey === "-") break; // If the previous halfedge is non-existent break the while loop
 
                             old_halfEdgeKey = new_halfEdgeKey;
                             new_halfEdgeKey = (this.HalfEdgeDict[old_halfEdgeKey] as _HALFEDGE_).prev; // update the halfedge
@@ -640,7 +661,8 @@
                         // If the found edges don't yet still tally with the face's length at this point we leave it like that and proceed to remove the original halfedge that we postponed
 
                         this.removeHalfEdge(edge,false); // remove the halfedge
-                        this.faces.splice(this.faces.indexOf(face.join("-")),1);
+                        this.faces.splice(this.faces.indexOf(face),1);
+                        this.sorted_faces.splice(this.sorted_faces.indexOf(sorted_face))
 
                         return true; // face removed successfully
                     }
@@ -709,7 +731,7 @@
                 const avg_point = new Point3D((x_min + x_max) / 2,(y_min + y_max) / 2,(z_min + z_max) / 2);
                 const avg_point_index = triangulated_points_list.push(avg_point)-1;
 
-                new_mesh.addFace(vertex_indexes);
+                new_mesh.addFace(vertex_indexes.join("-"));
                 new_mesh.faces.pop();
 
                 for(const edge of face_edges) {
@@ -764,11 +786,11 @@
             this.width = width/2;
             this.height = height/2;
             this.depth = depth/2;
-            this.default_faces = [[0,1,2,3],[4,5,6,7],[0,3,6,5],[1,4,7,2],[2,7,6,3],[0,5,4,1]] // standard default mesh configuration
+            this.default_faces = [[0,1,2,3],[4,5,6,7],[0,3,7,4],[1,2,6,5],[3,2,6,7],[0,1,5,4]] // standard default mesh configuration
 
             console.log(this.default_faces)
 
-            for(const face of this.default_faces) this.mesh.addFace(face);
+            for(const face of this.default_faces) this.mesh.addFace(face.join("-"));
             this.calculatePoints();
         }
 
@@ -858,7 +880,7 @@
             }
 
             console.log(this.faces)
-            for(const face of this.faces) this.mesh.addFace(face);
+            for(const face of this.faces) this.mesh.addFace(face.join("-"));
             this.calculatePoints();
         }
 
@@ -1135,46 +1157,60 @@
 
     const misc = new Miscellanous();
 
+    var a = new MeshDataStructure(0);
+
+    a.addFace([0,2,1].join("-"))
+    // a.addFace([3,1,0])
+    // a.addFace([0,4,1])
+
+    console.log(a.faces)
+    console.log(a.sorted_faces)
+
+
+    console.log(a.HalfEdgeDict)
+
     const pyramid = new CreatePyramid();
     const cube = new CreateBox();
 
     const cube_catmull_clark = new CatmullClark(cube);
     const pyramid_catmull_clark = new CatmullClark(pyramid);
 
-    console.log("CUBE\n\n\n")
-    console.log(cube_catmull_clark.display().points)
-    console.log(cube_catmull_clark.display().mesh.faces)
+    console.log(cube.mesh)
 
-    var cutr = cube_catmull_clark.triangulate()
-    console.log(cutr.points)
-    console.log(cutr.mesh.faces)
+    // console.log("CUBE\n\n\n")
+    // console.log(cube_catmull_clark.display().points)
+    // console.log(cube_catmull_clark.display().mesh.faces)
 
-    cube_catmull_clark.iterate(1);
+    // var cutr = cube_catmull_clark.triangulate()
+    // console.log(cutr.points)
+    // console.log(cutr.mesh.faces)
 
-    console.log(cube_catmull_clark.display().points)
-    console.log(cube_catmull_clark.display().mesh.faces)
+    // cube_catmull_clark.iterate(1);
 
-    cutr = cube_catmull_clark.triangulate()
-    console.log(cutr.points)
-    console.log(cutr.mesh.faces)
+    // console.log(cube_catmull_clark.display().points)
+    // console.log(cube_catmull_clark.display().mesh.faces)
 
-    console.log("PYRAMID\n\n\n")
-    console.log(pyramid_catmull_clark.display().points)
-    console.log(pyramid_catmull_clark.display().mesh.faces)
+    // cutr = cube_catmull_clark.triangulate()
+    // console.log(cutr.points)
+    // console.log(cutr.mesh.faces)
 
-    var pytr = pyramid_catmull_clark.triangulate()
-    console.log(pytr.points)
-    console.log(pytr.mesh.faces)
+    // console.log("PYRAMID\n\n\n")
+    // console.log(pyramid_catmull_clark.display().points)
+    // console.log(pyramid_catmull_clark.display().mesh.faces)
 
-    pyramid_catmull_clark.iterate(1);
+    // var pytr = pyramid_catmull_clark.triangulate()
+    // console.log(pytr.points)
+    // console.log(pytr.mesh.faces)
 
-    console.log(pyramid_catmull_clark.display().points)
-    console.log(pyramid_catmull_clark.display().mesh.faces)
+    // pyramid_catmull_clark.iterate(1);
 
-    pytr = pyramid_catmull_clark.triangulate()
-    console.log(pytr.points)
-    console.log(pytr.mesh.faces)
+    // console.log(pyramid_catmull_clark.display().points)
+    // console.log(pyramid_catmull_clark.display().mesh.faces)
 
-    console.log("DONE");
+    // pytr = pyramid_catmull_clark.triangulate()
+    // console.log(pytr.points)
+    // console.log(pytr.mesh.faces)
+
+    // console.log("DONE");
 
 })()
