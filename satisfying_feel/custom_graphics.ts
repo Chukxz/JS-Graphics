@@ -486,7 +486,7 @@
             });
         }
         getPermutationsArr(arr: number[],permutationSize: number) {
-            const permutations: number[] = [];
+            const permutations: number[][] = [];
 
             function backtrack(currentPerm: any) {
                 if(currentPerm.length === permutationSize) {
@@ -505,7 +505,7 @@
             return permutations;
         }
         getCombinationsArr(arr: number[],combinationSize: number) {
-            const combinations: number[] = [];
+            const combinations: number[][] = [];
 
             function backtrack(startIndex: number,currentCombination: any) {
                 if(currentCombination.length === combinationSize) {

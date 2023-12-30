@@ -633,44 +633,103 @@
             return { "points": triangulated_points_list, mesh: new_mesh };
         }
     }
-    class CreateBox {
+    class CreateObject {
         width;
         height;
         depth;
+        points_list;
         mesh;
-        default_faces;
-        constructor(width = 10, height = 10, depth = 10) {
-            this.width = width;
-            this.height = height;
-            this.depth = depth;
+        constructor() {
+            this.points_list = [];
             this.mesh = new MeshDataStructure();
-            this.default_faces = [[0, 1, 2, 3], [4, 5, 6, 7], [0, 3, 6, 5], [1, 4, 7, 2], [2, 7, 6, 3], [0, 5, 4, 1]]; // standard default mesh configuration
-            for (const face of this.default_faces)
-                this.mesh.addFace(face);
+        }
+        changePoint(index, new_x, new_y, new_z) {
+            this.points_list[index] = new Point3D(new_x, new_y, new_z);
         }
     }
-    class CreatePyramid {
+    class CreateBox extends CreateObject {
+        default_faces;
+        constructor(width = 100, height = 100, depth = 100) {
+            super();
+            this.points_list = [];
+            this.width = width / 2;
+            this.height = height / 2;
+            this.depth = depth / 2;
+            this.default_faces = [[0, 1, 2, 3], [4, 5, 6, 7], [0, 3, 6, 5], [1, 4, 7, 2], [2, 7, 6, 3], [0, 5, 4, 1]]; // standard default mesh configuration
+            console.log(this.default_faces);
+            for (const face of this.default_faces)
+                this.mesh.addFace(face);
+            this.calculatePoints();
+        }
+        editDimensions(width, height, depth) {
+            this.points_list = [];
+            this.width = width / 2;
+            this.height = height / 2;
+            this.depth = depth / 2;
+            this.calculatePoints();
+        }
+        calculatePoints() {
+            //-~(-((0+num)%2)*2) ouputs -1 if num = 0, else 1 if num = 1
+            var sgn_k = 1;
+            var sgn_j = 1;
+            var sgn_i = 1;
+            for (let k = 0; k < 2; k++) {
+                for (let j = 0; j < 2; j++) {
+                    for (let i = 0; i < 2; i++) {
+                        const index = k * 4 + j * 2 + i;
+                        if (k === 0)
+                            sgn_k = -1;
+                        else
+                            sgn_k = 1;
+                        if (j === 0)
+                            sgn_j = -1;
+                        else
+                            sgn_j = 1;
+                        if (index === 0 || index === 3 || index === 4 || index === 7)
+                            sgn_i = -1;
+                        else
+                            sgn_i = 1;
+                        this.points_list[index] = new Point3D(sgn_i * this.width, sgn_j * this.height, sgn_k * this.depth);
+                    }
+                }
+            }
+        }
+    }
+    class CreatePyramidalBase extends CreateObject {
         base_length;
         base_half_edges;
         base_face;
-        constructor(base_length = 3) {
+        constructor(base_length, width, height, depth) {
+            super();
+            this.width = width / 2;
+            this.height = height / 2;
+            this.depth = depth / 2;
             this.base_half_edges = [];
             this.base_face = [];
+            this.base_length = base_length;
             for (let i = 0; i < base_length; i++) {
                 this.base_half_edges.push(`${i + 1}-${(i + 1) % base_length + 1}`);
                 this.base_face.push(i + 1);
             }
         }
+        calculatePoints() {
+            const angle_inc = 360 / this.base_length;
+            this.points_list[0] = new Point3D(0, this.height, 0);
+            for (let i = 0; i < this.base_length; i++) {
+                const cur_ang = i * angle_inc;
+                const conv = Math.PI / 180;
+                this.points_list[i + 1] = new Point3D(Math.cos((cur_ang + 90) * conv) * this.width, -this.height, Math.sin((cur_ang + 90) * conv) * this.depth);
+            }
+        }
     }
-    class Pyramid extends CreatePyramid {
+    class CreatePyramid extends CreatePyramidalBase {
         half_edges;
         faces;
         last;
         penultimate;
         primary;
-        mesh;
-        constructor(base_length = 3) {
-            super(base_length);
+        constructor(base_length = 3, width = 100, height = 100, depth = 100) {
+            super(base_length, width, height, depth);
             this.half_edges = [];
             this.faces = [];
             this.mesh = new MeshDataStructure();
@@ -681,8 +740,10 @@
                 const permutations = misc.getPermutationsArr(proposed_half_edge.split("-").map((value) => Number(value)), 3);
                 this.setMesh(permutations);
             }
+            console.log(this.faces);
             for (const face of this.faces)
                 this.mesh.addFace(face);
+            this.calculatePoints();
         }
         setMesh(permutations) {
             optionLoop: for (const permutation of permutations) {
@@ -699,6 +760,13 @@
                 break optionLoop;
             }
         }
+        editDimensions(width, height, depth) {
+            this.points_list = [];
+            this.width = width / 2;
+            this.height = height / 2;
+            this.depth = depth / 2;
+            this.calculatePoints();
+        }
     }
     class CatmullClark {
         points_list;
@@ -707,9 +775,9 @@
         edge_points;
         done_edges;
         done_indexes;
-        constructor(points_list, mesh) {
-            this.points_list = points_list;
-            this.mesh = mesh;
+        constructor(object) {
+            this.points_list = object.points_list;
+            this.mesh = object.mesh;
             this.face_points = [];
             this.edge_points = [];
             this.done_edges = [];
@@ -893,31 +961,11 @@
         }
         return retList;
     }
-    const cube_points = [
-        [0, 0, 0],
-        [100, 0, 0],
-        [0, 100, 0],
-        [100, 100, 0],
-        [0, 0, 100],
-        [100, 0, 100],
-        [0, 100, 100],
-        [100, 100, 100]
-    ];
-    const pyramid_points = [
-        [0, 0, 0],
-        [50, 0, 0],
-        [25, 50, 25],
-        [25, 0, 50]
-    ];
-    const mod_cube_points = toPoints3D(cube_points);
-    const mod_pyramid_points = toPoints3D(pyramid_points);
     const misc = new Miscellanous();
-    const pyramid = new Pyramid();
+    const pyramid = new CreatePyramid();
     const cube = new CreateBox();
-    const pyramid_mesh = pyramid.mesh;
-    const cube_mesh = cube.mesh;
-    const cube_catmull_clark = new CatmullClark(mod_cube_points, cube_mesh);
-    const pyramid_catmull_clark = new CatmullClark(mod_pyramid_points, pyramid_mesh);
+    const cube_catmull_clark = new CatmullClark(cube);
+    const pyramid_catmull_clark = new CatmullClark(pyramid);
     console.log("CUBE\n\n\n");
     console.log(cube_catmull_clark.display().points);
     console.log(cube_catmull_clark.display().mesh.faces);
