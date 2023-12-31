@@ -162,7 +162,7 @@
         prev: string | null;
         next: string | null;
         temp: string | null;
-        face_vertices_tmp: string[];
+        face_vertices_tmp: number[];
         face_indexes_tmp : number[];
         edge_no: number;
         vertex_no: number;
@@ -214,7 +214,7 @@
             if(!(this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_) && set_halfEdge === true) {
                 (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_) = this.halfEdge(a,b);
                 this.edge_no++;
-                (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_).face_vertices = this.face_indexes_tmp;
+                (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_).face_vertices = this.face_vertices_tmp;
             }
             else twinHalfEdgeKey;
 
@@ -561,9 +561,8 @@
         }
 
         addFace(face: string) {
-            this.face_vertices_tmp = face.split("-");
-            this.face_indexes_tmp = this.face_vertices_tmp.map((value)=>Number(value)).sort((a,b)=>a-b);
-            const sorted_face = this.face_indexes_tmp.join("-")
+            this.face_vertices_tmp = face.split("-").map((value)=>Number(value));
+            const sorted_face = [...this.face_vertices_tmp].sort((a,b)=>a-b).join("-");
 
             // If face is not found in faces add face to faces and set its halfedges
             if(!this.faces.includes(face) && this.face_vertices_tmp.length > 2 && !this.sorted_faces.includes(sorted_face)) {
@@ -573,13 +572,11 @@
                 const first_index = this.face_vertices_tmp[0];
                 const second_index = this.face_vertices_tmp[1];
                 const last_index = this.face_vertices_tmp[this.face_vertices_tmp.length-1];
-                console.log(this.face_vertices_tmp,"_____")
-                console.log(last_index, "****")
 
                 for(let p in this.face_vertices_tmp) {
                     const index = Number(p);
-                    const i = Number(this.face_vertices_tmp[p]);
-                    const j = Number(this.face_vertices_tmp[(index + 1) % this.face_vertices_tmp.length])
+                    const i = this.face_vertices_tmp[p];
+                    const j = this.face_vertices_tmp[(index + 1) % this.face_vertices_tmp.length];
                     const halfEdgeKey = this.setHalfEdge(i, j);
                     const [a,b] = halfEdgeKey.split("-");
 
@@ -618,8 +615,9 @@
         }
 
         removeFace(face: string) {
-            const sorted_face = face.split("-").map((value)=>Number(value)).sort((a,b)=>a-b).join("-");
             let found_edges = 0;
+            const face_vertices = face.split("-").map((value)=>Number(value));
+            const sorted_face = [...face_vertices].sort((a,b)=>a-b).join("-");
 
             const face_len = face.length;
 
@@ -628,7 +626,7 @@
                 // iterate through the edges until an edge's face marching the face is found
                 for(const edge in this.HalfEdgeDict) {
                     // Check if the edge's vertices marches the face's vertices
-                    if((this.HalfEdgeDict[edge] as _HALFEDGE_).face_vertices.join("-") === sorted_face) {
+                    if((this.HalfEdgeDict[edge] as _HALFEDGE_).face_vertices.join("-") === face_vertices.join("-")) {
                         let old_halfEdgeKey = edge;
                         let new_halfEdgeKey = (this.HalfEdgeDict[old_halfEdgeKey] as _HALFEDGE_).next;
                         // remove the halfedge later (we are postponing the removal of the original halfedge here)
@@ -786,7 +784,7 @@
             this.width = width/2;
             this.height = height/2;
             this.depth = depth/2;
-            this.default_faces = [[0,1,2,3],[4,5,6,7],[0,3,7,4],[1,2,6,5],[3,2,6,7],[0,1,5,4]] // standard default mesh configuration
+            this.default_faces = [[0,1,2,3],[4,6,7,5],[0,3,6,4],[1,5,7,2],[3,2,7,6],[0,4,5,1]] // standard default mesh configuration
 
             console.log(this.default_faces)
 
@@ -1157,25 +1155,49 @@
 
     const misc = new Miscellanous();
 
-    var a = new MeshDataStructure(0);
-
-    a.addFace([0,2,1].join("-"))
-    // a.addFace([3,1,0])
-    // a.addFace([0,4,1])
-
-    console.log(a.faces)
-    console.log(a.sorted_faces)
-
-
-    console.log(a.HalfEdgeDict)
-
     const pyramid = new CreatePyramid();
     const cube = new CreateBox();
 
     const cube_catmull_clark = new CatmullClark(cube);
-    const pyramid_catmull_clark = new CatmullClark(pyramid);
+    cube_catmull_clark.iterate(5);
+
 
     console.log(cube.mesh)
+
+    // cube.mesh.removeHalfEdge("0-1")
+
+    console.log("Egde to number : ")
+
+
+    const e_s = new Date().getTime();
+    const c_f_e = cube.mesh.edgeToNumber()
+    const e_e = new Date().getTime()
+    const c_e_v = cube.mesh.getEdgesOfVertexFast(0, c_f_e)
+    const e_v = new Date().getTime()
+    const c_f = cube.mesh.getFacesofVertexSpecific(c_e_v)
+    const e_f = new Date().getTime();
+    const no_hf = cube.mesh.getEdgesofVertex(0, true);
+    const e_no_hf = new Date().getTime();
+    const hf = cube.mesh.getEdgesofVertex(0, false)
+    const e_hf = new Date().getTime();
+
+    console.log(c_f_e)
+    console.log(c_e_v)
+    console.log(c_f)
+    console.log(no_hf)
+    console.log(hf)
+
+    console.log(`Time taken to get all egdes connections: ${e_e - e_s} ms`)
+    console.log(`Time taken to get all edges of vertex : ${e_v - e_e} ms`)
+    console.log(`Time taken to get all faces of vertex : ${e_f - e_v} ms`)
+    console.log(`Time taken to get all edges of vertex with no halfedge : ${e_no_hf - e_f} ms`)
+    console.log(`Time taken to get all edges of vertex with halfedge : ${e_hf - e_no_hf} ms`)
+
+
+    // console.log("\n\n\n",cube.mesh)
+
+    // const cube_catmull_clark = new CatmullClark(cube);
+    // const pyramid_catmull_clark = new CatmullClark(pyramid);
 
     // console.log("CUBE\n\n\n")
     // console.log(cube_catmull_clark.display().points)
