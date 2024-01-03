@@ -140,6 +140,7 @@
         vertex_no;
         vertex_indexes;
         multiplier = 10;
+        deleted_halfedges_dict;
         constructor(vertex_num = 0) {
             this.HalfEdgeDict = {};
             this.face_tmp = [];
@@ -195,70 +196,99 @@
             }
             return halfEdgeKey;
         }
-        addHalfEdge(edge) {
+        addHalfEdge(edge, face_vertices = this.face_indexes_tmp) {
             if (typeof edge === "string")
                 edge = edge.split("-").map((value) => Number(value));
-            return this.setHalfEdge(...edge);
+            const halfEdgeKey = this.setHalfEdge(...edge);
+            this.HalfEdgeDict[halfEdgeKey].face_vertices = face_vertices;
+            return halfEdgeKey;
         }
-        removeHalfEdge(edge, confirm = false, get_faces = true, iterative_search = true, delete_associated_half_edges = false) {
-            if (confirm === true) {
-                if (!this.HalfEdgeDict[edge])
-                    return false; // halfedge was not deleted because it does not exist
-            }
+        removeHalfEdge(edge, removeFace = false) {
+            if (!this.HalfEdgeDict[edge])
+                return false; // halfedge was not deleted because it does not exist
             const [a, b] = edge.split("-");
+            const twinHalfEdgeKey = b + "-" + a;
             const face_vertices = this.HalfEdgeDict[edge].face_vertices; // get the face vertices
             const face_index = this.HalfEdgeDict[edge].face_index; // get the face index
-            const new_face_vertices = new Set(face_vertices); // modified face vertices
-            // if vertex a belongs to only one face remove it and modify the face vertices
-            if (get_faces === true) {
-                if (this.getFacesofVertexGeneric(a).length <= 1) {
-                    this.vertex_indexes.delete(Number(a));
-                    new_face_vertices.delete(Number(a));
-                }
-                // if vertex b belongs to only one face remove it and modify the face vertices
-                if (this.getFacesofVertexGeneric(b).length <= 1) {
-                    this.vertex_indexes.delete(Number(b));
-                    new_face_vertices.delete(Number(b));
-                }
-            }
-            if (iterative_search === true) {
-                // get the previous and the next halfedges
+            const edge_num_list = this.edgeToNumber();
+            const a_edge_list = this.getEdgesOfVertexFast(Number(a), edge_num_list);
+            const b_edge_list = this.getEdgesOfVertexFast(Number(b), edge_num_list);
+            this.deleted_halfedges_dict[edge] = this.HalfEdgeDict[edge];
+            // twin half edge exists
+            if (this.HalfEdgeDict[twinHalfEdgeKey]) {
                 let prev_halfEdgeKey = this.HalfEdgeDict[edge].prev;
                 let next_halfEdgeKey = this.HalfEdgeDict[edge].next;
-                let cur_halfEdgeKey = "-";
-                // If the previous halfedge exists
-                if (prev_halfEdgeKey === undefined || prev_halfEdgeKey !== "-") {
+                if (prev_halfEdgeKey !== "-")
                     this.HalfEdgeDict[prev_halfEdgeKey].next = "-";
-                    while (prev_halfEdgeKey !== "-") {
-                        this.HalfEdgeDict[prev_halfEdgeKey].face_vertices = [...new_face_vertices];
-                        cur_halfEdgeKey = prev_halfEdgeKey;
-                        prev_halfEdgeKey = this.HalfEdgeDict[prev_halfEdgeKey].prev;
-                        if (delete_associated_half_edges === true)
-                            delete this.HalfEdgeDict[cur_halfEdgeKey];
-                    }
-                }
-                // If the next halfedge exists
-                if (next_halfEdgeKey === undefined || next_halfEdgeKey !== "-") {
+                if (next_halfEdgeKey !== "-")
                     this.HalfEdgeDict[next_halfEdgeKey].prev = "-";
-                    while (next_halfEdgeKey !== "-") {
-                        this.HalfEdgeDict[next_halfEdgeKey].face_vertices = [...new_face_vertices];
-                        cur_halfEdgeKey = next_halfEdgeKey;
-                        next_halfEdgeKey = this.HalfEdgeDict[next_halfEdgeKey].next;
-                        if (delete_associated_half_edges === true)
-                            delete this.HalfEdgeDict[cur_halfEdgeKey];
+            }
+            // twin half edge does not exist
+            if (!this.HalfEdgeDict[twinHalfEdgeKey]) {
+                const faces_of_edge = this.getFacesofDeletedEdge(edge);
+                const new_face_vertices = new Set(faces_of_edge[0]); // modified face vertices
+                const alpha_prev = this.deleted_halfedges_dict[edge].prev;
+                const alpha_next = this.deleted_halfedges_dict[edge].next;
+                const beta_prev = this.deleted_halfedges_dict[twinHalfEdgeKey].prev;
+                const beta_next = this.deleted_halfedges_dict[twinHalfEdgeKey].next;
+                const alpha_prev_exists = !!this.HalfEdgeDict[alpha_prev];
+                const alpha_next_exists = !!this.HalfEdgeDict[alpha_next];
+                const beta_prev_exists = !!this.HalfEdgeDict[beta_prev];
+                const beta_next_exists = !!this.HalfEdgeDict[beta_next];
+                if (alpha_prev_exists && beta_next_exists) {
+                    this.HalfEdgeDict[alpha_prev].next = beta_next;
+                    this.HalfEdgeDict[beta_next].prev = alpha_prev;
+                    // detect and deal with self-referencing
+                    if (alpha_prev === beta_next) {
+                        if (alpha_prev === beta_next)
+                            this.HalfEdgeDict[alpha_prev].next = "-";
+                        if (beta_next === alpha_prev)
+                            this.HalfEdgeDict[beta_next].prev = "-";
                     }
                 }
-                if (delete_associated_half_edges === true)
-                    this.faces[face_index] = "";
-                else
-                    this.faces[face_index] = [...new_face_vertices].join("-");
+                else if (alpha_prev_exists)
+                    this.HalfEdgeDict[alpha_prev].next = "-";
+                else if (beta_next_exists)
+                    this.HalfEdgeDict[beta_next].prev = "-";
+                if (beta_prev_exists && alpha_next_exists) {
+                    this.HalfEdgeDict[beta_prev].next = alpha_next;
+                    this.HalfEdgeDict[alpha_next].prev = beta_prev;
+                    // detect and deal with self-referencing
+                    if (beta_prev === alpha_next) {
+                        this.HalfEdgeDict[beta_prev].next = "-";
+                        this.HalfEdgeDict[alpha_next].prev = "-";
+                    }
+                }
+                else if (beta_prev_exists)
+                    this.HalfEdgeDict[beta_prev].next = "-";
+                else if (alpha_next_exists)
+                    this.HalfEdgeDict[alpha_next].prev = "-";
             }
-            delete this.HalfEdgeDict[a + "-" + b]; // delete the halfedge
+            // if vertex a belongs to only one face remove it and modify the face vertices
+            if (this.getFacesofVertexSpecific(a_edge_list).length <= 1) {
+                this.vertex_indexes.delete(Number(a));
+            }
+            // if vertex b belongs to only one face remove it and modify the face vertices
+            if (this.getFacesofVertexSpecific(b_edge_list).length <= 1) {
+                this.vertex_indexes.delete(Number(b));
+            }
+            delete this.HalfEdgeDict[edge]; // delete the halfedge
             this.vertex_no = [...this.vertex_indexes].length; // update vertex number
-            const twinHalfEdgeKey = b + "-" + a;
             if (!this.HalfEdgeDict[twinHalfEdgeKey])
                 this.edge_no--; // decrease edge number if the twin does not exist
             return true; // halfedge was successfully deleted
+        }
+        mergeDeletedFaces(faces) {
+            const alpha_face = faces[0];
+            const beta_face = faces[1];
+            const sorted_alpha_face = [...alpha_face].sort((a, b) => (a - b));
+            const sorted_beta_face = [...beta_face].sort((a, b) => (a - b));
+            var first = true;
+            var iterate = true;
+            var index = 0;
+            while (iterate) {
+                iterate = false;
+            }
         }
         addVertex(vertex, vertex_or_face_or_edge) {
             if (typeof vertex_or_face_or_edge === "string")
@@ -276,7 +306,9 @@
                 if (edge.split("-").includes(`${vertex}`)) {
                     const [a, b] = edge.split("-");
                     const twinHalfEdgeKey = `${b}-${a}`;
+                    this.deleted_halfedges_dict[edge] = this.HalfEdgeDict[edge];
                     delete (this.HalfEdgeDict[edge]);
+                    this.deleted_halfedges_dict[twinHalfEdgeKey] = this.HalfEdgeDict[twinHalfEdgeKey];
                     delete (this.HalfEdgeDict[twinHalfEdgeKey]);
                     this.vertex_indexes.delete(Number(vertex));
                     this.vertex_no = [...this.vertex_indexes].length;
@@ -343,11 +375,11 @@
             this.setHalfEdge(edge[1], edge[0]);
             return edge;
         }
-        removeEdge(edge, confirm = false, get_faces = true) {
+        removeEdge(edge) {
             if (typeof edge === "object")
                 edge = edge.join("-");
             const [a, b] = edge.split("-");
-            return this.removeHalfEdge(edge, confirm, get_faces) || this.removeHalfEdge(b + "-" + a, confirm, get_faces);
+            return this.removeHalfEdge(edge) || this.removeHalfEdge(b + "-" + a);
         }
         // setSplitEdge(a: string,b: string,vertex: string | number) {
         //     if(!this.HalfEdgeDict[a + "-" + b]) this.setHalfEdge(Number(a),Number(b)); // create halfedge if it doesn't exist
@@ -463,7 +495,7 @@
         //         const v = res_h.bool ? res_h.v : res_t_h.v
         //         const vertex_edges = this.getEdgesofVertex(v);
         //         for(const edge of vertex_edges) {
-        //             this.removeEdge(edge,true,false);
+        //             this.removeEdge(edge);
         //         }
         //     }
         //     return res_h.bool || res_t_h.bool;
@@ -480,11 +512,31 @@
             else
                 return edge;
         }
+        getFacesOfHalfEdge(halfEdge) {
+            if (this.HalfEdgeDict[halfEdge]) {
+                return this.HalfEdgeDict[halfEdge].face_vertices;
+            }
+            else
+                return [];
+        }
         getFacesofEdge(edge) {
             if (typeof edge === "object")
                 edge = edge.join("-");
             const twinHalfEdgeKey = this.HalfEdgeDict[edge].twin;
-            return [this.HalfEdgeDict[edge].face_vertices, this.HalfEdgeDict[twinHalfEdgeKey].face_vertices];
+            return [this.getFacesOfHalfEdge(edge), this.getFacesOfHalfEdge(twinHalfEdgeKey)];
+        }
+        getFacesofDeletedHalfEdge(halfEdge) {
+            if (this.deleted_halfedges_dict[halfEdge]) {
+                return this.deleted_halfedges_dict[halfEdge].face_vertices;
+            }
+            else
+                return [];
+        }
+        getFacesofDeletedEdge(edge) {
+            if (typeof edge === "object")
+                edge = edge.join("-");
+            const twinHalfEdgeKey = this.deleted_halfedges_dict[edge].twin;
+            return [this.getFacesofDeletedHalfEdge(edge), this.getFacesofDeletedHalfEdge(twinHalfEdgeKey)];
         }
         edgeToNumber() {
             const edge_num_set = new Set();
@@ -558,26 +610,26 @@
                         // Try to crawl with next until the found edges tally with the face's length
                         while (found_edges < face_len) {
                             // If the next halfedge is non-existent break the while loop
-                            if (new_halfEdgeKey === undefined || new_halfEdgeKey === "-") {
+                            if (new_halfEdgeKey === "-") {
                                 new_halfEdgeKey = edge;
                                 break;
                             }
                             old_halfEdgeKey = new_halfEdgeKey;
                             new_halfEdgeKey = this.HalfEdgeDict[old_halfEdgeKey].next; // update the halfedge
-                            this.removeHalfEdge(old_halfEdgeKey, false); // remove the halfedge non-iteratively
+                            this.removeHalfEdge(old_halfEdgeKey); // remove the halfedge non-iteratively
                             found_edges++;
                         }
                         // If the found edges do not yet tally try to crawl with previous until the found edges tally with the face's length
                         while (found_edges < face_len) {
-                            if (new_halfEdgeKey === undefined || new_halfEdgeKey === "-")
+                            if (new_halfEdgeKey === "-")
                                 break; // If the previous halfedge is non-existent break the while loop
                             old_halfEdgeKey = new_halfEdgeKey;
                             new_halfEdgeKey = this.HalfEdgeDict[old_halfEdgeKey].prev; // update the halfedge
-                            this.removeHalfEdge(old_halfEdgeKey, false); // remove the halfedge non-iteratively
+                            this.removeHalfEdge(old_halfEdgeKey); // remove the halfedge non-iteratively
                             found_edges++;
                         }
                         // If the found edges don't yet still tally with the face's length at this point we leave it like that and proceed to remove the original halfedge that we postponed
-                        this.removeHalfEdge(edge, false); // remove the halfedge
+                        this.removeHalfEdge(edge); // remove the halfedge
                         this.faces[face_index] = "";
                         this.sorted_faces[face_index] = "";
                         return true; // face removed successfully
@@ -1026,13 +1078,20 @@
     const misc = new Miscellanous();
     const pyramid = new CreatePyramid();
     const cube = new CreateBox();
-    console.log("PYRAMID : ");
-    const pyramid_catmull_clark = new CatmullClark(pyramid);
-    pyramid_catmull_clark.iterate(6);
-    console.log("\n\n\n\n\n\n");
-    console.log("CUBE : ");
-    const cube_catmull_clark = new CatmullClark(cube);
-    cube_catmull_clark.iterate(6);
+    console.log(cube.mesh.HalfEdgeDict);
+    console.log(cube.mesh.faces);
+    console.log(cube.mesh.vertex_indexes);
+    cube.mesh.removeHalfEdge("1-2");
+    console.log(cube.mesh.HalfEdgeDict);
+    console.log(cube.mesh.faces);
+    console.log(cube.mesh.vertex_indexes);
+    // console.log("PYRAMID : ")
+    // const pyramid_catmull_clark = new CatmullClark(pyramid);
+    // pyramid_catmull_clark.iterate(6);
+    // console.log("\n\n\n\n\n\n")
+    // console.log("CUBE : ")
+    // const cube_catmull_clark = new CatmullClark(cube);
+    // cube_catmull_clark.iterate(6);
     // console.log(cube.mesh)
     // cube.mesh.removeHalfEdge("0-1")
     // console.log("Egde to number : ")
