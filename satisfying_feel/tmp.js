@@ -147,7 +147,7 @@
         constructor(vertex_num = 0) {
             this.HalfEdgeDict = {};
             this.face_tmp = [];
-            this.faces = [];
+            this.faces = new Set();
             this.sorted_faces = [];
             this.prev = null;
             this.next = null;
@@ -213,7 +213,7 @@
         }
         addHalfEdge(edge, face_vertices = this.face_indexes_tmp) {
             if (typeof edge === "string")
-                edge = edge.split("-").map((value) => Number(value));
+                edge = edge.split("-").map(value => Number(value));
             const halfEdgeKey = this.setHalfEdge(...edge);
             this.HalfEdgeDict[halfEdgeKey].face_vertices = face_vertices;
             return halfEdgeKey;
@@ -280,13 +280,9 @@
                 console.log(faces_of_edge);
                 console.log(alpha_edges.length, "+++++++++", beta_edges.length);
                 console.log("Alpha edges : ", alpha_edges, "\nBeta edges :", beta_edges);
-                if (alpha_edges.length > 2 && beta_edges.length > 2) {
-                    const f_index = this.faces.indexOf(faces_of_edge[0].join("-"));
-                    if (f_index >= 0)
-                        this.faces.splice(f_index, 1);
-                    const s_index = this.faces.indexOf(faces_of_edge[1].join("-"));
-                    if (s_index >= 0)
-                        this.faces.splice(s_index, 1);
+                if (alpha_edges.length >= 2 && beta_edges.length >= 2) {
+                    this.faces.delete(faces_of_edge[0].join("-"));
+                    this.faces.delete(faces_of_edge[1].join("-"));
                     const new_face_vertices = this.mergeDeletedFaces(faces_of_edge, edge);
                     const new_face_index = this.max_face_index + 1;
                     const first_face_index = this.deleted_halfedges_dict[edge].face_index;
@@ -308,82 +304,35 @@
                             this.HalfEdgeDict[edge].face_index = new_face_index;
                         }
                     }
-                    this.faces.push(new_face_vertices.join('-'));
+                    this.faces.add(new_face_vertices.join('-'));
                 }
-                if (alpha_edges.length <= 2) {
+                if (alpha_edges.length < 2) {
                     for (const edge of alpha_edges)
                         if (this.HalfEdgeDict[edge]) {
                             this.HalfEdgeDict[edge].face_vertices = this.HalfEdgeDict[edge].vertices;
                             this.face_indexes_set.delete(this.HalfEdgeDict[edge].face_index);
                         }
                     this.maxFaceIndex();
-                    const index = this.faces.indexOf(faces_of_edge[0].join("-"));
-                    if (index >= 0) {
-                        this.faces.splice(index, 1);
-                    }
+                    this.faces.delete(faces_of_edge[0].join("-"));
                 }
-                if (beta_edges.length <= 2) {
+                if (beta_edges.length < 2) {
                     for (const edge of beta_edges)
                         if (this.HalfEdgeDict[edge]) {
                             this.HalfEdgeDict[edge].face_vertices = this.HalfEdgeDict[edge].vertices;
                             this.face_indexes_set.delete(this.HalfEdgeDict[edge].face_index);
                         }
                     this.maxFaceIndex();
-                    const index = this.faces.indexOf(faces_of_edge[1].join("-"));
-                    if (index >= 0) {
-                        this.faces.splice(index, 1);
-                    }
+                    this.faces.delete(faces_of_edge[1].join("-"));
                 }
-                // special cases
-                // both faces have exactly two edges each
-                if (alpha_edges.length === 2 && beta_edges.length === 2) {
-                    const test_alpha_edges = alpha_edges.join("-");
-                    const test_beta_edges = beta_edges.join("-");
-                    if (test_alpha_edges.includes(a) && test_alpha_edges.includes(b) && test_beta_edges.includes(a) && test_beta_edges.includes(b)) {
-                        const new_face_vertices = this.mergeDeletedFaces(faces_of_edge, edge);
-                        console.log(new_face_vertices);
-                        const new_face_index = this.max_face_index + 1;
-                        console.log(new_face_index);
-                        console.log(this.max_face_index);
-                        const first_face_index = this.deleted_halfedges_dict[edge].face_index;
-                        const second_face_index = this.deleted_halfedges_dict[twinHalfEdgeKey].face_index;
-                        this.face_indexes_set.add(new_face_index);
-                        this.face_index_map[new_face_index] = new_face_vertices.join("-");
-                        this.face_indexes_set.delete(first_face_index);
-                        this.face_indexes_set.delete(second_face_index);
-                        console.log(first_face_index, "*********", second_face_index);
-                        for (const edge of alpha_edges) {
-                            if (this.HalfEdgeDict[edge]) {
-                                this.HalfEdgeDict[edge].face_vertices = new_face_vertices;
-                                this.HalfEdgeDict[edge].face_index = new_face_index;
-                            }
-                        }
-                        for (const edge of beta_edges) {
-                            if (this.HalfEdgeDict[edge]) {
-                                this.HalfEdgeDict[edge].face_vertices = new_face_vertices;
-                                this.HalfEdgeDict[edge].face_index = new_face_index;
-                            }
-                        }
-                        this.faces.push(new_face_vertices.join('-'));
+                const biFacial_handling_result = this.biFacialHandling();
+                if (biFacial_handling_result.length > 0) {
+                    for (const edge of this.getEdgesOfFace(biFacial_handling_result)) {
+                        this.face_indexes_set.delete(this.HalfEdgeDict[edge].face_index);
+                        this.deleted_halfedges_dict[edge] = this.HalfEdgeDict[edge];
+                        delete this.HalfEdgeDict[edge];
                     }
-                }
-                // if there are only two faces left in the mesh, check if they are complements of each other and if yes remove the second face (remove the first instead has the same effect as long as only one of the faces is removed)
-                if (this.faces.length === 2) {
-                    const face_alpha = this.modifyMergedFace(this.faces[0].split("-").map((value) => Number(value)));
-                    const face_beta = this.modifyMergedFace(this.faces[1].split("-").map((value) => Number(value)).reverse());
-                    console.log(face_alpha.join("-") === face_beta.join("-"));
-                    if (face_alpha.join("-") === face_beta.join("-")) {
-                        for (const edge of this.getEdgesOfFace(face_beta)) {
-                            this.face_indexes_set.delete(this.HalfEdgeDict[edge].face_index);
-                            this.deleted_halfedges_dict[edge] = this.HalfEdgeDict[edge];
-                            delete this.HalfEdgeDict[edge];
-                        }
-                        this.maxFaceIndex();
-                        const index = this.faces.indexOf(face_beta.join("-"));
-                        if (index >= 0) {
-                            this.faces.splice(index, 1);
-                        }
-                    }
+                    this.maxFaceIndex();
+                    this.faces.delete(biFacial_handling_result.join("-"));
                 }
             }
             // if vertex a belongs to only one edge remove it from the vertex indexes set
@@ -403,7 +352,7 @@
         mergeDeletedFaces(faces, edge) {
             const alpha_face = this.prepareDeletedFaces(faces[0], edge);
             const beta_face = this.prepareDeletedFaces(faces[1], edge);
-            const [a, b] = edge.split("-").map((value) => Number(value));
+            const [a, b] = edge.split("-").map(value => Number(value));
             if (alpha_face.join("-") === beta_face.join("-")) {
                 const a_index = alpha_face.indexOf(a);
                 const b_index = beta_face.indexOf(b);
@@ -453,7 +402,7 @@
         prepareDeletedFaces(face, edge) {
             var prepped = false;
             var remainder = [];
-            const [a, b] = edge.split("-").map((value) => Number(value));
+            const [a, b] = edge.split("-").map(value => Number(value));
             var edge_num_list = [];
             for (const index in face) {
                 const cur_val = face[index];
@@ -490,9 +439,25 @@
             var rem = face.splice(min_index);
             return [...rem, ...face];
         }
+        biFacialHandling() {
+            if (this.faces.size === 2) { // Check if there are only two faces left in the mesh
+                const faces = [...this.faces];
+                const face_one = [...faces[0].split("-").map(value => Number(value))];
+                const face_two = [...faces[1].split("-").map(value => Number(value))];
+                if (face_one.length !== face_two.length)
+                    return []; // if both faces don't have the same number of vertices then abort and return false
+                if (face_one.length <= 3)
+                    return face_two; // automatically consider them as complements in this case
+                // else then try to compute if the two faces are complements
+                if (this.modifyMergedFace(face_one).join("-") === this.modifyMergedFace(face_two).join("-"))
+                    return face_two; // if the two faces are complements return true;
+                return []; // default return value;
+            }
+            return []; // default return value;
+        }
         addVertex(vertex, vertex_or_face_or_edge) {
             if (typeof vertex_or_face_or_edge === "string")
-                vertex_or_face_or_edge = vertex_or_face_or_edge.split("-").map((value) => Number(value));
+                vertex_or_face_or_edge = vertex_or_face_or_edge.split("-").map(value => Number(value));
             if (vertex_or_face_or_edge.length === 1)
                 return this.addHalfEdge(`${vertex}-${vertex_or_face_or_edge[0]}`);
             if (vertex_or_face_or_edge.length >= 2)
@@ -519,7 +484,7 @@
         }
         getEdgesOfVertexFast(vertex, edge_num_list) {
             const edge_list = [];
-            edge_num_list.map((value) => {
+            edge_num_list.map(value => {
                 const min = value % this.multiplier;
                 const max = (value - min) / this.multiplier;
                 if (vertex === min || vertex === max)
@@ -541,7 +506,7 @@
                 for (const edge in this.HalfEdgeDict) {
                     // edge touches vertex and is not in the edge_list also ensure no edge complements (halfedges that are twin halfedges of previously existing halfedges)
                     if (edge.split("-").includes(`${vertex}`)) {
-                        const [a, b] = edge.split("-").map((value) => Number(value));
+                        const [a, b] = edge.split("-").map(value => Number(value));
                         edge_set.add(`${Math.min(a, b)}-${Math.max(a, b)}`);
                     }
                 }
@@ -575,7 +540,7 @@
         }
         addEdge(edge) {
             if (typeof edge === "string")
-                edge = edge.split("-").map((value) => Number(value));
+                edge = edge.split("-").map(value => Number(value));
             this.setHalfEdge(...edge);
             this.setHalfEdge(edge[1], edge[0]);
             return edge;
@@ -763,7 +728,7 @@
             const edges_orientation = { prev: "-", next: "-" };
             const rev_edge_1 = edge_1.split("-").reverse().join("-");
             const rev_edge_2 = edge_2.split("-").reverse().join("-");
-            const face_edges = this.getEdgesOfFace(face.split("-").map((value) => Number(value)));
+            const face_edges = this.getEdgesOfFace(face.split("-").map(value => Number(value)));
             var found_edge = "-";
             for (const edge of face_edges) {
                 if (edge === edge_1 || edge === rev_edge_1 || edge === edge_2 || edge === rev_edge_2) {
@@ -796,12 +761,12 @@
         mergeEdges(edge_1, edge_2) {
             if (typeof edge_1 === "object")
                 edge_1 = edge_1.join("-");
-            const [a_1, b_1] = edge_1.split("-").map((value) => Number(value));
+            const [a_1, b_1] = edge_1.split("-").map(value => Number(value));
             if (typeof edge_2 === "object")
                 edge_2 = edge_2.join("-");
-            const [a_2, b_2] = edge_2.split("-").map((value) => Number(value));
+            const [a_2, b_2] = edge_2.split("-").map(value => Number(value));
             const common_vertex_face_num = this.getCommonVertAndFacesofEdges(a_1, b_1, a_2, b_2);
-            console.log(common_vertex_face_num, "***********");
+            console.log(common_vertex_face_num, "***********++++++++++++");
             const common_vertex = common_vertex_face_num.common_vertex;
             const common_faces = common_vertex_face_num.faces;
             const common_face = common_vertex_face_num.face;
@@ -812,15 +777,17 @@
                 const rev_edge_1 = edge_1.split("-").reverse().join("-");
                 const rev_edge_2 = edge_2.split("-").reverse().join("-");
                 const required_edges = this.getEdgesOrientation(common_face, edge_1, edge_2);
-                console.log(required_edges);
+                console.log(required_edges, "_+++++++++_______*******");
                 if (required_edges.prev !== "-" && required_edges.next !== "-") {
                     const prev = this.HalfEdgeDict[required_edges.prev].prev;
                     const next = this.HalfEdgeDict[required_edges.next].next;
                     console.log("prev :", prev, "\nnext : ", next);
-                    const [a, b] = required_edges.prev.split("-");
-                    const [c, d] = required_edges.next.split("-");
-                    const new_face = a + "-" + b + "-" + d;
-                    console.log(new_face, "+++++++++++");
+                    if (prev !== next) {
+                        const [a, b] = required_edges.prev.split("-");
+                        const [c, d] = required_edges.next.split("-");
+                        const new_face = a + "-" + b + "-" + d;
+                        console.log(new_face, "+++++++++++");
+                    }
                 }
                 console.log(edge_list, "*********************");
                 for (const edge of edge_list) {
@@ -846,7 +813,7 @@
         }
         getVerticesOfEdge(edge) {
             if (typeof edge === "string")
-                return edge.split("-").map((value) => Number(value));
+                return edge.split("-").map(value => Number(value));
             else
                 return edge;
         }
@@ -878,20 +845,20 @@
         edgeToNumber() {
             const edge_num_set = new Set();
             for (const edge in this.HalfEdgeDict) {
-                const [a, b] = edge.split("-").map((value) => Number(value));
+                const [a, b] = edge.split("-").map(value => Number(value));
                 const [min, max] = [Math.min(a, b), Math.max(a, b)];
                 edge_num_set.add(max * this.multiplier + min);
             }
             return [...edge_num_set];
         }
         addFace(face) {
-            this.face_vertices_tmp = face.split("-").map((value) => Number(value));
+            this.face_vertices_tmp = face.split("-").map(value => Number(value));
             const sorted_face = [...this.face_vertices_tmp].sort((a, b) => a - b).join("-");
             const face_set = new Set(this.faces);
             const sorted_face_set = new Set(this.sorted_faces);
             // If face is not found in faces add face to faces and set its halfedges
             if (!face_set.delete(face) && this.face_vertices_tmp.length > 2 && !sorted_face_set.delete(sorted_face)) {
-                this.faces.push(face);
+                this.faces.add(face);
                 this.sorted_faces.push(sorted_face);
                 const first_index = this.face_vertices_tmp[0];
                 const second_index = this.face_vertices_tmp[1];
@@ -900,7 +867,7 @@
                     const index = Number(p);
                     const i = this.face_vertices_tmp[p];
                     const j = this.face_vertices_tmp[(index + 1) % this.face_vertices_tmp.length];
-                    const halfEdgeKey = this.setHalfEdge(i, j, this.faces.length - 1);
+                    const halfEdgeKey = this.setHalfEdge(i, j, this.faces.size - 1);
                     const [a, b] = halfEdgeKey.split("-");
                     if (this.temp === null) {
                         this.prev = "-";
@@ -930,23 +897,24 @@
             return false; // face not added
         }
         removeFace(face) {
+            // Check if face is found in faces
+            console.log(this.faces, "**************", face);
             const face_set = new Set(this.faces);
-            // Check if face is found in faces, if yes remove it
-            if (face_set.delete(face)) {
-                var ret_bool = false;
-                // get face edges
-                const face_edges = this.getEdgesOfFace(face.split("-").map((value) => Number(value)));
-                // if even only one edge is successfully removed return true else if no edges are removed return false
-                for (const half_edges of face_edges) {
-                    const ret = this.removeHalfEdge(half_edges);
-                    ret_bool = ret || ret_bool;
+            if (this.faces.has(face)) {
+                const face_num_list = face.split("-").map(value => Number(value)); // get the ideal halfedges of the face
+                const existing_face_edges = this.getEdgesOfFacethatExists(face_num_list); // get the actual (existing) halfedges of the face
+                // check if all the ideal halfedges of the face exist (are actual)
+                if (existing_face_edges.length === face_num_list.length) {
+                    // remove the face and its halfedges
+                    for (const half_edge of existing_face_edges)
+                        this.removeHalfEdge(half_edge);
+                    this.faces.delete(face);
+                    return true; // face was removed
                 }
-                return ret_bool;
+                else
+                    return false; // face not removed
             }
             return false; // face not removed
-        }
-        getVerticesOfFace(face) {
-            return face;
         }
         getEdgesOfFace(face) {
             return face.map((value, index) => `${value}-${face[(index + 1) % face.length]}`);
@@ -954,12 +922,19 @@
         getEdgesOfFacethatExists(face) {
             const potential_edges = this.getEdgesOfFace(face);
             const existing_edges = [];
-            for (const edge of potential_edges) {
-                const [a, b] = edge.split("-");
-                if (edge in this.HalfEdgeDict && !(edge in this.deleted_halfedges_dict))
-                    existing_edges.push(edge);
+            for (const half_edge of potential_edges) {
+                if (half_edge in this.HalfEdgeDict)
+                    existing_edges.push(half_edge);
             }
             return existing_edges;
+        }
+        getFaceIndexOfFace(face) {
+            const edges = this.getEdgesOfFace(face.split("-").map(value => Number(value)));
+            for (const halfedge of edges) {
+                if (halfedge in this.HalfEdgeDict)
+                    return this.HalfEdgeDict[halfedge].face_index;
+            }
+            return -1;
         }
         splitFace() { }
         mergeface() { }
@@ -1001,16 +976,16 @@
             triangulated_points_list.push(...points_list);
             const new_mesh = new MeshDataStructure();
             for (const face of this.faces) {
-                const vertex_indexes = face.split("-").map((value) => Number(value));
+                const vertex_indexes = face.split("-").map(value => Number(value));
                 const face_edges = this.getEdgesOfFace(vertex_indexes);
-                const vertices = vertex_indexes.map((value) => { return points_list[value]; });
+                const vertices = vertex_indexes.map(value => { return points_list[value]; });
                 const [x_min, x_max, y_min, y_max, z_min, z_max] = this.getMinMax(vertices);
                 const avg_point = new Point3D((x_min + x_max) / 2, (y_min + y_max) / 2, (z_min + z_max) / 2);
                 const avg_point_index = triangulated_points_list.push(avg_point) - 1;
                 const face_added = new_mesh.addFace(vertex_indexes.join("-"));
                 if (face_added === false)
                     continue;
-                new_mesh.faces.pop();
+                new_mesh.faces.delete(vertex_indexes.join("-"));
                 for (const edge of face_edges) {
                     const [a, b] = edge.split("-");
                     const prev = `${avg_point_index}-${a}`;
@@ -1027,7 +1002,7 @@
                     new_mesh.HalfEdgeDict[edge].next = next;
                     new_mesh.HalfEdgeDict[next].prev = edge;
                     new_mesh.HalfEdgeDict[next].next = prev;
-                    new_mesh.faces.push(`${avg_point_index}-${a}-${b}`);
+                    new_mesh.faces.add(`${avg_point_index}-${a}-${b}`);
                 }
             }
             const end = new Date().getTime();
@@ -1139,7 +1114,7 @@
             this.faces.push(this.base_face);
             for (let i = 0; i < base_length; i++) {
                 const proposed_half_edge = `${0}-${this.half_edges[i]}`;
-                const permutations = misc.getPermutationsArr(proposed_half_edge.split("-").map((value) => Number(value)), 3);
+                const permutations = misc.getPermutationsArr(proposed_half_edge.split("-").map(value => Number(value)), 3);
                 this.setMesh(permutations);
             }
             console.log(this.faces);
@@ -1177,6 +1152,7 @@
         edge_points;
         done_edges_dict;
         mesh_faces_len;
+        tmp_faces;
         constructor(object) {
             this.points_list = object.points_list;
             this.mesh = object.mesh;
@@ -1185,18 +1161,19 @@
             this.done_edges_dict = {};
             this.mesh_faces_len = 0;
             this.mesh.sorted_faces = [];
+            this.tmp_faces = new Set();
         }
         getEdgePoints(edge) {
-            return edge.split("-").map((value) => this.points_list[Number(value)]);
+            return edge.split("-").map(value => this.points_list[Number(value)]);
         }
         getFacePoints(face) {
-            return face.split("-").map((value) => this.points_list[Number(value)]);
+            return face.split("-").map(value => this.points_list[Number(value)]);
         }
         getPoints(array) {
-            return array.map((value) => this.points_list[value]);
+            return array.map(value => this.points_list[value]);
         }
         insertVertexInHalfEdge(vertex, edge, face_index, consider_prev_next = true) {
-            const [a, b] = edge.split("-").map((value) => Number(value));
+            const [a, b] = edge.split("-").map(value => Number(value));
             const twin = `${b}-${a}`;
             const halfEdgeKey_1 = this.mesh.setHalfEdge(a, vertex, face_index);
             const halfEdgeKey_2 = this.mesh.setHalfEdge(vertex, b, face_index);
@@ -1218,11 +1195,13 @@
         iterate(iteration_num = 1, orig_iter = iteration_num + 1) {
             if (iteration_num <= 0)
                 return;
+            this.tmp_faces = new Set([...this.mesh.faces]);
+            this.mesh.faces.clear();
             const overall_start = new Date().getTime();
             console.log(`Iteration Number : ${orig_iter - iteration_num}`);
             console.log(`Mesh faces difference : ${this.mesh_faces_len}`);
             console.log(`Points List Length : ${this.points_list.length}`);
-            console.log(`Object Faces Length : ${this.mesh.faces.length - this.mesh_faces_len}`);
+            console.log(`Object Faces Length : ${this.tmp_faces.size}`);
             console.log(`Object Edges Length : ${Object.keys(this.mesh.HalfEdgeDict).length / 2}`);
             iteration_num--;
             const start = new Date().getTime();
@@ -1234,14 +1213,12 @@
             let _b_ = new Date().getTime();
             console.log(`Time taken to copy mesh : ${_b_ - _a_} ms`);
             const face_start = new Date().getTime();
-            for (const face of this.mesh.faces) {
-                if (face !== "") {
-                    const face_points = this.getFacePoints(face);
-                    const sum = this.mesh.sumPoints(face_points);
-                    const len = face_points.length;
-                    const face_point = new Point3D(sum.x / len, sum.y / len, sum.z / len);
-                    this.face_points.push(face_point);
-                }
+            for (const face of this.tmp_faces) {
+                const face_points = this.getFacePoints(face);
+                const sum = this.mesh.sumPoints(face_points);
+                const len = face_points.length;
+                const face_point = new Point3D(sum.x / len, sum.y / len, sum.z / len);
+                this.face_points.push(face_point);
             }
             const face_end = new Date().getTime();
             console.log(`Time taken for face iteration : ${face_end - face_start} ms`);
@@ -1249,7 +1226,7 @@
             for (const edge in mesh_halfedgedict_copy) {
                 const edge_vertices_full = [];
                 const [a, b] = edge.split("-");
-                const twinHalfEdgeKey = b + "-" + "a";
+                const twinHalfEdgeKey = b + "-" + a;
                 const edge_face_index = mesh_halfedgedict_copy[edge].face_index - this.mesh_faces_len;
                 const f_p_a = this.face_points[edge_face_index];
                 const twin_edge_face_index = mesh_halfedgedict_copy[twinHalfEdgeKey].face_index - this.mesh_faces_len;
@@ -1281,8 +1258,8 @@
                 const EofV_end = new Date().getTime();
                 EofV += EofV_end - EofV_start;
                 const EDofV_start = new Date().getTime();
-                edge_list.map((value) => {
-                    const edge_vertices = value.split("-").map((value) => this.points_list[Number(value)]);
+                edge_list.map(value => {
+                    const edge_vertices = value.split("-").map(value => this.points_list[Number(value)]);
                     const sum = this.mesh.sumPoints(edge_vertices);
                     const edge_midpoint = new Point3D(sum.x / 2, sum.y / 2, sum.z / 2);
                     R_list.push(edge_midpoint);
@@ -1295,7 +1272,7 @@
                 const FofV_end = new Date().getTime();
                 FofV += FofV_end - FofV_start;
                 const FDofV_start = new Date().getTime();
-                face_index_list.map((value) => {
+                face_index_list.map(value => {
                     const face_point = this.face_points[value - this.mesh_faces_len];
                     F_list.push(face_point);
                     n_f++;
@@ -1320,55 +1297,53 @@
             console.log(`Time taken to get face points of faces of edges of vertex : ${EDofV} ms`);
             console.log(`Time taken for point iteration : ${point_end - point_start} ms`);
             const p_len = this.points_list.length;
-            this.mesh_faces_len += this.mesh.faces.length - this.mesh_faces_len;
+            this.mesh_faces_len += this.tmp_faces.size;
             this.points_list.push(...this.face_points, ...this.edge_points);
             const face_index_start = new Date().getTime();
-            for (const face_list_index in this.mesh.faces) {
-                const face = this.mesh.faces[face_list_index];
-                if (face !== "") {
-                    const face_edges = this.mesh.getEdgesOfFace(face.split("-").map((value) => Number(value)));
-                    const boundary = [];
-                    for (const face_edge_index in face_edges) {
-                        const face_edge = face_edges[face_edge_index];
-                        const index = this.done_edges_dict[face_edge];
-                        const halfEdgeKeys = this.insertVertexInHalfEdge(index, face_edge, -1, false);
-                        boundary.push(...halfEdgeKeys);
-                    }
-                    const b_len = boundary.length;
-                    const iter_num = b_len * 0.5;
-                    let edge_index = 0;
-                    while (edge_index < iter_num) {
-                        const [a, b] = boundary[((Number(edge_index) * 2) + 1) % b_len].split("-").map((value) => Number(value)); // shift the edge index
-                        const [c, d] = boundary[((Number(edge_index) * 2) + 2) % b_len].split("-").map((value) => Number(value)); // shift the edge index
-                        const third_edge = this.mesh.setHalfEdge(d, p_len + Number(face_list_index));
-                        const fourth_edge = this.mesh.setHalfEdge(p_len + Number(face_list_index), a);
-                        this.mesh.HalfEdgeDict[`${a}-${b}`].face_vertices = [a, b, d, p_len + Number(face_list_index)];
-                        this.mesh.HalfEdgeDict[`${c}-${d}`].face_vertices = [a, b, d, p_len + Number(face_list_index)];
-                        this.mesh.HalfEdgeDict[third_edge].face_vertices = [a, b, d, p_len + Number(face_list_index)];
-                        this.mesh.HalfEdgeDict[fourth_edge].face_vertices = [a, b, d, p_len + Number(face_list_index)];
-                        const face_index_beta = this.mesh.faces.push(`${a}-${b}-${d}-${p_len + Number(face_list_index)}`) - 1;
-                        this.mesh.HalfEdgeDict[`${a}-${b}`].face_index = face_index_beta;
-                        this.mesh.HalfEdgeDict[`${c}-${d}`].face_index = face_index_beta;
-                        this.mesh.HalfEdgeDict[third_edge].face_index = face_index_beta;
-                        this.mesh.HalfEdgeDict[fourth_edge].face_index = face_index_beta;
-                        this.mesh.face_index_map[face_index_beta] = [a, b, d, p_len + Number(face_list_index)].join("-");
-                        this.mesh.HalfEdgeDict[`${a}-${b}`].prev = fourth_edge;
-                        this.mesh.HalfEdgeDict[`${c}-${d}`].prev = `${a}-${b}`;
-                        this.mesh.HalfEdgeDict[third_edge].prev = `${c}-${d}`;
-                        this.mesh.HalfEdgeDict[fourth_edge].prev = third_edge;
-                        this.mesh.HalfEdgeDict[`${a}-${b}`].next = `${c}-${d}`;
-                        this.mesh.HalfEdgeDict[`${c}-${d}`].next = third_edge;
-                        this.mesh.HalfEdgeDict[third_edge].next = fourth_edge;
-                        this.mesh.HalfEdgeDict[fourth_edge].next = `${a}-${b}`;
-                        this.mesh.face_indexes_set.add(face_index_beta);
-                        edge_index++;
-                    }
-                    this.mesh.faces[face_list_index] = "";
+            for (const face of this.tmp_faces) {
+                const face_list_index = this.mesh.getFaceIndexOfFace(face);
+                const face_edges = this.mesh.getEdgesOfFace(face.split("-").map(value => Number(value)));
+                const boundary = [];
+                for (const face_edge_index in face_edges) {
+                    const face_edge = face_edges[face_edge_index];
+                    const index = this.done_edges_dict[face_edge];
+                    const halfEdgeKeys = this.insertVertexInHalfEdge(index, face_edge, -1, false);
+                    boundary.push(...halfEdgeKeys);
+                }
+                const b_len = boundary.length;
+                const iter_num = b_len * 0.5;
+                let edge_index = 0;
+                while (edge_index < iter_num) {
+                    const [a, b] = boundary[((Number(edge_index) * 2) + 1) % b_len].split("-").map(value => Number(value)); // shift the edge index
+                    const [c, d] = boundary[((Number(edge_index) * 2) + 2) % b_len].split("-").map(value => Number(value)); // shift the edge index
+                    const third_edge = this.mesh.setHalfEdge(d, p_len + Number(face_list_index));
+                    const fourth_edge = this.mesh.setHalfEdge(p_len + Number(face_list_index), a);
+                    this.mesh.HalfEdgeDict[`${a}-${b}`].face_vertices = [a, b, d, p_len + Number(face_list_index)];
+                    this.mesh.HalfEdgeDict[`${c}-${d}`].face_vertices = [a, b, d, p_len + Number(face_list_index)];
+                    this.mesh.HalfEdgeDict[third_edge].face_vertices = [a, b, d, p_len + Number(face_list_index)];
+                    this.mesh.HalfEdgeDict[fourth_edge].face_vertices = [a, b, d, p_len + Number(face_list_index)];
+                    const face_index_beta = this.mesh.faces.add(`${a}-${b}-${d}-${p_len + Number(face_list_index)}`).size - 1 + this.mesh_faces_len;
+                    this.mesh.HalfEdgeDict[`${a}-${b}`].face_index = face_index_beta;
+                    this.mesh.HalfEdgeDict[`${c}-${d}`].face_index = face_index_beta;
+                    this.mesh.HalfEdgeDict[third_edge].face_index = face_index_beta;
+                    this.mesh.HalfEdgeDict[fourth_edge].face_index = face_index_beta;
+                    this.mesh.face_index_map[face_index_beta] = [a, b, d, p_len + Number(face_list_index)].join("-");
+                    this.mesh.HalfEdgeDict[`${a}-${b}`].prev = fourth_edge;
+                    this.mesh.HalfEdgeDict[`${c}-${d}`].prev = `${a}-${b}`;
+                    this.mesh.HalfEdgeDict[third_edge].prev = `${c}-${d}`;
+                    this.mesh.HalfEdgeDict[fourth_edge].prev = third_edge;
+                    this.mesh.HalfEdgeDict[`${a}-${b}`].next = `${c}-${d}`;
+                    this.mesh.HalfEdgeDict[`${c}-${d}`].next = third_edge;
+                    this.mesh.HalfEdgeDict[third_edge].next = fourth_edge;
+                    this.mesh.HalfEdgeDict[fourth_edge].next = `${a}-${b}`;
+                    this.mesh.face_indexes_set.add(face_index_beta);
+                    edge_index++;
                 }
                 this.mesh.face_indexes_set.delete(-1);
             }
             const face_index_end = new Date().getTime();
             console.log(`Time taken for face iteration to get boundary : ${face_index_end - face_index_start} ms`);
+            this.tmp_faces.clear();
             this.face_points = [];
             this.edge_points = [];
             this.done_edges_dict = {};
@@ -1429,8 +1404,8 @@
     const sample_mesh = new MeshDataStructure();
     sample_mesh.addFace("0-1-2");
     sample_mesh.addFace("2-3-0");
-    sample_mesh.addFace("3-2-5");
-    sample_mesh.addFace("2-1-4");
+    // sample_mesh.addFace("3-2-5");
+    // sample_mesh.addFace("2-1-4");
     // sample_mesh.addFace("0-5-4-8");
     // sample_mesh.addFace("1-6-4-5");
     // sample_mesh.addFace("4-6-2-7");
@@ -1450,12 +1425,30 @@
     // sample_mesh.addFace("3-8-4");
     // sample_mesh.addFace("8-0-4");
     //sample_mesh.removeEdge("4-7")
-    console.log(sample_mesh.HalfEdgeDict);
-    console.log(sample_mesh.faces);
+    // console.log(sample_mesh.HalfEdgeDict)
+    // console.log(sample_mesh.faces)
     console.log(sample_mesh.mergeEdges("0-1", "1-2"));
     console.log(sample_mesh.HalfEdgeDict);
     console.log(sample_mesh.faces);
-    // console.log(cube.mesh)
+    // const c = new Date().getTime();
+    // const d = new Date().getTime();
+    // pyramid.mesh.removeFace("1-2-3")
+    // console.log(pyramid.mesh.HalfEdgeDict)
+    // console.log(pyramid.mesh.faces)
+    // console.log(`Time taken for edge removal : ${d - c} ms`)
+    // const c = new Date().getTime();
+    // cube.mesh.removeEdge("1-0");
+    // cube.mesh.removeEdge("5-4");
+    // cube.mesh.removeEdge("7-6");
+    // cube.mesh.removeEdge("3-2");
+    // //cube.mesh.removeEdge("2-3");
+    // //cube.mesh.removeEdge("3-6");
+    // //cube.mesh.removeEdge("2-1")
+    // //cube.mesh.removeEdge("2-7")
+    // const d = new Date().getTime();
+    // console.log(cube.mesh.HalfEdgeDict)
+    // console.log(cube.mesh.faces)
+    // console.log(`Time taken for edge removal : ${d - c} ms`)
     // console.log(cube.mesh.mergeEdges("2-3","1-2"))
     // console.log("PYRAMID : ")
     // const pyramid_catmull_clark = new CatmullClark(pyramid);
@@ -1513,7 +1506,7 @@
     // var cutr = cube_catmull_clark.triangulate()
     // console.log(cutr.points)
     // console.log(cutr.mesh.faces)
-    // cube_catmull_clark.iterate(1);
+    //cube_catmull_clark.iterate(6);
     // console.log(cube_catmull_clark.display().points)
     // console.log(cube_catmull_clark.display().mesh.faces)
     // cutr = cube_catmull_clark.triangulate()
@@ -1525,7 +1518,7 @@
     // var pytr = pyramid_catmull_clark.triangulate()
     // console.log(pytr.points)
     // console.log(pytr.mesh.faces)
-    // pyramid_catmull_clark.iterate(1);
+    //pyramid_catmull_clark.iterate(6);
     // console.log(pyramid_catmull_clark.display().points)
     // console.log(pyramid_catmull_clark.display().mesh.faces)
     // pytr = pyramid_catmull_clark.triangulate()
