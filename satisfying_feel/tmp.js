@@ -967,13 +967,25 @@
             }
             return [minX, maxX, minY, maxY, minZ, maxZ];
         }
-        triangulate() {
+        triangulate(points_list = undefined) {
+            const triangulated_points_list = [];
+            if (typeof points_list !== "undefined") {
+                triangulated_points_list.push(...points_list);
+            }
             const start = new Date().getTime();
             const new_mesh = new MeshDataStructure();
+            var new_vertex = this.max_vertex_index;
             for (const face of this.faces) {
                 const vertex_indexes = face.split("-").map(value => Number(value));
                 const face_edges = this.getEdgesOfFace(vertex_indexes);
-                const new_vertex = this.max_vertex_index + 1;
+                new_vertex++;
+                if (typeof points_list !== "undefined") {
+                    const face_vertices = this.HalfEdgeDict[face_edges[0]].face_vertices;
+                    const face_points = face_vertices.map(value => points_list[value]);
+                    const [xmin, xmax, ymin, ymax, zmin, zmax] = this.getMinMax(face_points);
+                    const average_point = new Point3D((xmin + xmax) * 0.5, (ymin + ymax) * 0.5, (zmin + zmax) * 0.5);
+                    triangulated_points_list.push(average_point);
+                }
                 for (const edge of face_edges) {
                     const [a, b] = edge.split("-");
                     new_mesh.addFace(`${new_vertex}-${a}-${b}`);
@@ -981,7 +993,7 @@
             }
             const end = new Date().getTime();
             console.log(`Time taken to triangulate : ${end - start} ms`);
-            return new_mesh;
+            return { mesh: new_mesh, points: triangulated_points_list };
         }
     }
     class CreateObject {
@@ -995,7 +1007,14 @@
             this.mesh = new MeshDataStructure();
         }
         changePoint(index, new_x, new_y, new_z) {
-            this.points_list[index] = new Point3D(new_x, new_y, new_z);
+            if (index < this.points_list.length) {
+                this.points_list[index] = new Point3D(new_x, new_y, new_z);
+                return true;
+            }
+            return false;
+        }
+        addPoint(new_x, new_y, new_z) {
+            return this.points_list.push(new Point3D(new_x, new_y, new_z)) - 1;
         }
     }
     class CreateBox extends CreateObject {
@@ -1328,7 +1347,7 @@
             this.iterate(iteration_num, orig_iter);
         }
         triangulate() {
-            return this.mesh.triangulate();
+            return this.mesh.triangulate(this.points_list);
         }
         display() {
             return { points: this.points_list, mesh: this.mesh };
@@ -1351,6 +1370,7 @@
     const misc = new Miscellanous();
     const pyramid = new CreatePyramid();
     const cube = new CreateBox();
+    console.log(cube.mesh.triangulate(cube.points_list));
     // console.log("\n\n\n\n\n\n")
     // console.log("CUBE : ")
     // const cube_catmull_clark = new CatmullClark(cube);
