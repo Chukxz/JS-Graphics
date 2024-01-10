@@ -1019,6 +1019,7 @@
     }
     class CreateBox extends CreateObject {
         default_faces;
+        default_vertex_map;
         constructor(width = 100, height = 100, depth = 100) {
             super();
             this.points_list = [];
@@ -1026,6 +1027,7 @@
             this.height = height / 2;
             this.depth = depth / 2;
             this.default_faces = [[0, 1, 2, 3], [4, 6, 7, 5], [0, 3, 6, 4], [1, 5, 7, 2], [3, 2, 7, 6], [0, 4, 5, 1]]; // standard default mesh configuration
+            this.default_vertex_map = [0, 1, 3, 2, 4, 5, 6, 7];
             console.log(this.default_faces);
             for (const face of this.default_faces)
                 this.mesh.addFace(face.join("-"));
@@ -1039,7 +1041,6 @@
             this.calculatePoints();
         }
         calculatePoints() {
-            //-~(-((0+num)%2)*2) ouputs -1 if num = 0, else 1 if num = 1
             var sgn_k = 1;
             var sgn_j = 1;
             var sgn_i = 1;
@@ -1055,11 +1056,11 @@
                             sgn_j = -1;
                         else
                             sgn_j = 1;
-                        if (index === 0 || index === 3 || index === 4 || index === 7)
+                        if (i === 0)
                             sgn_i = -1;
                         else
                             sgn_i = 1;
-                        this.points_list[index] = new Point3D(sgn_i * this.width, sgn_j * this.height, sgn_k * this.depth);
+                        this.points_list[this.default_vertex_map[index]] = new Point3D(sgn_i * this.width, sgn_j * this.height, sgn_k * this.depth);
                     }
                 }
             }
