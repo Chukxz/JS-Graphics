@@ -39,6 +39,8 @@
         face_index: number;
     }
 
+    const precision = 1e10;
+
     class Miscellanous {
         getPermutationsArr(arr: number[],permutationSize: number) {
             const permutations: number[][] = [];
@@ -173,7 +175,7 @@
         face_indexes_set: Set<number>;
         max_face_index: number;
         face_index_map: {};
-        max_vertex_index : number;
+        max_vertex_index: number;
 
         constructor (vertex_num = 0) {
             this.HalfEdgeDict = {};
@@ -190,9 +192,9 @@
             this.vertex_indexes = new Set();
             this.deleted_halfedges_dict = {};
             this.face_indexes_set = new Set();
-            this.max_face_index = 0;
+            this.max_face_index = -1;
             this.face_index_map = {};
-            this.max_vertex_index = 0;
+            this.max_vertex_index = -1;
         }
 
         maxFaceIndex() {
@@ -211,9 +213,9 @@
             this.maxVertexIndex();
             this.vertex_no = [...this.vertex_indexes].length;
             const comp = Math.max(start,end);
+            if(this.multiplier % comp === this.multiplier) this.multiplier *= 10;
             this.face_indexes_set.add(face_index);
             this.maxFaceIndex();
-            if(this.multiplier % comp === this.multiplier) this.multiplier *= 10;
             return {
                 vertices: [start,end],
                 face_vertices: [],
@@ -386,8 +388,6 @@
                     this.faces.delete(faces_of_edge[1].join("-"));
                 }
 
-
-
                 const biFacial_handling_result = this.biFacialHandling();
                 if(biFacial_handling_result.length > 0) this.removeFace(biFacial_handling_result.join("-"));
             }
@@ -535,24 +535,35 @@
 
         addVertex(vertex: string | number,vertex_or_face_or_edge: string | number[]) {
             if(typeof vertex_or_face_or_edge === "string") vertex_or_face_or_edge = vertex_or_face_or_edge.split("-").map(value => Number(value));
-            if(vertex_or_face_or_edge.length === 1) return this.addHalfEdge(`${vertex}-${vertex_or_face_or_edge[0]}`);
-            if(vertex_or_face_or_edge.length >= 2) for(const val of vertex_or_face_or_edge) return this.addHalfEdge(`${vertex}-${val}`);
-            return `${vertex}` // is not supposed to happen
+            vertex = Number(vertex);
+
+            if(vertex_or_face_or_edge.length === 1) {
+                this.vertex_indexes.add(vertex);
+                this.maxVertexIndex();
+                this.vertex_no = [...this.vertex_indexes].length;
+                const comp = Math.max(this.max_vertex_index,vertex);
+                if(this.multiplier % comp === this.multiplier) this.multiplier *= 10;
+            }
+
+            else if(vertex_or_face_or_edge.length >= 2) {
+                var face_index = -1;
+                if(vertex_or_face_or_edge.length > 2) {
+                    if(this.faces.has(vertex_or_face_or_edge.join("-"))) {
+                        face_index = this.getFaceIndexOfFace(vertex_or_face_or_edge.join("-"));
+                    }
+                }
+
+                for(const val of vertex_or_face_or_edge) {
+                    this.addHalfEdge(`${vertex}-${val}`,vertex_or_face_or_edge,face_index);
+                }
+            }
         }
 
         removeVertex(vertex: string | number) {
             let count = 0;
             for(const edge in this.HalfEdgeDict) {
                 if(edge.split("-").includes(`${vertex}`)) {
-                    const twinHalfEdgeKey = edge.split("-").reverse().join("-");
-                    this.deleted_halfedges_dict[edge] = this.HalfEdgeDict[edge];
-                    delete (this.HalfEdgeDict[edge]);
-                    this.deleted_halfedges_dict[twinHalfEdgeKey] = this.HalfEdgeDict[twinHalfEdgeKey]
-                    delete (this.HalfEdgeDict[twinHalfEdgeKey]);
-                    this.vertex_indexes.delete(Number(vertex));
-                    this.vertex_no = [...this.vertex_indexes].length;
-                    this.edge_no--;
-                    count++;
+                    this.removeEdge(edge);
                 }
             }
             return count;
@@ -646,7 +657,7 @@
             const [a,b] = edge.split("-").map(value => Number(value));
 
             const faces_of_edge = this.getFacesOfEdge(edge);
-            const new_vertex = this.max_vertex_index+1;
+            const new_vertex = this.max_vertex_index + 1;
 
             if(faces_of_edge[0].length > 0) {
                 const new_face = faces_of_edge[0].join("-").replace(edge,`${a}-${new_vertex}-${b}`);
@@ -657,7 +668,7 @@
                     this.addFace(new_face);
                 }
 
-                else{
+                else {
                     var prev = "-";
                     var next = "-";
                     if(this.HalfEdgeDict[edge]) {
@@ -667,15 +678,15 @@
                         delete this.HalfEdgeDict[edge];
                         const face_index = (this.HalfEdgeDict[edge] as _HALFEDGE_).face_index;
 
-                        
-                    this.addHalfEdge(`${a}-${new_vertex}`,new_face.split("-").map(value=>Number(value)),face_index,prev,`${new_vertex}-${b}`);
-                    this.addHalfEdge(`${new_vertex}-${b}`,new_face.split("-").map(value=>Number(value)),face_index,`${a}-${new_vertex}`,next);
+
+                        this.addHalfEdge(`${a}-${new_vertex}`,new_face.split("-").map(value => Number(value)),face_index,prev,`${new_vertex}-${b}`);
+                        this.addHalfEdge(`${new_vertex}-${b}`,new_face.split("-").map(value => Number(value)),face_index,`${a}-${new_vertex}`,next);
                     }
                 }
             }
 
             if(faces_of_edge[1].length > 0) {
-                const new_face = faces_of_edge[1].join("-").replace(b+"-"+a,`${b}-${new_vertex}-${a}`);
+                const new_face = faces_of_edge[1].join("-").replace(b + "-" + a,`${b}-${new_vertex}-${a}`);
                 this.vertex_indexes.add(new_vertex);
 
                 if(faces_of_edge[1].length > 2) {
@@ -683,22 +694,22 @@
                     this.addFace(new_face);
                 }
 
-                else{
+                else {
                     var prev = "-";
                     var next = "-";
-                    if(this.HalfEdgeDict[b+"-"+a]) {
-                        prev = (this.HalfEdgeDict[b+"-"+a] as _HALFEDGE_).prev;
-                        next = (this.HalfEdgeDict[b+"-"+a] as _HALFEDGE_).next;
-                        this.deleted_halfedges_dict[b+"-"+a] = this.HalfEdgeDict[b+"-"+a];
-                        delete this.HalfEdgeDict[b+"-"+a];
-                        const face_index = (this.HalfEdgeDict[b+"-"+a] as _HALFEDGE_).face_index;
+                    if(this.HalfEdgeDict[b + "-" + a]) {
+                        prev = (this.HalfEdgeDict[b + "-" + a] as _HALFEDGE_).prev;
+                        next = (this.HalfEdgeDict[b + "-" + a] as _HALFEDGE_).next;
+                        this.deleted_halfedges_dict[b + "-" + a] = this.HalfEdgeDict[b + "-" + a];
+                        delete this.HalfEdgeDict[b + "-" + a];
+                        const face_index = (this.HalfEdgeDict[b + "-" + a] as _HALFEDGE_).face_index;
 
-                        this.addHalfEdge(`${b}-${new_vertex}`,new_face.split("-").map(value=>Number(value)),face_index,prev,`${new_vertex}-${a}`);
-                        this.addHalfEdge(`${new_vertex}-${a}`,new_face.split("-").map(value=>Number(value)),face_index,`${b}-${new_vertex}`,next);
+                        this.addHalfEdge(`${b}-${new_vertex}`,new_face.split("-").map(value => Number(value)),face_index,prev,`${new_vertex}-${a}`);
+                        this.addHalfEdge(`${new_vertex}-${a}`,new_face.split("-").map(value => Number(value)),face_index,`${b}-${new_vertex}`,next);
                     }
                 }
-            }        
-            
+            }
+
             this.maxVertexIndex();
         }
 
@@ -962,7 +973,7 @@
                 const first_index = this.face_vertices_tmp[0];
                 const second_index = this.face_vertices_tmp[1];
                 const last_index = this.face_vertices_tmp[this.face_vertices_tmp.length - 1];
-                const face_index = this.max_face_index+1;
+                const face_index = this.max_face_index + 1;
 
                 for(let p in this.face_vertices_tmp) {
                     const index = Number(p);
@@ -1104,12 +1115,12 @@
             return [minX,maxX,minY,maxY,minZ,maxZ];
         }
 
-        triangulate(points_list : Point3D[] | undefined = undefined) {
-            const triangulated_points_list : Point3D[] = [];
-            if (typeof points_list !== "undefined"){
+        triangulate(points_list: Point3D[] | undefined = undefined) {
+            const triangulated_points_list: Point3D[] = [];
+            if(typeof points_list !== "undefined") {
                 triangulated_points_list.push(...points_list);
             }
-            
+
             const start = new Date().getTime();
             const new_mesh = new MeshDataStructure();
             var new_vertex = this.max_vertex_index;
@@ -1118,14 +1129,15 @@
                 const vertex_indexes = face.split("-").map(value => Number(value));
                 const face_edges = this.getEdgesOfFace(vertex_indexes);
                 new_vertex++;
-                
-                 if (typeof points_list !== "undefined"){
-                     const face_vertices = (this.HalfEdgeDict[face_edges[0]] as _HALFEDGE_).face_vertices;
-                     const face_points = face_vertices.map(value=>points_list[value]);
-                     const [xmin, xmax, ymin, ymax, zmin, zmax] = this.getMinMax(face_points);
-                     const average_point = new Point3D((xmin+xmax)*0.5, (ymin+ymax)*0.5, (zmin+zmax)*0.5);
-                     triangulated_points_list.push(average_point);
-                 }
+
+                if(typeof points_list !== "undefined") {
+                    const face_vertices = (this.HalfEdgeDict[face_edges[0]] as _HALFEDGE_).face_vertices;
+                    const face_points = face_vertices.map(value => points_list[value]);
+                    const [xmin,xmax,ymin,ymax,zmin,zmax] = this.getMinMax(face_points);
+                    console.log(xmin,xmax,ymin,ymax,zmin,zmax,"*****************");
+                    const average_point = new Point3D((xmin + xmax) * 0.5,(ymin + ymax) * 0.5,(zmin + zmax) * 0.5);
+                    triangulated_points_list.push(average_point);
+                }
 
                 for(const edge of face_edges) {
                     const [a,b] = edge.split("-");
@@ -1135,7 +1147,34 @@
             const end = new Date().getTime();
             console.log(`Time taken to triangulate : ${end - start} ms`);
 
-            return {mesh : new_mesh, points : triangulated_points_list};
+            return { mesh: new_mesh, points: triangulated_points_list };
+        }
+
+        quad_to_tri(points_list: Point3D[] | undefined = undefined) {
+            const triangulated_points_list: Point3D[] = [];
+            if(typeof points_list !== "undefined") {
+                triangulated_points_list.push(...points_list);
+            }
+
+            const new_mesh = new MeshDataStructure();
+            
+            for(const face of this.faces) {
+                const vertex_indexes = face.split("-").map(value => Number(value));
+                const face_edges = this.getEdgesOfFace(vertex_indexes);
+
+                if(face_edges.length === 4){
+                    const [a,b] = face_edges[0].split("-");
+                    const [c,d] = face_edges[1].split("-");
+                    const [e,f] = face_edges[2].split("-");
+                    const [g,h] = face_edges[3].split("-");
+
+                    new_mesh.addFace(`${a}-${b}-${d}`);
+                    new_mesh.addFace(`${e}-${f}-${h}`);
+                }
+                else new_mesh.addFace(face);
+            }
+
+            return { mesh: new_mesh, points: triangulated_points_list };
         }
     }
 
@@ -1145,104 +1184,232 @@
         depth: number;
         points_list: Point3D[]
         mesh: MeshDataStructure;
-        constructor () {
+        _is_degenerate_: boolean;
+        vert_st: number;
+        constructor (width: number,height: number,depth: number,start_vertex: number) {
             this.points_list = [];
             this.mesh = new MeshDataStructure();
+            this.width = width;
+            this.height = height;
+            this.depth = depth;
+            this._is_degenerate_ = false;
+            this.vert_st = start_vertex;
         }
 
         changePoint(index: number,new_x: number,new_y: number,new_z: number) {
-            if(index < this.points_list.length){
-               this.points_list[index] = new Point3D(new_x,new_y,new_z);
-               return true;
+            if(index < this.points_list.length) {
+                this.points_list[index] = new Point3D(new_x,new_y,new_z);
+                return true;
             }
             return false;
         }
-        
+
         addPoint(new_x: number,new_y: number,new_z: number) {
-            return this.points_list.push(new Point3D(new_x,new_y,new_z))-1;
-        }
-    }
-
-    class CreateBox extends CreateObject {
-        default_faces: number[][];
-        default_vertex_map : number[];
-        
-        constructor (width = 100,height = 100,depth = 100) {
-            super();
-            this.points_list = [];
-            this.width = width / 2;
-            this.height = height / 2;
-            this.depth = depth / 2;
-            this.default_faces = [[0,1,2,3],[4,6,7,5],[0,3,6,4],[1,5,7,2],[3,2,7,6],[0,4,5,1]] // standard default mesh configuration
-            this.default_vertex_map = [0,1,3,2,4,5,6,7];
-
-            console.log(this.default_faces)
-
-            for(const face of this.default_faces) this.mesh.addFace(face.join("-"));
-            this.calculatePoints();
+            if(this._is_degenerate_) return this.points_list.length;
+            else return this.points_list.push(new Point3D(new_x,new_y,new_z));
         }
 
-        editDimensions(width: number,height: number,depth: number) {
-            this.points_list = [];
-            this.width = width / 2;
-            this.height = height / 2;
-            this.depth = depth / 2;
-
-            this.calculatePoints();
-        }
-
-        calculatePoints() {
-            var sgn_k = 1;
-            var sgn_j = 1;
-            var sgn_i = 1;
-            for(let k = 0; k < 2; k++) {
-                for(let j = 0; j < 2; j++) {
-                    for(let i = 0; i < 2; i++) {
-                        const index = k * 4 + j * 2 + i;
-
-                        if(k === 0) sgn_k = -1;
-                        else sgn_k = 1;
-                        if(j === 0) sgn_j = -1;
-                        else sgn_j = 1;
-                        if (i === 0) sgn_i = -1;
-                        else sgn_i = 1;
-                        
-                        
-                        this.points_list[this.default_vertex_map[index]] = new Point3D(sgn_i * this.width,sgn_j * this.height,sgn_k * this.depth);
-                    }
-                }
+        modifyDimensions(width = this.width,height = this.height,depth = this.depth) {
+            if(!this._is_degenerate_) {
+                this.width = width;
+                this.height = height;
+                this.depth = depth;
+                this.points_list = [];
             }
         }
     }
 
-    class CreatePyramidalBase extends CreateObject {
-        base_length: number;
-        base_half_edges: string[];
-        base_face: number[];
-        constructor (base_length: number,width: number,height: number,depth: number) {
-            super();
-            this.width = width / 2;
-            this.height = height / 2;
-            this.depth = depth / 2;
-            this.base_half_edges = [];
-            this.base_face = [];
-            this.base_length = base_length;
+    class CreatePoint extends CreateObject {
+        point: Point3D;
+        constructor (x = 0,y = 0,z = 0,start_vertex = 0) {
+            super(0,0,0,start_vertex);
+            this._is_degenerate_ = true;
+            this.point = new Point3D(x,y,z);
+            this.points_list[0] = this.point;
 
-            for(let i = 0; i < base_length; i++) {
-                this.base_half_edges.push(`${i + 1}-${(i + 1) % base_length + 1}`);
-                this.base_face.push(i + 1);
-            }
+            this.mesh.addVertex(this.vert_st,[this.vert_st]);
         }
 
-        calculatePoints() {
-            const angle_inc = 360 / this.base_length;
-            this.points_list[0] = new Point3D(0,this.height,0);
+        modifyPoint(x = this.point.x,y = this.point.y,z = this.point.z) {
+            this.point = new Point3D(x,y,z);
+            this.points_list[0] = this.point;
+        }
+    }
 
-            for(let i = 0; i < this.base_length; i++) {
+    class CreateLine extends CreateObject {
+        start: Point3D;
+        end: Point3D;
+        constructor (s_x = 0,s_y = 0,s_z = 0,e_x = 0,e_y = 0,e_z = 0,start_vertex = 0) {
+            super(0,0,0,start_vertex);
+            this._is_degenerate_ = true;
+            this.start = new Point3D(s_x,s_y,s_z);
+            this.end = new Point3D(e_x,e_y,e_z);
+            this.points_list = [this.start,this.end];
+
+            this.mesh.addHalfEdge(`${this.vert_st}-${this.vert_st + 1}`,[this.vert_st,this.vert_st + 1],-1);
+        }
+
+        modifyEdge(s_x = this.start.x,s_y = this.start.y,s_z = this.start.z,e_x = this.end.x,e_y = this.end.y,e_z = this.end.z) {
+            this.start = new Point3D(s_x,s_y,s_z);
+            this.end = new Point3D(e_x,e_y,e_z);
+            this.points_list = [this.start,this.end];
+        }
+    }
+
+    class CreatePolygon extends CreateObject {
+        vertex_number: number;
+        half_edges: string[];
+        face: number[];
+        increment: number;
+
+        constructor (vertex_number = 3,width = 10,depth = 10,increment = 0,start_vertex = 0) {
+            super(width,0,depth,start_vertex);
+            this.half_edges = [];
+            this.face = [];
+            this.vertex_number = Math.max(vertex_number,3);
+            this.increment = increment;
+
+            for(let i = 0; i < this.vertex_number; i++) {
+                const num = i + 1 + increment + this.vert_st;
+                const modulo_operand = this.vertex_number + increment + this.vert_st;
+                const input_res = num % modulo_operand;
+                const output_res = input_res === 0 ? increment + this.vert_st : input_res;
+                this.half_edges.push(`${i + increment + this.vert_st}-${output_res}`);
+                this.face.push(i + increment + this.vert_st);
+            }
+
+            if(this.increment === 0) this.mesh.addFace(this.face.join("-"));
+        }
+
+        base_calculatePoints() {
+            const angle_inc = 360 / this.vertex_number;
+            for(let i = 0; i < this.vertex_number; i++) {
                 const cur_ang = i * angle_inc;
                 const conv = Math.PI / 180;
-                this.points_list[i + 1] = new Point3D(Math.cos((cur_ang + 90) * conv) * this.width,-this.height,Math.sin((cur_ang + 90) * conv) * this.depth);
+                this.points_list[i + this.increment] = new Point3D(Math.cos((cur_ang + 90) * conv) * (this.width / 2),this.height / 2,Math.sin((cur_ang + 90) * conv) * (this.depth / 2));
             }
+        }
+
+        polygon_editDimensions(width = this.width,depth = this.depth) {
+            this.modifyDimensions(width,0,depth);
+            this.base_calculatePoints();
+        }
+    }
+
+    class CreateEllipse extends CreatePolygon {
+        constructor (vertex_number = 10,width = 10,depth = 10,increment = 0,start_vertex = 0) {
+            const vert_number = Math.max(vertex_number,10);
+            super(vert_number,width,depth,increment,start_vertex);
+
+            if(this.increment === 0) this.mesh.addFace(this.face.join("-"));
+        }
+
+        ellipse_calculatePoints() {
+            if(this.increment === 1) {
+                this.points_list[0] = new Point3D(0,this.height / 2,0);
+                this.base_calculatePoints();
+            }
+        }
+
+        ellipse_editDimensions(width = this.width,depth = this.depth) {
+            if(this.increment === 0) {
+                this.modifyDimensions(width,0,depth);
+                this.base_calculatePoints();
+            }
+            else if(this.increment === 1) {
+                this.modifyDimensions(width,0,depth);
+                this.ellipse_calculatePoints();
+            }
+        }
+    }
+
+
+    class CreateCircle extends CreateEllipse {
+        constructor (vertex_number = 10,radius = 10,increment = 0,start_vertex = 0) {
+            super(vertex_number,radius,radius,increment,start_vertex);
+
+            if(this.increment === 0) this.mesh.addFace(this.face.join("-"));
+        }
+
+        circle_editDimensions(radius = this.width) {
+            if(this.increment === 0) {
+                this.modifyDimensions(radius,0,radius);
+                this.base_calculatePoints();
+            }
+            else if(this.increment === 1) {
+                this.modifyDimensions(radius,0,radius);
+                this.ellipse_calculatePoints();
+            }
+        }
+    }
+
+    class CreateRectangle extends CreateObject {
+        half_edges: string[];
+        face: number[];
+        increment: number;
+
+        constructor (width = 10,depth = 10,increment = 0,start_vertex = 0) {
+            super(width,0,depth,start_vertex);
+            this.half_edges = [];
+            this.face = [];
+            this.increment = increment;
+
+            for(let i = 0; i < 4; i++) {
+                const num = i + 1 + increment + this.vert_st;
+                const modulo_operand = 4 + increment + this.vert_st;
+                const input_res = num % modulo_operand;
+                const output_res = input_res === 0 ? increment + this.vert_st : input_res;
+                this.half_edges.push(`${i + increment + this.vert_st}-${output_res}`);
+                this.face.push(i + increment + this.vert_st);
+            }
+
+            if(this.increment === 0) this.mesh.addFace(this.face.join("-"));
+        }
+
+        base_calculatePoints() {
+            this.points_list[0 + this.increment] = new Point3D(-this.width / 2,this.height / 2,-this.depth / 2);
+            this.points_list[1 + this.increment] = new Point3D(this.width / 2,this.height / 2,-this.depth / 2);
+            this.points_list[2 + this.increment] = new Point3D(this.width / 2,this.height / 2,this.depth / 2);
+            this.points_list[3 + this.increment] = new Point3D(-this.width / 2,this.height / 2,this.depth / 2);
+        }
+
+        rectangle_editDimensions(width = this.width,depth = this.depth) {
+            this.modifyDimensions(width,0,depth);
+            this.base_calculatePoints();
+        }
+    }
+
+    class CreatePyramidalBase {
+        base_class: CreatePolygon | CreateRectangle;
+        points_list: Point3D[];
+        width: number;
+        height: number;
+        depth: number;
+        constructor (vertex_number = 3,width = 10,height = 10,depth = 10,choice = 1,start_vertex = 0) {
+            this.width = width;
+            this.height = height;
+            this.depth = depth;
+
+            switch(choice) {
+                case 1:
+                    this.base_class = new CreatePolygon(vertex_number,width,depth,1,start_vertex);
+                    break;
+                case 2:
+                    this.base_class = new CreateRectangle(width,depth,1,start_vertex);
+            }
+            this.base_class.height = height;
+        }
+
+        pyramid_calculatePoints() {
+            this.base_class.points_list[0] = new Point3D(0,this.height / 2,0);
+            this.base_class.base_calculatePoints();
+            this.points_list = [...this.base_class.points_list];
+        }
+
+        pyramid_editDimensions(width = this.width,height = this.height,depth = this.depth) {
+            this.base_class.modifyDimensions(width,height,depth);
+            this.points_list = [];
+            this.pyramid_calculatePoints();
         }
     }
 
@@ -1252,23 +1419,60 @@
         last: number;
         penultimate: number;
         primary: number;
-        constructor (base_length = 3,width = 100,height = 100,depth = 100) {
-            super(base_length,width,height,depth);
+        mesh: MeshDataStructure;
+        constructor (base_vertex_number = 3,width = 10,height = 10,depth = 10,choice = 1,start_vertex = 0) {
+            super(base_vertex_number,width,height,depth,choice,start_vertex);
             this.half_edges = [];
             this.faces = [];
-            this.mesh = new MeshDataStructure();
-            this.half_edges.push(...this.base_half_edges);
-            this.faces.push(this.base_face);
+            this.mesh = this.base_class.mesh;
 
-            for(let i = 0; i < base_length; i++) {
+            this.half_edges.push(...this.base_class.half_edges);
+            this.faces.push(this.base_class.face);
+
+            for(let i = 0; i < base_vertex_number; i++) {
                 const proposed_half_edge = `${0}-${this.half_edges[i]}`;
                 const permutations = misc.getPermutationsArr(proposed_half_edge.split("-").map(value => Number(value)),3);
                 this.setMesh(permutations);
             }
 
-            console.log(this.faces)
             for(const face of this.faces) this.mesh.addFace(face.join("-"));
-            this.calculatePoints();
+            this.pyramid_calculatePoints();
+        }
+
+        setMesh(permutations: number[][]) {
+            optionLoop: for(const permutation of permutations) {
+                const tmp_edge_list: string[] = [];
+                const edges = permutation.map((value,index,array) => `${value}-${array[(index + 1) % array.length]}`);
+                for(const edge of edges) {
+                    if(!this.half_edges.includes(edge)) tmp_edge_list.push(edge);
+                    else continue optionLoop;
+                }
+                this.half_edges.push(...tmp_edge_list);
+                this.faces.push(permutation);
+                break optionLoop;
+            }
+        }
+    }
+
+    class CreateCone extends CreateEllipse {
+        faces: number[][];
+        last: number;
+        penultimate: number;
+        primary: number;
+
+        constructor (radius = 10,base_vertex_number = 10,start_vertex = 0) {
+            super(base_vertex_number,radius,radius,1,start_vertex);
+            this.faces = [];
+            this.faces.push(this.face);
+
+            for(let i = 0; i < base_vertex_number; i++) {
+                const proposed_half_edge = `${0}-${this.half_edges[i]}`;
+                const permutations = misc.getPermutationsArr(proposed_half_edge.split("-").map(value => Number(value)),3);
+                this.setMesh(permutations);
+            }
+
+            for(const face of this.faces) this.mesh.addFace(face.join("-"));
+            this.ellipse_calculatePoints();
         }
 
         setMesh(permutations: number[][]) {
@@ -1285,15 +1489,133 @@
             }
         }
 
-        editDimensions(width: number,height: number,depth: number) {
-            this.points_list = [];
-            this.width = width / 2;
-            this.height = height / 2;
-            this.depth = depth / 2;
+        cone_editDimensions_R(radius = this.width) {
+            this.modifyDimensions(radius,0,radius);
+            this.ellipse_calculatePoints();
+        }
 
-            this.calculatePoints();
+        cone_editDimensions_WD(width = this.width,depth = this.depth) {
+            this.modifyDimensions(width,0,depth);
+            this.ellipse_calculatePoints();
         }
     }
+
+    class CreateCuboid extends CreateObject {
+        default_faces: number[][];
+        default_vertex_map: number[];
+
+        constructor (width = 10,height = 10,depth = 10,start_vertex = 0) {
+            super(width,height,depth,start_vertex);
+            this.default_faces = [[0,1,2,3],[4,6,7,5],[0,3,6,4],[1,5,7,2],[3,2,7,6],[0,4,5,1]] // standard default mesh configuration
+            for(const index in this.default_faces) {
+                for(const sub_index in this.default_faces[index]) {
+                    const value = this.default_faces[index][sub_index] + this.vert_st;
+                    this.default_faces[index][sub_index] = value;
+                }
+            }
+            this.default_vertex_map = [0,1,3,2,4,5,6,7];
+            ;
+            for(const face of this.default_faces) this.mesh.addFace(face.join("-"));
+            this.cuboid_calculatePoints();
+        }
+
+        cuboid_editDimensions(width = this.width,height = this.height,depth = this.depth) {
+            this.modifyDimensions(width,height,depth);
+            this.cuboid_calculatePoints();
+        }
+
+        cuboid_calculatePoints() {
+            var sgn_k = 1;
+            var sgn_j = 1;
+            var sgn_i = 1;
+
+            for(let k = 0; k < 2; k++) {
+                for(let j = 0; j < 2; j++) {
+                    for(let i = 0; i < 2; i++) {
+                        const index = k * 4 + j * 2 + i;
+
+                        if(k === 0) sgn_k = -1;
+                        else sgn_k = 1;
+                        if(j === 0) sgn_j = -1;
+                        else sgn_j = 1;
+                        if(i === 0) sgn_i = -1;
+                        else sgn_i = 1;
+
+                        this.points_list[this.default_vertex_map[index]] = new Point3D(sgn_i * (this.width / 2),sgn_j * (this.height / 2),sgn_k * (this.depth / 2));
+                    }
+                }
+            }
+        }
+    }
+
+
+    class CreateSphere extends CreateObject {
+        lat_divs: number;
+        long_divs: number;
+        radius: number;
+
+        constructor (radius = 10,latitude_divisions = 10,longitude_divisions = 10,start_vertex = 0) {
+            super(radius,radius,radius,start_vertex);
+            this.lat_divs = latitude_divisions;
+            this.long_divs = longitude_divisions;
+            const north_pole = start_vertex;
+            this.vert_st = ++start_vertex;
+            this.radius = 0;
+            const south_pole = ((this.lat_divs - 1) * this.long_divs) + this.vert_st + 1;
+
+            for(let lat = 0; lat <= this.lat_divs; lat++) {
+                if(lat === 0 || lat === this.lat_divs) continue;
+
+                for(let long = 0; long < this.long_divs; long++) {
+                    const first = ((lat - 1) * this.long_divs) + long;
+                    const second = (first + 1) % this.long_divs + ((lat - 1) * this.long_divs);
+
+                    if(lat === this.lat_divs - 1) {
+                        this.mesh.addFace(`${first + this.vert_st}-${second + this.vert_st}-${south_pole}`);
+                        continue;
+                    }
+                    if(lat === 1) this.mesh.addFace(`${north_pole}-${first + this.vert_st}-${second + this.vert_st}`);
+
+                    const third = first + this.long_divs;
+                    const fourth = (third + 1) % this.long_divs + (lat * this.long_divs)
+                    this.mesh.addFace(`${first + this.vert_st}-${second + this.vert_st}-${fourth + this.vert_st}-${third + this.vert_st}`);
+                }
+            }
+
+            this.sphere_calculatePoints();
+        }
+
+        sphere_calculatePoints() {
+            for(let lat = 0; lat <= this.lat_divs; lat++) {
+                const theta = lat * Math.PI;
+                const sin_theta = Math.sin(theta);
+                const cos_theta = Math.cos(theta);
+
+                if(lat === 0 || lat === this.lat_divs) {
+                    this.points_list.push(new Point3D(0,(this.height * cos_theta),0));
+                }
+
+                for(let long = 0; long < this.long_divs; long++) {
+                    const phi = long * 2 * Math.PI;
+                    const sin_phi = Math.sin(phi);
+                    const cos_phi = Math.cos(phi);
+                    this.points_list.push(new Point3D((this.width * sin_theta * cos_phi),(this.height * cos_theta),-(this.depth * sin_theta * sin_phi)));
+                }
+            }
+        }
+
+        sphere_editDimensions_R(radius = this.width) {
+            this.modifyDimensions(radius,radius,radius);
+            this.sphere_calculatePoints();
+        }
+
+        sphere_editDimensions_WHD(width = this.width,height = this.height,depth = this.depth) {
+            this.modifyDimensions(width,height,depth);
+            this.sphere_calculatePoints();
+        }
+    }
+
+    class CreateTorus {}
 
 
     class CatmullClark {
@@ -1579,10 +1901,13 @@
     const misc = new Miscellanous();
 
     const pyramid = new CreatePyramid();
-    const cube = new CreateBox();
-    
-    console.log(cube.mesh.triangulate(cube.points_list));
+    const cube = new CreateCuboid();
 
+    const sphere = new CreateSphere(5,6,8,0);
+
+    console.log(sphere.mesh.faces);
+    console.log(sphere.mesh.HalfEdgeDict)
+    console.log(sphere.points_list)
 
     // console.log("\n\n\n\n\n\n")
 
