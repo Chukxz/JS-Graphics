@@ -161,9 +161,9 @@
             this.vertex_indexes = new Set();
             this.deleted_halfedges_dict = {};
             this.face_indexes_set = new Set();
-            this.max_face_index = -1;
+            this.max_face_index = 0;
             this.face_index_map = {};
-            this.max_vertex_index = -1;
+            this.max_vertex_index = 0;
         }
         maxFaceIndex() {
             const test = Math.max(...[...this.face_indexes_set]);
@@ -337,19 +337,18 @@
                 const biFacial_handling_result = this.biFacialHandling();
                 if (biFacial_handling_result.length > 0)
                     this.removeFace(biFacial_handling_result.join("-"));
-            }
-            // if vertex a belongs to at most one edge remove it from the vertex indexes set
-            if (this.getEdgesOfVertexFast(Number(a), edge_num_list).length <= 1) {
-                this.vertex_indexes.delete(Number(a));
-            }
-            // if vertex b belongs to at most one edge remove it from the vertex indexes set
-            if (this.getEdgesOfVertexFast(Number(b), edge_num_list).length <= 1) {
-                this.vertex_indexes.delete(Number(b));
+                // if vertex a belongs to at most one edge remove it from the vertex indexes set
+                if (this.getEdgesOfVertexFast(Number(a), edge_num_list).length <= 1) {
+                    this.vertex_indexes.delete(Number(a));
+                }
+                // if vertex b belongs to at most one edge remove it from the vertex indexes set
+                if (this.getEdgesOfVertexFast(Number(b), edge_num_list).length <= 1) {
+                    this.vertex_indexes.delete(Number(b));
+                }
+                this.vertex_no = [...this.vertex_indexes].length; // update vertex number
+                this.edge_no--; // decrease edge number as the twin does not exist
             }
             delete this.HalfEdgeDict[edge]; // delete the halfedge
-            this.vertex_no = [...this.vertex_indexes].length; // update vertex number
-            if (!this.HalfEdgeDict[twinHalfEdgeKey])
-                this.edge_no--; // decrease edge number if the twin does not exist
             return true; // halfedge was successfully deleted
         }
         mergeDeletedFaces(faces, edge) {
@@ -1003,6 +1002,28 @@
             console.log(`Time taken to triangulate : ${end - start} ms`);
             return { mesh: new_mesh, points: triangulated_points_list };
         }
+        quad_to_tri(points_list = undefined) {
+            const triangulated_points_list = [];
+            if (typeof points_list !== "undefined") {
+                triangulated_points_list.push(...points_list);
+            }
+            const new_mesh = new MeshDataStructure();
+            for (const face of this.faces) {
+                const vertex_indexes = face.split("-").map(value => Number(value));
+                const face_edges = this.getEdgesOfFace(vertex_indexes);
+                if (face_edges.length === 4) {
+                    const [a, b] = face_edges[0].split("-");
+                    const [c, d] = face_edges[1].split("-");
+                    const [e, f] = face_edges[2].split("-");
+                    const [g, h] = face_edges[3].split("-");
+                    new_mesh.addFace(`${a}-${b}-${d}`);
+                    new_mesh.addFace(`${e}-${f}-${h}`);
+                }
+                else
+                    new_mesh.addFace(face);
+            }
+            return { mesh: new_mesh, points: triangulated_points_list };
+        }
     }
     class CreateObject {
         width;
@@ -1633,6 +1654,7 @@
     const sphere = new CreateSphere(5, 6, 8, 0);
     console.log(sphere.mesh.faces);
     console.log(sphere.mesh.HalfEdgeDict);
+    console.log(sphere.points_list);
     // console.log("\n\n\n\n\n\n")
     // console.log("CUBE : ")
     // const cube_catmull_clark = new CatmullClark(cube);

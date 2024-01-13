@@ -192,9 +192,9 @@
             this.vertex_indexes = new Set();
             this.deleted_halfedges_dict = {};
             this.face_indexes_set = new Set();
-            this.max_face_index = -1;
+            this.max_face_index = 0;
             this.face_index_map = {};
-            this.max_vertex_index = -1;
+            this.max_vertex_index = 0;
         }
 
         maxFaceIndex() {
@@ -363,12 +363,14 @@
 
                         }
                     }
+                    
                     for(const edge of beta_edges) {
                         if(this.HalfEdgeDict[edge]) {
                             (this.HalfEdgeDict[edge] as _HALFEDGE_).face_vertices = new_face_vertices;
                             (this.HalfEdgeDict[edge] as _HALFEDGE_).face_index = new_face_index;
                         }
                     }
+                    
                     this.faces.add(new_face_vertices.join('-'))
                 }
 
@@ -390,23 +392,22 @@
 
                 const biFacial_handling_result = this.biFacialHandling();
                 if(biFacial_handling_result.length > 0) this.removeFace(biFacial_handling_result.join("-"));
-            }
+                
+                // if vertex a belongs to at most one edge remove it from the vertex indexes set
+                if(this.getEdgesOfVertexFast(Number(a),edge_num_list).length <= 1) {
+                    this.vertex_indexes.delete(Number(a));
+                }
 
-
-            // if vertex a belongs to at most one edge remove it from the vertex indexes set
-            if(this.getEdgesOfVertexFast(Number(a),edge_num_list).length <= 1) {
-                this.vertex_indexes.delete(Number(a));
-            }
-
-            // if vertex b belongs to at most one edge remove it from the vertex indexes set
-            if(this.getEdgesOfVertexFast(Number(b),edge_num_list).length <= 1) {
-                this.vertex_indexes.delete(Number(b));
+                // if vertex b belongs to at most one edge remove it from the vertex indexes set
+                if(this.getEdgesOfVertexFast(Number(b),edge_num_list).length <= 1) {
+                    this.vertex_indexes.delete(Number(b));
+                }
+                
+                this.vertex_no = [...this.vertex_indexes].length; // update vertex number
+                this.edge_no-- // decrease edge number as the twin does not exist
             }
 
             delete this.HalfEdgeDict[edge]; // delete the halfedge
-
-            this.vertex_no = [...this.vertex_indexes].length; // update vertex number
-            if(!this.HalfEdgeDict[twinHalfEdgeKey]) this.edge_no-- // decrease edge number if the twin does not exist
 
             return true; // halfedge was successfully deleted
         }
