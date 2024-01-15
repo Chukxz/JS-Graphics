@@ -352,14 +352,14 @@
                             (this.HalfEdgeDict[edge] as _HALFEDGE_).face_index = new_face_index;
                         }
                     }
-                    
+
                     for(const edge of beta_edges) {
                         if(this.HalfEdgeDict[edge]) {
                             (this.HalfEdgeDict[edge] as _HALFEDGE_).face_vertices = new_face_vertices;
                             (this.HalfEdgeDict[edge] as _HALFEDGE_).face_index = new_face_index;
                         }
                     }
-                    
+
                     this.faces.add(new_face_vertices.join('-'))
                 }
 
@@ -381,7 +381,7 @@
 
                 const biFacial_handling_result = this.biFacialHandling();
                 if(biFacial_handling_result.length > 0) this.removeFace(biFacial_handling_result.join("-"));
-                
+
                 // if vertex a belongs to at most one edge remove it from the vertex indexes set
                 if(this.getEdgesOfVertexFast(Number(a),edge_num_list).length <= 1) {
                     this.vertex_indexes.delete(Number(a));
@@ -391,7 +391,7 @@
                 if(this.getEdgesOfVertexFast(Number(b),edge_num_list).length <= 1) {
                     this.vertex_indexes.delete(Number(b));
                 }
-                
+
                 this.vertex_no = [...this.vertex_indexes].length; // update vertex number
                 this.edge_no-- // decrease edge number as the twin does not exist
             }
@@ -1006,7 +1006,7 @@
         removeFace(face: string) {
             // Check if face is found in faces
             if(this.faces.has(face)) {
-                const existing_face_edges = this.getEdgesOfFacethatExists(face.split("-").map(value=>Number(value)));
+                const existing_face_edges = this.getEdgesOfFacethatExists(face.split("-").map(value => Number(value)));
                 const edge_num_list = this.edgeToNumber();
 
                 // remove the face and its halfedges
@@ -1062,15 +1062,15 @@
             return -1;
         }
 
-        splitFace(face: string, vert_1: string | number, vert_2: string | number) {
+        splitFace(face: string,vert_1: string | number,vert_2: string | number) {
             vert_1 = Number(vert_1);
             vert_2 = Number(vert_2);
 
-            if(this.faces.has(face)){                
+            if(this.faces.has(face)) {
                 if(!face.includes(`${vert_1}`) || !face.includes(`${vert_2}`)) return false; // face not split as one or both vertices not found in face
-                const face_vertices = face.split("-").map(value=>Number(value));
+                const face_vertices = face.split("-").map(value => Number(value));
                 const edges = this.getEdgesOfFace(face_vertices);
-                const bi_edges : string[] = [];
+                const bi_edges: string[] = [];
                 for(const edge of edges) if(edge.includes(`${vert_1}`)) bi_edges.push(edge);
                 for(const bi_edge of bi_edges) if(bi_edge.includes(`${vert_2}`)) return false; // face not split due to both vertices belonging to the same edge
 
@@ -1079,9 +1079,9 @@
                 const first_vertex = vert_2_index > vert_1_index ? vert_1_index : vert_2_index;
                 const second_vertex = vert_2_index > vert_1_index ? vert_2_index : vert_1_index;
 
-                var pre = face_vertices.splice(0,first_vertex+1);
-                var post = face_vertices.splice(second_vertex-pre.length);
-                var other_face = [post[0], ...face_vertices.reverse(), pre[pre.length-1]];
+                var pre = face_vertices.splice(0,first_vertex + 1);
+                var post = face_vertices.splice(second_vertex - pre.length);
+                var other_face = [post[0],...face_vertices.reverse(),pre[pre.length - 1]];
                 pre.push(...post);
 
                 this.removeFace(face);
@@ -1094,15 +1094,15 @@
             return false; // face not split as it doesn't exist
         }
 
-        mergeFace(face_1: string, face_2: string) {
+        mergeFace(face_1: string,face_2: string) {
             if(!this.faces.has(face_1) || !this.faces.has(face_2)) return false; // faces not merged because one or both do not exist
 
-            const face_1_edges = this.getEdgesOfFace(face_1.split("-").map(value=>Number(value)));
-            const face_2_edges = this.getEdgesOfFace(face_2.split("-").map(value=>Number(value)));
+            const face_1_edges = this.getEdgesOfFace(face_1.split("-").map(value => Number(value)));
+            const face_2_edges = this.getEdgesOfFace(face_2.split("-").map(value => Number(value)));
 
-            for(const edge of face_1_edges){
+            for(const edge of face_1_edges) {
                 const twin_edge = edge.split("-").reverse().join("-");
-                if(face_2_edges.includes(twin_edge)){
+                if(face_2_edges.includes(twin_edge)) {
                     this.removeEdge(edge);
                     return true; // faces were merged
                 }
@@ -1172,7 +1172,7 @@
             const end = new Date().getTime();
             console.log(`Time taken to triangulate : ${end - start} ms`);
 
-            return { mesh: new_mesh, points: triangulated_points_list };
+            return { mesh: new_mesh,points: triangulated_points_list };
         }
 
         quad_to_tri(points_list: Point3D[] | undefined = undefined) {
@@ -1182,12 +1182,12 @@
             }
 
             const new_mesh = new MeshDataStructure();
-            
+
             for(const face of this.faces) {
                 const vertex_indexes = face.split("-").map(value => Number(value));
                 const face_edges = this.getEdgesOfFace(vertex_indexes);
 
-                if(face_edges.length === 4){
+                if(face_edges.length === 4) {
                     const [a,b] = face_edges[0].split("-");
                     const [c,d] = face_edges[1].split("-");
                     const [e,f] = face_edges[2].split("-");
@@ -1199,7 +1199,7 @@
                 else new_mesh.addFace(face);
             }
 
-            return { mesh: new_mesh, points: triangulated_points_list };
+            return { mesh: new_mesh,points: triangulated_points_list };
         }
     }
 
@@ -1577,23 +1577,24 @@
     class CreateSphere extends CreateObject {
         lat_divs: number;
         long_divs: number;
-        radius: number;
+        radius: number | undefined;
 
         constructor (radius = 10,latitude_divisions = 10,longitude_divisions = 10,start_vertex = 0) {
             super(radius,radius,radius,start_vertex);
             this.lat_divs = latitude_divisions;
             this.long_divs = longitude_divisions;
+            this.radius = radius;
             const north_pole = start_vertex;
             this.vert_st = ++start_vertex;
-            this.radius = 0;
-            const south_pole = ((this.lat_divs - 1) * this.long_divs) + this.vert_st + 1;
+            const south_pole = ((this.lat_divs - 1) * this.long_divs) + this.vert_st;
 
             for(let lat = 0; lat <= this.lat_divs; lat++) {
                 if(lat === 0 || lat === this.lat_divs) continue;
 
                 for(let long = 0; long < this.long_divs; long++) {
-                    const first = ((lat - 1) * this.long_divs) + long;
-                    const second = (first + 1) % this.long_divs + ((lat - 1) * this.long_divs);
+                    const inc = ((lat - 1) * this.long_divs);
+                    const first = inc + long;
+                    const second = (first + 1) % this.long_divs + inc;
 
                     if(lat === this.lat_divs - 1) {
                         this.mesh.addFace(`${first + this.vert_st}-${second + this.vert_st}-${south_pole}`);
@@ -1602,7 +1603,7 @@
                     if(lat === 1) this.mesh.addFace(`${north_pole}-${first + this.vert_st}-${second + this.vert_st}`);
 
                     const third = first + this.long_divs;
-                    const fourth = (third + 1) % this.long_divs + (lat * this.long_divs)
+                    const fourth = (third + 1) % this.long_divs + (lat * this.long_divs);
                     this.mesh.addFace(`${first + this.vert_st}-${second + this.vert_st}-${fourth + this.vert_st}-${third + this.vert_st}`);
                 }
             }
@@ -1611,36 +1612,140 @@
         }
 
         sphere_calculatePoints() {
+            this.points_list.push(new Point3D(0,(this.height),0)); // north pole;
             for(let lat = 0; lat <= this.lat_divs; lat++) {
-                const theta = lat * Math.PI;
+                const theta = lat * Math.PI / this.lat_divs;
                 const sin_theta = Math.sin(theta);
                 const cos_theta = Math.cos(theta);
 
-                if(lat === 0 || lat === this.lat_divs) {
-                    this.points_list.push(new Point3D(0,(this.height * cos_theta),0));
-                }
+                if(lat === 0 || lat === this.lat_divs) continue;
 
                 for(let long = 0; long < this.long_divs; long++) {
-                    const phi = long * 2 * Math.PI;
+                    const phi = long * 2 * Math.PI / this.long_divs;
                     const sin_phi = Math.sin(phi);
                     const cos_phi = Math.cos(phi);
-                    this.points_list.push(new Point3D((this.width * sin_theta * cos_phi),(this.height * cos_theta),-(this.depth * sin_theta * sin_phi)));
+                    const X = this.width * sin_theta * cos_phi;
+                    const Y = this.height * cos_theta;
+                    const Z = -(this.depth * sin_theta * sin_phi);
+                    this.points_list.push(new Point3D(X,Y,Z));
                 }
             }
+            this.points_list.push(new Point3D(0,(-this.height),0)); // south pole
         }
 
         sphere_editDimensions_R(radius = this.width) {
             this.modifyDimensions(radius,radius,radius);
             this.sphere_calculatePoints();
+            this.radius = radius;
         }
 
         sphere_editDimensions_WHD(width = this.width,height = this.height,depth = this.depth) {
             this.modifyDimensions(width,height,depth);
+            this.radius = undefined;
             this.sphere_calculatePoints();
         }
     }
 
-    class CreateTorus {
+    class CreateTorus extends CreateObject {
+        lat_divs: number;
+        long_divs: number;
+        toroidal_radius: number | undefined;
+        toroidal_width: number;
+        toroidal_depth: number;
+        polar_width: number;
+        polar_radius: number | undefined;
+        polar_height: number;
+        utility_index: number;
+        backtrack_index: number;
+
+        constructor (R = 7,r = 3,latitude_divisions = 10,longitude_divisions = 10,start_vertex = 0) {
+            super(R + 2*r,r,R + 2*r,start_vertex);
+            this.lat_divs = latitude_divisions;
+            this.long_divs = longitude_divisions;
+            this.toroidal_radius = R;
+            this.toroidal_width = R;
+            this.toroidal_depth = R;
+            this.polar_radius = r;
+            this.polar_width = r;
+            this.polar_height = r;
+            this.utility_index = ((this.lat_divs + 1) * this.long_divs) + this.vert_st;
+            this.backtrack_index = this.utility_index + ((this.lat_divs - 1) * this.long_divs);
+
+            for(let lat = 0; lat <= this.lat_divs; lat++) {
+                if(lat === this.lat_divs) continue;
+
+                for(let long = 0; long < this.long_divs; long++) {
+                    const inc = (lat * this.long_divs);
+                    const first = inc + long;
+                    const second = (first + 1) % this.long_divs + inc;
+
+                    const third = first + this.long_divs;
+                    const fourth = (third + 1) % this.long_divs + ((lat + 1) * this.long_divs);
+                    this.mesh.addFace(`${first + this.vert_st}-${second + this.vert_st}-${fourth + this.vert_st}-${third + this.vert_st}`);
+
+                    const other_third = inc + long + this.utility_index;
+                    const other_fourth = (other_third + 1) % this.long_divs + inc + this.utility_index;
+
+                    const other_first = other_third - this.long_divs;
+                    const other_second = (other_first + 1) % this.long_divs + ((lat - 1) * this.long_divs) + this.utility_index;
+
+                    // if(lat === 0) this.mesh.addFace(`${first + this.vert_st}-${second + this.vert_st}-${other_fourth + this.vert_st}-${other_third + this.vert_st}`);
+                    // if(lat === this.lat_divs - 1) this.mesh.addFace(`${other_first + this.vert_st}-${other_second + this.vert_st}-${fourth + this.vert_st}-${third + this.vert_st}`);
+                    // else this.mesh.addFace(`${other_first + this.vert_st}-${other_second + this.vert_st}-${other_fourth + this.vert_st}-${other_third + this.vert_st}`);;
+                }
+            }
+
+            this.torus_calculatePoints();
+        }
+
+        torus_calculatePoints() {
+            for(let lat = 0; lat <= this.lat_divs; lat++) {
+                const theta = lat * Math.PI / this.lat_divs;
+                const sin_theta = Math.sin(theta);
+                const cos_theta = Math.cos(theta);
+
+                for(let long = 0; long < this.long_divs; long++) {
+                    const phi = long * 2 * Math.PI / this.long_divs;
+                    const sin_phi = Math.sin(phi);
+                    const cos_phi = Math.cos(phi);
+
+                    const X_1 = (this.toroidal_width * cos_phi) + ((this.polar_width + (this.polar_width * sin_theta)) * cos_phi);
+                    const X_2 = (this.toroidal_width * cos_phi) + ((this.polar_width - (this.polar_width * sin_theta)) * cos_phi);
+                    const Y = this.polar_height * cos_theta;
+                    const Z_1 = (-this.toroidal_depth * sin_phi) + ((this.polar_width + (this.polar_width * sin_theta)) * -sin_phi);
+                    const Z_2 = (-this.toroidal_depth * sin_phi) + ((this.polar_width - (this.polar_width * sin_theta)) * -sin_phi);
+
+                    this.points_list.push(new Point3D(X_1,Y,Z_1));
+
+                    if(lat === 0 || lat === this.lat_divs) continue;
+
+                    this.points_list.push(new Point3D(X_2,Y,Z_2));
+                }
+            }
+        }
+
+        torus_editDimensions_R(toroidal_radius = this.toroidal_width, polar_radius = this.polar_width) {
+            this.modifyDimensions(toroidal_radius+2*polar_radius,polar_radius,toroidal_radius+2*polar_radius);
+            this.toroidal_radius = toroidal_radius;
+            this.polar_radius = polar_radius;
+            this.toroidal_width = toroidal_radius;
+            this.toroidal_depth = toroidal_radius;
+            this.polar_width = polar_radius;
+            this.polar_height = polar_radius;
+            this.torus_calculatePoints();
+
+        }
+
+        sphere_editDimensions_WHD(inner_width = this.polar_width, inner_height = this.polar_height, outer_width = this.toroidal_width, outer_depth = this.toroidal_depth) {
+            this.modifyDimensions(outer_width+2*inner_width,inner_height,outer_depth*2*inner_width);
+            this.toroidal_radius = undefined;
+            this.polar_radius = undefined;
+            this.toroidal_width = outer_width;
+            this.toroidal_depth = outer_depth;
+            this.polar_width = inner_width;
+            this.polar_height = inner_height;
+            this.torus_calculatePoints();
+        }
     }
 
 
@@ -1930,6 +2035,12 @@
     const cube = new CreateCuboid();
 
     const sphere = new CreateSphere(5,6,8,0);
+
+    const torus = new CreateTorus(7,3,2,4,0);
+
+    // console.log(sphere.points_list)
+    // console.log(sphere.points_list.length)
+    // console.log(sphere.mesh.vertex_indexes)
 
 
 

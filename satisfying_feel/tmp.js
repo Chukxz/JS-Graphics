@@ -1397,16 +1397,17 @@
             super(radius, radius, radius, start_vertex);
             this.lat_divs = latitude_divisions;
             this.long_divs = longitude_divisions;
+            this.radius = radius;
             const north_pole = start_vertex;
             this.vert_st = ++start_vertex;
-            this.radius = 0;
-            const south_pole = ((this.lat_divs - 1) * this.long_divs) + this.vert_st + 1;
+            const south_pole = ((this.lat_divs - 1) * this.long_divs) + this.vert_st;
             for (let lat = 0; lat <= this.lat_divs; lat++) {
                 if (lat === 0 || lat === this.lat_divs)
                     continue;
                 for (let long = 0; long < this.long_divs; long++) {
-                    const first = ((lat - 1) * this.long_divs) + long;
-                    const second = (first + 1) % this.long_divs + ((lat - 1) * this.long_divs);
+                    const inc = ((lat - 1) * this.long_divs);
+                    const first = inc + long;
+                    const second = (first + 1) % this.long_divs + inc;
                     if (lat === this.lat_divs - 1) {
                         this.mesh.addFace(`${first + this.vert_st}-${second + this.vert_st}-${south_pole}`);
                         continue;
@@ -1421,31 +1422,121 @@
             this.sphere_calculatePoints();
         }
         sphere_calculatePoints() {
+            this.points_list.push(new Point3D(0, (this.height), 0)); // north pole;
             for (let lat = 0; lat <= this.lat_divs; lat++) {
-                const theta = lat * Math.PI;
+                const theta = lat * Math.PI / this.lat_divs;
                 const sin_theta = Math.sin(theta);
                 const cos_theta = Math.cos(theta);
-                if (lat === 0 || lat === this.lat_divs) {
-                    this.points_list.push(new Point3D(0, (this.height * cos_theta), 0));
-                }
+                if (lat === 0 || lat === this.lat_divs)
+                    continue;
                 for (let long = 0; long < this.long_divs; long++) {
-                    const phi = long * 2 * Math.PI;
+                    const phi = long * 2 * Math.PI / this.long_divs;
                     const sin_phi = Math.sin(phi);
                     const cos_phi = Math.cos(phi);
-                    this.points_list.push(new Point3D((this.width * sin_theta * cos_phi), (this.height * cos_theta), -(this.depth * sin_theta * sin_phi)));
+                    const X = this.width * sin_theta * cos_phi;
+                    const Y = this.height * cos_theta;
+                    const Z = -(this.depth * sin_theta * sin_phi);
+                    this.points_list.push(new Point3D(X, Y, Z));
                 }
             }
+            this.points_list.push(new Point3D(0, (-this.height), 0)); // south pole
         }
         sphere_editDimensions_R(radius = this.width) {
             this.modifyDimensions(radius, radius, radius);
             this.sphere_calculatePoints();
+            this.radius = radius;
         }
         sphere_editDimensions_WHD(width = this.width, height = this.height, depth = this.depth) {
             this.modifyDimensions(width, height, depth);
+            this.radius = undefined;
             this.sphere_calculatePoints();
         }
     }
-    class CreateTorus {
+    class CreateTorus extends CreateObject {
+        lat_divs;
+        long_divs;
+        toroidal_radius;
+        toroidal_width;
+        toroidal_depth;
+        polar_width;
+        polar_radius;
+        polar_height;
+        utility_index;
+        backtrack_index;
+        constructor(R = 7, r = 3, latitude_divisions = 10, longitude_divisions = 10, start_vertex = 0) {
+            super(R + 2 * r, r, R + 2 * r, start_vertex);
+            this.lat_divs = latitude_divisions;
+            this.long_divs = longitude_divisions;
+            this.toroidal_radius = R;
+            this.toroidal_width = R;
+            this.toroidal_depth = R;
+            this.polar_radius = r;
+            this.polar_width = r;
+            this.polar_height = r;
+            this.utility_index = ((this.lat_divs + 1) * this.long_divs) + this.vert_st;
+            this.backtrack_index = this.utility_index + ((this.lat_divs - 1) * this.long_divs);
+            for (let lat = 0; lat <= this.lat_divs; lat++) {
+                if (lat === this.lat_divs)
+                    continue;
+                for (let long = 0; long < this.long_divs; long++) {
+                    const inc = (lat * this.long_divs);
+                    const first = inc + long;
+                    const second = (first + 1) % this.long_divs + inc;
+                    const third = first + this.long_divs;
+                    const fourth = (third + 1) % this.long_divs + ((lat + 1) * this.long_divs);
+                    this.mesh.addFace(`${first + this.vert_st}-${second + this.vert_st}-${fourth + this.vert_st}-${third + this.vert_st}`);
+                    const other_third = inc + long + this.utility_index;
+                    const other_fourth = (other_third + 1) % this.long_divs + inc + this.utility_index;
+                    const other_first = other_third - this.long_divs;
+                    const other_second = (other_first + 1) % this.long_divs + ((lat - 1) * this.long_divs) + this.utility_index;
+                    // if(lat === 0) this.mesh.addFace(`${first + this.vert_st}-${second + this.vert_st}-${other_fourth + this.vert_st}-${other_third + this.vert_st}`);
+                    // if(lat === this.lat_divs - 1) this.mesh.addFace(`${other_first + this.vert_st}-${other_second + this.vert_st}-${fourth + this.vert_st}-${third + this.vert_st}`);
+                    // else this.mesh.addFace(`${other_first + this.vert_st}-${other_second + this.vert_st}-${other_fourth + this.vert_st}-${other_third + this.vert_st}`);;
+                }
+            }
+            this.torus_calculatePoints();
+        }
+        torus_calculatePoints() {
+            for (let lat = 0; lat <= this.lat_divs; lat++) {
+                const theta = lat * Math.PI / this.lat_divs;
+                const sin_theta = Math.sin(theta);
+                const cos_theta = Math.cos(theta);
+                for (let long = 0; long < this.long_divs; long++) {
+                    const phi = long * 2 * Math.PI / this.long_divs;
+                    const sin_phi = Math.sin(phi);
+                    const cos_phi = Math.cos(phi);
+                    const X_1 = (this.toroidal_width * cos_phi) + ((this.polar_width + (this.polar_width * sin_theta)) * cos_phi);
+                    const X_2 = (this.toroidal_width * cos_phi) + ((this.polar_width - (this.polar_width * sin_theta)) * cos_phi);
+                    const Y = this.polar_height * cos_theta;
+                    const Z_1 = (-this.toroidal_depth * sin_phi) + ((this.polar_width + (this.polar_width * sin_theta)) * -sin_phi);
+                    const Z_2 = (-this.toroidal_depth * sin_phi) + ((this.polar_width - (this.polar_width * sin_theta)) * -sin_phi);
+                    this.points_list.push(new Point3D(X_1, Y, Z_1));
+                    if (lat === 0 || lat === this.lat_divs)
+                        continue;
+                    this.points_list.push(new Point3D(X_2, Y, Z_2));
+                }
+            }
+        }
+        torus_editDimensions_R(toroidal_radius = this.toroidal_width, polar_radius = this.polar_width) {
+            this.modifyDimensions(toroidal_radius + 2 * polar_radius, polar_radius, toroidal_radius + 2 * polar_radius);
+            this.toroidal_radius = toroidal_radius;
+            this.polar_radius = polar_radius;
+            this.toroidal_width = toroidal_radius;
+            this.toroidal_depth = toroidal_radius;
+            this.polar_width = polar_radius;
+            this.polar_height = polar_radius;
+            this.torus_calculatePoints();
+        }
+        sphere_editDimensions_WHD(inner_width = this.polar_width, inner_height = this.polar_height, outer_width = this.toroidal_width, outer_depth = this.toroidal_depth) {
+            this.modifyDimensions(outer_width + 2 * inner_width, inner_height, outer_depth * 2 * inner_width);
+            this.toroidal_radius = undefined;
+            this.polar_radius = undefined;
+            this.toroidal_width = outer_width;
+            this.toroidal_depth = outer_depth;
+            this.polar_width = inner_width;
+            this.polar_height = inner_height;
+            this.torus_calculatePoints();
+        }
     }
     class CatmullClark {
         points_list;
@@ -1680,6 +1771,10 @@
     const pyramid = new CreatePyramid();
     const cube = new CreateCuboid();
     const sphere = new CreateSphere(5, 6, 8, 0);
+    const torus = new CreateTorus(7, 3, 2, 4, 0);
+    // console.log(sphere.points_list)
+    // console.log(sphere.points_list.length)
+    // console.log(sphere.mesh.vertex_indexes)
     // console.log("CUBE : ")
     // const cube_catmull_clark = new CatmullClark(cube);
     // cube_catmull_clark.iterate(5);
