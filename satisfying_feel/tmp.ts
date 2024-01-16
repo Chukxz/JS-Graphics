@@ -1657,7 +1657,7 @@
         polar_height: number;
 
         constructor (R = 7,r = 3,latitude_divisions = 10,longitude_divisions = 10,start_vertex = 0) {
-            super(R + 2*r,r,R + 2*r,start_vertex);
+            super(R + 2 * r,r,R + 2 * r,start_vertex);
             this.lat_divs = latitude_divisions;
             this.long_divs = longitude_divisions;
             this.toroidal_radius = R;
@@ -1666,43 +1666,69 @@
             this.polar_radius = r;
             this.polar_width = r;
             this.polar_height = r;
-            
-            for (let lat = 0; lat <= this.lat_divs; lat++) {
-                if (lat === this.lat_divs) continue;
-                    
-                for (let long = 0; long < this.long_divs; long++) {
-                    var inc = 0;
-                    if (lat === 0) inc = (lat * this.long_divs);
-                    else inc = ((lat+1) * this.long_divs);
-                    const first = inc + long;
-                    const second = (first + 1) % this.long_divs + inc;
-                    const third = first + this.long_divs;
-                    const fourth = (third + 1) % this.long_divs + ((lat + 1) * this.long_divs);
-                    this.mesh.addFace(`${first + this.vert_st}-${second + this.vert_st}-${fourth + this.vert_st}-${third + this.vert_st}`);
-                    
-                    if (lat === 0){
-                        const other_first = first;
-                        const other_second = second;
-                        const other_third = third + this.long_divs;
-                        const other_fourth = fourth + this.long_divs;
-                        this.mesh.addFace(`${other_second + this.vert_st}-${other_first + this.vert_st}-${other_third + this.vert_st}-${other_fourth + this.vert_st}`);
+
+            var inc = 0;
+            var moderate_inc = 0;
+            var first = 0;
+            var second = 0;
+            var third = 0;
+            var fourth = 0;
+            var other_first = 0;
+            var other_second = 0;
+            var other_third = 0;
+            var other_fourth = 0;
+
+            for(let lat = 0; lat <= this.lat_divs; lat++) {
+                if(lat === this.lat_divs) continue;
+
+                for(let long = 0; long < this.long_divs; long++) {
+                    if(lat === 0) {
+                        first = long;
+                        second = (first + 1) % this.long_divs;
+                        third = first + this.long_divs;
+                        fourth = (third + 1) % this.long_divs + this.long_divs;
+
+                        other_first = first;
+                        other_second = second;
+                        other_third = third + this.long_divs;
+                        other_fourth = fourth + this.long_divs;
+
+                        if(long === 0) moderate_inc = third;
+                        if(long === this.long_divs - 1) inc = moderate_inc;
                     }
-                    
-                    else if (lat === this.lat_divs - 1){
-                        const other_first = first + this.long_divs;
-                        const other_second = second + this.long_divs;
-                        const other_third = third;
-                        const other_fourth = fourth;
-                        this.mesh.addFace(`${other_second + this.vert_st}-${other_first + this.vert_st}-${other_third + this.vert_st}-${other_fourth + this.vert_st}`);
+
+                    else if(lat === this.lat_divs - 1) {
+                        first = inc + long;
+                        second = (first + 1) % this.long_divs + inc;
+                        third = first + (2 * this.long_divs);
+                        fourth = (third + 1) % this.long_divs + inc + (2 * this.long_divs);
+
+                        other_first = first + this.long_divs;
+                        other_second = second + this.long_divs;
+                        other_third = third;
+                        other_fourth = fourth;
+
+                        if(long === 0) moderate_inc = third;
+                        if(long === this.long_divs - 1) inc = moderate_inc;
                     }
-                    
+
                     else {
-                        const other_first = first + this.long_divs;
-                        const other_second = second + this.long_divs;
-                        const other_third = third + this.long_divs;
-                        const other_fourth = fourth + this.long_divs;
-                        this.mesh.addFace(`${other_second + this.vert_st}-${other_first + this.vert_st}-${other_third + this.vert_st}-${other_fourth + this.vert_st}`);
-                    }   
+                        first = inc + long;
+                        second = (first + 1) % this.long_divs + inc;
+                        third = first + (2 * this.long_divs);
+                        fourth = (third + 1) % this.long_divs + inc + (2 * this.long_divs);
+
+                        other_first = first + this.long_divs;
+                        other_second = second + this.long_divs;
+                        other_third = third + this.long_divs;
+                        other_fourth = fourth + this.long_divs;
+
+                        if(long === 0) moderate_inc = third;
+                        if(long === this.long_divs - 1) inc = moderate_inc;
+                    }
+
+                    this.mesh.addFace(`${first + this.vert_st}-${second + this.vert_st}-${fourth + this.vert_st}-${third + this.vert_st}`);
+                    this.mesh.addFace(`${other_second + this.vert_st}-${other_first + this.vert_st}-${other_third + this.vert_st}-${other_fourth + this.vert_st}`);
                 }
             }
 
@@ -1735,8 +1761,8 @@
             }
         }
 
-        torus_editDimensions_R(toroidal_radius = this.toroidal_width, polar_radius = this.polar_width) {
-            this.modifyDimensions(toroidal_radius+2*polar_radius,polar_radius,toroidal_radius+2*polar_radius);
+        torus_editDimensions_R(toroidal_radius = this.toroidal_width,polar_radius = this.polar_width) {
+            this.modifyDimensions(toroidal_radius + 2 * polar_radius,polar_radius,toroidal_radius + 2 * polar_radius);
             this.toroidal_radius = toroidal_radius;
             this.polar_radius = polar_radius;
             this.toroidal_width = toroidal_radius;
@@ -1747,8 +1773,8 @@
 
         }
 
-        torus_editDimensions_WHD(inner_width = this.polar_width, inner_height = this.polar_height, outer_width = this.toroidal_width, outer_depth = this.toroidal_depth) {
-            this.modifyDimensions(outer_width+2*inner_width,inner_height,outer_depth*2*inner_width);
+        torus_editDimensions_WHD(inner_width = this.polar_width,inner_height = this.polar_height,outer_width = this.toroidal_width,outer_depth = this.toroidal_depth) {
+            this.modifyDimensions(outer_width + 2 * inner_width,inner_height,outer_depth * 2 * inner_width);
             this.toroidal_radius = undefined;
             this.polar_radius = undefined;
             this.toroidal_width = outer_width;
