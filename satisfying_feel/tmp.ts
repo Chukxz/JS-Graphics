@@ -158,7 +158,7 @@
     }
 
     class MeshDataStructure {
-        HalfEdgeDict: {};
+        HalfEdgeDict: { [halfedge: string]: _HALFEDGE_ };
         face_tmp: number[];
         faces: Set<string>;
         sorted_faces: string[];
@@ -171,13 +171,17 @@
         vertex_no: number;
         vertex_indexes: Set<number>;
         multiplier = 10;
-        deleted_halfedges_dict: {};
+        deleted_halfedges_dict: { [halfedge: string]: _HALFEDGE_ };
         face_indexes_set: Set<number>;
         max_face_index: number;
-        face_index_map: {};
+        face_index_map: Map<number,string>;
         max_vertex_index: number;
 
-        constructor (vertex_num = 0) {
+        constructor () {
+            this.reset();
+        }
+
+        reset() {
             this.HalfEdgeDict = {};
             this.face_tmp = [];
             this.faces = new Set();
@@ -188,12 +192,12 @@
             this.face_vertices_tmp = [];
             this.face_indexes_tmp = [];
             this.edge_no = 0;
-            this.vertex_no = vertex_num;
+            this.vertex_no = 0;
             this.vertex_indexes = new Set();
             this.deleted_halfedges_dict = {};
             this.face_indexes_set = new Set();
             this.max_face_index = 0;
-            this.face_index_map = {};
+            this.face_index_map = new Map();
             this.max_vertex_index = 0;
         }
 
@@ -231,25 +235,25 @@
             let twinHalfEdgeKey = `${b}-${a}`;
 
             // If halfedge does exist in halfedge dict switch halfedge key to twin halfedge key and vice-versa
-            if((this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_)) {
+            if(this.HalfEdgeDict[halfEdgeKey]) {
                 const halfEdgeKeyTemp = twinHalfEdgeKey;
                 twinHalfEdgeKey = halfEdgeKey;
                 halfEdgeKey = halfEdgeKeyTemp;
             }
 
             // If halfedge does not exist in halfedge dict, create halfedge and increment the edge number
-            if(!(this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_) && set_halfEdge === true) {
-                (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_) = this.halfEdge(a,b,face_index);
+            if(!this.HalfEdgeDict[halfEdgeKey] && set_halfEdge === true) {
+                this.HalfEdgeDict[halfEdgeKey] = this.halfEdge(a,b,face_index);
                 this.edge_no++;
-                (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_).face_vertices = this.face_vertices_tmp;
-                this.face_index_map[face_index] = this.face_vertices_tmp.join("-");
+                this.HalfEdgeDict[halfEdgeKey].face_vertices = this.face_vertices_tmp;
+                this.face_index_map.set(face_index,this.face_vertices_tmp.join("-"));
             }
             else twinHalfEdgeKey;
 
             // if twin halfedge exists in halfedge dict, decrement the edge number
-            if((this.HalfEdgeDict[twinHalfEdgeKey] as _HALFEDGE_)) {
-                (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_).twin = twinHalfEdgeKey;
-                (this.HalfEdgeDict[twinHalfEdgeKey] as _HALFEDGE_).twin = halfEdgeKey;
+            if(this.HalfEdgeDict[twinHalfEdgeKey]) {
+                this.HalfEdgeDict[halfEdgeKey].twin = twinHalfEdgeKey;
+                this.HalfEdgeDict[twinHalfEdgeKey].twin = halfEdgeKey;
                 this.edge_no--;
             }
 
@@ -259,10 +263,10 @@
         addHalfEdge(edge: string | _2D_VEC_,face_vertices = this.face_indexes_tmp,face_index = -1,prev = "-",next = "-") {
             if(typeof edge === "string") edge = edge.split("-").map(value => Number(value)) as _2D_VEC_;
             const halfEdgeKey = this.setHalfEdge(...edge);
-            (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_).face_vertices = face_vertices;
-            (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_).prev = prev;
-            (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_).next = next;
-            (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_).face_index = face_index
+            this.HalfEdgeDict[halfEdgeKey].face_vertices = face_vertices;
+            this.HalfEdgeDict[halfEdgeKey].prev = prev;
+            this.HalfEdgeDict[halfEdgeKey].next = next;
+            this.HalfEdgeDict[halfEdgeKey].face_index = face_index
             return halfEdgeKey;
         }
 
@@ -277,10 +281,10 @@
 
             // twin half edge exists
             if(this.HalfEdgeDict[twinHalfEdgeKey]) {
-                (this.HalfEdgeDict[twinHalfEdgeKey] as _HALFEDGE_).twin = "-";
+                this.HalfEdgeDict[twinHalfEdgeKey].twin = "-";
 
-                let prev_halfEdgeKey = (this.HalfEdgeDict[edge] as _HALFEDGE_).prev;
-                let next_halfEdgeKey = (this.HalfEdgeDict[edge] as _HALFEDGE_).next;
+                let prev_halfEdgeKey = this.HalfEdgeDict[edge].prev;
+                let next_halfEdgeKey = this.HalfEdgeDict[edge].next;
 
                 if(prev_halfEdgeKey !== "-" && prev_halfEdgeKey !== twinHalfEdgeKey) this.HalfEdgeDict[prev_halfEdgeKey].next = "-";
                 if(next_halfEdgeKey !== "-" && next_halfEdgeKey !== twinHalfEdgeKey) this.HalfEdgeDict[next_halfEdgeKey].prev = "-";
@@ -312,19 +316,19 @@
                 }
 
                 if(alpha_prev_exists && beta_next_exists) {
-                    (this.HalfEdgeDict[alpha_prev] as _HALFEDGE_).next = beta_next;
-                    (this.HalfEdgeDict[beta_next] as _HALFEDGE_).prev = alpha_prev;
+                    this.HalfEdgeDict[alpha_prev].next = beta_next;
+                    this.HalfEdgeDict[beta_next].prev = alpha_prev;
                 }
-                else if(alpha_prev_exists) (this.HalfEdgeDict[alpha_prev] as _HALFEDGE_).next = "-";
-                else if(beta_next_exists) (this.HalfEdgeDict[beta_next] as _HALFEDGE_).prev = "-";
+                else if(alpha_prev_exists) this.HalfEdgeDict[alpha_prev].next = "-";
+                else if(beta_next_exists) this.HalfEdgeDict[beta_next].prev = "-";
 
                 if(beta_prev_exists && alpha_next_exists) {
-                    (this.HalfEdgeDict[beta_prev] as _HALFEDGE_).next = alpha_next;
-                    (this.HalfEdgeDict[alpha_next] as _HALFEDGE_).prev = beta_prev;
+                    this.HalfEdgeDict[beta_prev].next = alpha_next;
+                    this.HalfEdgeDict[alpha_next].prev = beta_prev;
                 }
 
-                else if(beta_prev_exists) (this.HalfEdgeDict[beta_prev] as _HALFEDGE_).next = "-";
-                else if(alpha_next_exists) (this.HalfEdgeDict[alpha_next] as _HALFEDGE_).prev = "-";
+                else if(beta_prev_exists) this.HalfEdgeDict[beta_prev].next = "-";
+                else if(alpha_next_exists) this.HalfEdgeDict[alpha_next].prev = "-";
 
                 const faces_of_edge = this.getFacesOfDeletedEdge(edge);
                 const alpha_edges = this.getEdgesOfFace(faces_of_edge[0]);
@@ -337,26 +341,26 @@
                     const new_face_vertices = this.mergeDeletedFaces(faces_of_edge,edge);
                     const new_face_index = this.max_face_index + 1;
 
-                    const first_face_index = (this.deleted_halfedges_dict[edge] as _HALFEDGE_).face_index;
-                    const second_face_index = (this.deleted_halfedges_dict[twinHalfEdgeKey] as _HALFEDGE_).face_index;
+                    const first_face_index = this.deleted_halfedges_dict[edge].face_index;
+                    const second_face_index = this.deleted_halfedges_dict[twinHalfEdgeKey].face_index;
 
                     this.face_indexes_set.add(new_face_index);
                     this.maxFaceIndex();
-                    this.face_index_map[new_face_index] = new_face_vertices.join("-");
+                    this.face_index_map.set(new_face_index,new_face_vertices.join("-"));
                     this.face_indexes_set.delete(first_face_index);
                     this.face_indexes_set.delete(second_face_index);
 
                     for(const edge of alpha_edges) {
                         if(this.HalfEdgeDict[edge]) {
-                            (this.HalfEdgeDict[edge] as _HALFEDGE_).face_vertices = new_face_vertices;
-                            (this.HalfEdgeDict[edge] as _HALFEDGE_).face_index = new_face_index;
+                            this.HalfEdgeDict[edge].face_vertices = new_face_vertices;
+                            this.HalfEdgeDict[edge].face_index = new_face_index;
                         }
                     }
 
                     for(const edge of beta_edges) {
                         if(this.HalfEdgeDict[edge]) {
-                            (this.HalfEdgeDict[edge] as _HALFEDGE_).face_vertices = new_face_vertices;
-                            (this.HalfEdgeDict[edge] as _HALFEDGE_).face_index = new_face_index;
+                            this.HalfEdgeDict[edge].face_vertices = new_face_vertices;
+                            this.HalfEdgeDict[edge].face_index = new_face_index;
                         }
                     }
 
@@ -365,16 +369,16 @@
 
                 if(alpha_edges.length < 2) {
                     for(const edge of alpha_edges) if(this.HalfEdgeDict[edge]) {
-                        (this.HalfEdgeDict[edge] as _HALFEDGE_).face_vertices = (this.HalfEdgeDict[edge] as _HALFEDGE_).vertices;
-                        this.face_indexes_set.delete((this.HalfEdgeDict[edge] as _HALFEDGE_).face_index);
+                        this.HalfEdgeDict[edge].face_vertices = this.HalfEdgeDict[edge].vertices;
+                        this.face_indexes_set.delete(this.HalfEdgeDict[edge].face_index);
                     }
                     this.faces.delete(faces_of_edge[0].join("-"));
                 }
 
                 if(beta_edges.length < 2) {
                     for(const edge of beta_edges) if(this.HalfEdgeDict[edge]) {
-                        (this.HalfEdgeDict[edge] as _HALFEDGE_).face_vertices = (this.HalfEdgeDict[edge] as _HALFEDGE_).vertices;
-                        this.face_indexes_set.delete((this.HalfEdgeDict[edge] as _HALFEDGE_).face_index);
+                        this.HalfEdgeDict[edge].face_vertices = this.HalfEdgeDict[edge].vertices;
+                        this.face_indexes_set.delete(this.HalfEdgeDict[edge].face_index);
                     }
                     this.faces.delete(faces_of_edge[1].join("-"));
                 }
@@ -597,7 +601,7 @@
             const faces: number[][] = [];
 
             for(const edge of edge_list) {
-                const face = (this.HalfEdgeDict[edge] as _HALFEDGE_).face_vertices;
+                const face = this.HalfEdgeDict[edge].face_vertices;
                 if(!face_set.delete(face.join("-"))) {
                     face_set.add(face.join("-"));
                     faces.push(face);
@@ -611,7 +615,7 @@
             const face_indexes: Set<number> = new Set();
 
             for(const edge of edge_list) {
-                const face_index = (this.HalfEdgeDict[edge] as _HALFEDGE_).face_index;
+                const face_index = this.HalfEdgeDict[edge].face_index;
                 face_indexes.add(face_index);
             }
 
@@ -660,11 +664,11 @@
                     var prev = "-";
                     var next = "-";
                     if(this.HalfEdgeDict[edge]) {
-                        prev = (this.HalfEdgeDict[edge] as _HALFEDGE_).prev;
-                        next = (this.HalfEdgeDict[edge] as _HALFEDGE_).next;
+                        prev = this.HalfEdgeDict[edge].prev;
+                        next = this.HalfEdgeDict[edge].next;
                         this.deleted_halfedges_dict[edge] = this.HalfEdgeDict[edge];
                         delete this.HalfEdgeDict[edge];
-                        const face_index = (this.HalfEdgeDict[edge] as _HALFEDGE_).face_index;
+                        const face_index = this.HalfEdgeDict[edge].face_index;
 
 
                         this.addHalfEdge(`${a}-${new_vertex}`,new_face.split("-").map(value => Number(value)),face_index,prev,`${new_vertex}-${b}`);
@@ -686,11 +690,11 @@
                     var prev = "-";
                     var next = "-";
                     if(this.HalfEdgeDict[b + "-" + a]) {
-                        prev = (this.HalfEdgeDict[b + "-" + a] as _HALFEDGE_).prev;
-                        next = (this.HalfEdgeDict[b + "-" + a] as _HALFEDGE_).next;
+                        prev = this.HalfEdgeDict[b + "-" + a].prev;
+                        next = this.HalfEdgeDict[b + "-" + a].next;
                         this.deleted_halfedges_dict[b + "-" + a] = this.HalfEdgeDict[b + "-" + a];
                         delete this.HalfEdgeDict[b + "-" + a];
-                        const face_index = (this.HalfEdgeDict[b + "-" + a] as _HALFEDGE_).face_index;
+                        const face_index = this.HalfEdgeDict[b + "-" + a].face_index;
 
                         this.addHalfEdge(`${b}-${new_vertex}`,new_face.split("-").map(value => Number(value)),face_index,prev,`${new_vertex}-${a}`);
                         this.addHalfEdge(`${new_vertex}-${a}`,new_face.split("-").map(value => Number(value)),face_index,`${b}-${new_vertex}`,next);
@@ -739,7 +743,8 @@
                         }
 
                         if(this.max_face_index > initial_max_face_index) {
-                            common_faces.push(this.face_index_map[this.max_face_index])
+                            const face_to_push = this.face_index_map.get(this.max_face_index);
+                            if(typeof face_to_push !== "undefined") common_faces.push(face_to_push);
                             initial_max_face_index = this.max_face_index;
                             this.face_indexes_set.add(initial_max_face_index);
                         }
@@ -763,28 +768,28 @@
 
                     const a = required_edges.prev.split("-")[0];
                     const b = required_edges.next.split("-")[1];
-                    const prev = (this.HalfEdgeDict[required_edges.prev] as _HALFEDGE_).prev;
-                    const next = (this.HalfEdgeDict[required_edges.next] as _HALFEDGE_).next;
+                    const prev = this.HalfEdgeDict[required_edges.prev].prev;
+                    const next = this.HalfEdgeDict[required_edges.next].next;
                     const old_face_index = required_edges.face_index;
                     this.face_indexes_set.delete(old_face_index);
                     const new_face_index = this.getFaceIndexOfFace(working_face.join("-"));
                     this.face_indexes_set.add(new_face_index);
-                    this.face_index_map[new_face_index] = working_face.join("-");
+                    this.face_index_map.set(new_face_index,working_face.join("-"));
                     this.addHalfEdge(a + "-" + b,working_face,new_face_index,prev,next);
 
                     if(prev !== "-") if(this.HalfEdgeDict[prev]) {
-                        (this.HalfEdgeDict[prev] as _HALFEDGE_).next = a + "-" + b;
+                        this.HalfEdgeDict[prev].next = a + "-" + b;
                     }
 
                     if(next !== "-") if(this.HalfEdgeDict[next]) {
-                        (this.HalfEdgeDict[next] as _HALFEDGE_).prev = a + "-" + b;
+                        this.HalfEdgeDict[next].prev = a + "-" + b;
                     }
 
                     for(const edge of required_edges.edges_of_face) {
                         if(this.HalfEdgeDict[edge]) {
-                            const face = (this.HalfEdgeDict[edge] as _HALFEDGE_).face_vertices.join("-");
+                            const face = this.HalfEdgeDict[edge].face_vertices.join("-");
                             this.faces.delete(face);
-                            (this.HalfEdgeDict[edge] as _HALFEDGE_).face_vertices = working_face;
+                            this.HalfEdgeDict[edge].face_vertices = working_face;
                             this.faces.add(working_face.join("-"));
                         }
                     }
@@ -846,19 +851,19 @@
 
                 // get the faces
                 const faces_list: string[] = [];
-                if(this.HalfEdgeDict[`${a_1}-${b_1}`]) faces_list.push((this.HalfEdgeDict[`${a_1}-${b_1}`] as _HALFEDGE_).face_vertices.join("-"));
-                if(this.HalfEdgeDict[`${b_1}-${a_1}`]) faces_list.push((this.HalfEdgeDict[`${b_1}-${a_1}`] as _HALFEDGE_).face_vertices.join("-"));
-                if(this.HalfEdgeDict[`${a_2}-${b_2}`]) faces_list.push((this.HalfEdgeDict[`${a_2}-${b_2}`] as _HALFEDGE_).face_vertices.join("-"));
-                if(this.HalfEdgeDict[`${b_2}-${a_2}`]) faces_list.push((this.HalfEdgeDict[`${b_2}-${a_2}`] as _HALFEDGE_).face_vertices.join("-"));
+                if(this.HalfEdgeDict[`${a_1}-${b_1}`]) faces_list.push(this.HalfEdgeDict[`${a_1}-${b_1}`].face_vertices.join("-"));
+                if(this.HalfEdgeDict[`${b_1}-${a_1}`]) faces_list.push(this.HalfEdgeDict[`${b_1}-${a_1}`].face_vertices.join("-"));
+                if(this.HalfEdgeDict[`${a_2}-${b_2}`]) faces_list.push(this.HalfEdgeDict[`${a_2}-${b_2}`].face_vertices.join("-"));
+                if(this.HalfEdgeDict[`${b_2}-${a_2}`]) faces_list.push(this.HalfEdgeDict[`${b_2}-${a_2}`].face_vertices.join("-"));
                 const face_set: Set<string> = new Set(faces_list);
                 test.faces.push(...[...face_set])
 
                 // get the faces' index
                 const face_indexes_list: number[] = [];
-                if(this.HalfEdgeDict[`${a_1}-${b_1}`]) face_indexes_list.push((this.HalfEdgeDict[`${a_1}-${b_1}`] as _HALFEDGE_).face_index);
-                if(this.HalfEdgeDict[`${b_1}-${a_1}`]) face_indexes_list.push((this.HalfEdgeDict[`${b_1}-${a_1}`] as _HALFEDGE_).face_index);
-                if(this.HalfEdgeDict[`${a_2}-${b_2}`]) face_indexes_list.push((this.HalfEdgeDict[`${a_2}-${b_2}`] as _HALFEDGE_).face_index);
-                if(this.HalfEdgeDict[`${b_2}-${a_2}`]) face_indexes_list.push((this.HalfEdgeDict[`${b_2}-${a_2}`] as _HALFEDGE_).face_index);
+                if(this.HalfEdgeDict[`${a_1}-${b_1}`]) face_indexes_list.push(this.HalfEdgeDict[`${a_1}-${b_1}`].face_index);
+                if(this.HalfEdgeDict[`${b_1}-${a_1}`]) face_indexes_list.push(this.HalfEdgeDict[`${b_1}-${a_1}`].face_index);
+                if(this.HalfEdgeDict[`${a_2}-${b_2}`]) face_indexes_list.push(this.HalfEdgeDict[`${a_2}-${b_2}`].face_index);
+                if(this.HalfEdgeDict[`${b_2}-${a_2}`]) face_indexes_list.push(this.HalfEdgeDict[`${b_2}-${a_2}`].face_index);
 
                 return test;
             }
@@ -872,7 +877,7 @@
             const rev_edge_2 = edge_2.split("-").reverse().join("-");
             const face_edges = this.getEdgesOfFace(face.split("-").map(value => Number(value)));
             edges_orientation.edges_of_face.push(...face_edges);
-            edges_orientation.face_index = face_edges.length >= 1 ? (this.HalfEdgeDict[face_edges[0]] as _HALFEDGE_).face_index : -1;
+            edges_orientation.face_index = face_edges.length >= 1 ? this.HalfEdgeDict[face_edges[0]].face_index : -1;
             var found_edge = "-";
 
             for(const edge of face_edges) {
@@ -887,8 +892,8 @@
             if(found_edge === "-") return edges_orientation;
 
             else {
-                const prev = (this.HalfEdgeDict[found_edge] as _HALFEDGE_).prev;
-                const next = (this.HalfEdgeDict[found_edge] as _HALFEDGE_).next;
+                const prev = this.HalfEdgeDict[found_edge].prev;
+                const next = this.HalfEdgeDict[found_edge].next;
 
                 if(prev !== "-") if(prev === edge_1 || prev === rev_edge_1 || prev === edge_2 || prev === rev_edge_2) if(this.HalfEdgeDict[prev]) edges_orientation.prev = prev;
                 if(next !== "-") if(next === edge_1 || next === rev_edge_1 || next === edge_2 || next === rev_edge_2) if(this.HalfEdgeDict[next]) edges_orientation.next = next;
@@ -913,7 +918,7 @@
 
         getFacesOfHalfEdge(halfEdge: string) {
             if(this.HalfEdgeDict[halfEdge]) {
-                return (this.HalfEdgeDict[halfEdge] as _HALFEDGE_).face_vertices;
+                return this.HalfEdgeDict[halfEdge].face_vertices;
             }
             else return [];
         }
@@ -925,7 +930,7 @@
 
         getFacesOfDeletedHalfEdge(halfEdge: string) {
             if(this.deleted_halfedges_dict[halfEdge]) {
-                return (this.deleted_halfedges_dict[halfEdge] as _HALFEDGE_).face_vertices;
+                return this.deleted_halfedges_dict[halfEdge].face_vertices;
             }
             else return [];
         }
@@ -978,17 +983,17 @@
                     }
 
                     if(this.HalfEdgeDict[this.prev]) {
-                        (this.HalfEdgeDict[this.prev] as _HALFEDGE_).next = halfEdgeKey;
+                        this.HalfEdgeDict[this.prev].next = halfEdgeKey;
                     }
 
                     this.next = "-";
-                    (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_).prev = this.prev;
-                    (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_).next = this.next;
+                    this.HalfEdgeDict[halfEdgeKey].prev = this.prev;
+                    this.HalfEdgeDict[halfEdgeKey].next = this.next;
 
                     this.temp = a;
 
-                    if(index === 0) (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_).prev = `${last_index}-${first_index}`;
-                    if(index === this.face_vertices_tmp.length - 1) (this.HalfEdgeDict[halfEdgeKey] as _HALFEDGE_).next = `${first_index}-${second_index}`;
+                    if(index === 0) this.HalfEdgeDict[halfEdgeKey].prev = `${last_index}-${first_index}`;
+                    if(index === this.face_vertices_tmp.length - 1) this.HalfEdgeDict[halfEdgeKey].next = `${first_index}-${second_index}`;
                 }
 
                 // reset temp, prev and next
@@ -1012,8 +1017,8 @@
                 // remove the face and its halfedges
                 for(const half_edge of existing_face_edges) {
                     const [a,b] = half_edge.split("-");
-                    this.deleted_halfedges_dict = this.HalfEdgeDict[half_edge];
-                    this.face_indexes_set.delete((this.HalfEdgeDict[half_edge] as _HALFEDGE_).face_index);
+                    this.deleted_halfedges_dict[half_edge] = this.HalfEdgeDict[half_edge];
+                    this.face_indexes_set.delete(this.HalfEdgeDict[half_edge].face_index);
                     delete this.HalfEdgeDict[half_edge];
 
                     // if vertex a belongs to at most one edge remove it from the vertex indexes set
@@ -1056,7 +1061,7 @@
             const edges = this.getEdgesOfFace(face.split("-").map(value => Number(value)));
 
             for(const halfedge of edges) {
-                if(halfedge in this.HalfEdgeDict) return (this.HalfEdgeDict[halfedge] as _HALFEDGE_).face_index;
+                if(halfedge in this.HalfEdgeDict) return this.HalfEdgeDict[halfedge].face_index;
             }
 
             return -1;
@@ -1157,7 +1162,7 @@
                 new_vertex++;
 
                 if(typeof points_list !== "undefined") {
-                    const face_vertices = (this.HalfEdgeDict[face_edges[0]] as _HALFEDGE_).face_vertices;
+                    const face_vertices = this.HalfEdgeDict[face_edges[0]].face_vertices;
                     const face_points = face_vertices.map(value => points_list[value]);
                     const [xmin,xmax,ymin,ymax,zmin,zmax] = this.getMinMax(face_points);
                     const average_point = new Point3D((xmin + xmax) * 0.5,(ymin + ymax) * 0.5,(zmin + zmax) * 0.5);
@@ -1211,6 +1216,8 @@
         mesh: MeshDataStructure;
         _is_degenerate_: boolean;
         vert_st: number;
+        shape: string;
+
         constructor (width: number,height: number,depth: number,start_vertex: number) {
             this.points_list = [];
             this.mesh = new MeshDataStructure();
@@ -1219,7 +1226,12 @@
             this.depth = depth;
             this._is_degenerate_ = false;
             this.vert_st = start_vertex;
+            this.shape = "generic"
         }
+
+        reconstructMesh() {}
+
+        initMesh() {};
 
         changePoint(index: number,new_x: number,new_y: number,new_z: number) {
             if(index < this.points_list.length) {
@@ -1242,22 +1254,38 @@
                 this.points_list = [];
             }
         }
+
+        calculatePoints() {}
+
+        editDimensions() {}
     }
 
     class CreatePoint extends CreateObject {
         point: Point3D;
         constructor (x = 0,y = 0,z = 0,start_vertex = 0) {
             super(0,0,0,start_vertex);
-            this._is_degenerate_ = true;
+            this.shape = "point";
             this.point = new Point3D(x,y,z);
-            this.points_list[0] = this.point;
+            this._is_degenerate_ = true;
+            this.initMesh();
+        }
 
+        reconstructMesh(start_vertex = 0) {
+            this.vert_st = start_vertex;
+            this.mesh.reset();
+            this.initMesh();
+        }
+
+        initMesh() {
             this.mesh.addVertex(this.vert_st,[this.vert_st]);
         }
 
-        modifyPoint(x = this.point.x,y = this.point.y,z = this.point.z) {
-            this.point = new Point3D(x,y,z);
+        calculatePoints() {
             this.points_list[0] = this.point;
+        }
+
+        editDimensions(x = this.point.x,y = this.point.y,z = this.point.z) {
+            this.point = new Point3D(x,y,z);
         }
     }
 
@@ -1266,18 +1294,30 @@
         end: Point3D;
         constructor (s_x = 0,s_y = 0,s_z = 0,e_x = 0,e_y = 0,e_z = 0,start_vertex = 0) {
             super(0,0,0,start_vertex);
+            this.shape = "line";
             this._is_degenerate_ = true;
             this.start = new Point3D(s_x,s_y,s_z);
             this.end = new Point3D(e_x,e_y,e_z);
-            this.points_list = [this.start,this.end];
+            this.initMesh();
+        }
 
+        reconstructMesh(start_vertex = 0) {
+            this.vert_st = start_vertex;
+            this.mesh.reset();
+            this.initMesh();
+        }
+
+        initMesh() {
             this.mesh.addHalfEdge(`${this.vert_st}-${this.vert_st + 1}`,[this.vert_st,this.vert_st + 1],-1);
         }
 
-        modifyEdge(s_x = this.start.x,s_y = this.start.y,s_z = this.start.z,e_x = this.end.x,e_y = this.end.y,e_z = this.end.z) {
+        calculatePoints() {
+            this.points_list = [this.start,this.end];
+        }
+
+        editDimensions(s_x = this.start.x,s_y = this.start.y,s_z = this.start.z,e_x = this.end.x,e_y = this.end.y,e_z = this.end.z) {
             this.start = new Point3D(s_x,s_y,s_z);
             this.end = new Point3D(e_x,e_y,e_z);
-            this.points_list = [this.start,this.end];
         }
     }
 
@@ -1287,26 +1327,37 @@
         face: number[];
         increment: number;
 
-        constructor (vertex_number = 3,width = 10,depth = 10,increment = 0,start_vertex = 0) {
-            super(width,0,depth,start_vertex);
+        constructor (vertex_number = 3,width = 10,depth = 10,increment = 0,start_vertex = 0, height = 0) {
+            super(width,height,depth,start_vertex);
+            this.shape = "polygon";
+            this.initMesh(vertex_number,increment);
+        }
+
+        reconstructMesh(vertex_number = 3,increment = 0,start_vertex = 0): void {
+            this.vert_st = start_vertex;
+            this.mesh.reset();
+            this.initMesh(vertex_number,increment);
+        }
+
+        initMesh(vertex_number = 3,increment = 0): void {
             this.half_edges = [];
             this.face = [];
             this.vertex_number = Math.max(vertex_number,3);
             this.increment = increment;
 
             for(let i = 0; i < this.vertex_number; i++) {
-                const num = i + 1 + increment + this.vert_st;
-                const modulo_operand = this.vertex_number + increment + this.vert_st;
+                const num = i + 1 + this.increment + this.vert_st;
+                const modulo_operand = this.vertex_number + this.increment + this.vert_st;
                 const input_res = num % modulo_operand;
-                const output_res = input_res === 0 ? increment + this.vert_st : input_res;
-                this.half_edges.push(`${i + increment + this.vert_st}-${output_res}`);
-                this.face.push(i + increment + this.vert_st);
+                const output_res = input_res === 0 ? this.increment + this.vert_st : input_res;
+                this.half_edges.push(`${i + this.increment + this.vert_st}-${output_res}`);
+                this.face.push(i + this.increment + this.vert_st);
             }
 
             if(this.increment === 0) this.mesh.addFace(this.face.join("-"));
         }
 
-        base_calculatePoints() {
+        calculatePoints() {
             const angle_inc = 360 / this.vertex_number;
             for(let i = 0; i < this.vertex_number; i++) {
                 const cur_ang = i * angle_inc;
@@ -1315,9 +1366,8 @@
             }
         }
 
-        polygon_editDimensions(width = this.width,depth = this.depth) {
-            this.modifyDimensions(width,0,depth);
-            this.base_calculatePoints();
+        editDimensions(width = this.width,depth = this.depth,height = this.height) {
+            this.modifyDimensions(width,height,depth);
         }
     }
 
@@ -1325,26 +1375,23 @@
         constructor (vertex_number = 10,width = 10,depth = 10,increment = 0,start_vertex = 0) {
             const vert_number = Math.max(vertex_number,10);
             super(vert_number,width,depth,increment,start_vertex);
-
-            if(this.increment === 0) this.mesh.addFace(this.face.join("-"));
+            this.shape = "ellipse";
         }
 
-        ellipse_calculatePoints() {
+        reconstructMesh(vertex_number = 10,increment = 0,start_vertex = 0): void {
+            super.reconstructMesh(Math.max(vertex_number,10),increment,start_vertex);
+        }
+
+        calculatePoints() {
             if(this.increment === 1) {
                 this.points_list[0] = new Point3D(0,this.height / 2,0);
-                this.base_calculatePoints();
+                super.calculatePoints();
             }
+            else super.calculatePoints();
         }
 
-        ellipse_editDimensions(width = this.width,depth = this.depth) {
-            if(this.increment === 0) {
-                this.modifyDimensions(width,0,depth);
-                this.base_calculatePoints();
-            }
-            else if(this.increment === 1) {
-                this.modifyDimensions(width,0,depth);
-                this.ellipse_calculatePoints();
-            }
+        editDimensions(width = this.width,depth = this.depth) {
+            this.modifyDimensions(width,0,depth);
         }
     }
 
@@ -1352,19 +1399,15 @@
     class CreateCircle extends CreateEllipse {
         constructor (vertex_number = 10,radius = 10,increment = 0,start_vertex = 0) {
             super(vertex_number,radius,radius,increment,start_vertex);
-
-            if(this.increment === 0) this.mesh.addFace(this.face.join("-"));
+            this.shape = "circle";
         }
 
-        circle_editDimensions(radius = this.width) {
-            if(this.increment === 0) {
-                this.modifyDimensions(radius,0,radius);
-                this.base_calculatePoints();
-            }
-            else if(this.increment === 1) {
-                this.modifyDimensions(radius,0,radius);
-                this.ellipse_calculatePoints();
-            }
+        reconstructMesh(vertex_number = 10,increment = 0,start_vertex = 0): void {
+            super.reconstructMesh(vertex_number,increment,start_vertex);
+        }
+
+        editDimensions(radius = this.width) {
+            this.modifyDimensions(radius,0,radius);
         }
     }
 
@@ -1375,66 +1418,90 @@
 
         constructor (width = 10,depth = 10,increment = 0,start_vertex = 0) {
             super(width,0,depth,start_vertex);
+            this.shape = "rectangle";
+            this.initMesh(increment);
+        }
+
+        reconstructMesh(increment = 0,start_vertex = 0): void {
+            this.vert_st = start_vertex;
+            this.mesh.reset();
+            this.initMesh(increment);
+        }
+
+        initMesh(increment = 0): void {
             this.half_edges = [];
             this.face = [];
             this.increment = increment;
 
             for(let i = 0; i < 4; i++) {
-                const num = i + 1 + increment + this.vert_st;
-                const modulo_operand = 4 + increment + this.vert_st;
+                const num = i + 1 + this.increment + this.vert_st;
+                const modulo_operand = 4 + this.increment + this.vert_st;
                 const input_res = num % modulo_operand;
-                const output_res = input_res === 0 ? increment + this.vert_st : input_res;
-                this.half_edges.push(`${i + increment + this.vert_st}-${output_res}`);
-                this.face.push(i + increment + this.vert_st);
+                const output_res = input_res === 0 ? this.increment + this.vert_st : input_res;
+                this.half_edges.push(`${i + this.increment + this.vert_st}-${output_res}`);
+                this.face.push(i + this.increment + this.vert_st);
             }
 
             if(this.increment === 0) this.mesh.addFace(this.face.join("-"));
         }
 
-        base_calculatePoints() {
+        calculatePoints() {
             this.points_list[0 + this.increment] = new Point3D(-this.width / 2,this.height / 2,-this.depth / 2);
             this.points_list[1 + this.increment] = new Point3D(this.width / 2,this.height / 2,-this.depth / 2);
             this.points_list[2 + this.increment] = new Point3D(this.width / 2,this.height / 2,this.depth / 2);
             this.points_list[3 + this.increment] = new Point3D(-this.width / 2,this.height / 2,this.depth / 2);
         }
 
-        rectangle_editDimensions(width = this.width,depth = this.depth) {
+        editDimensions(width = this.width,depth = this.depth) {
             this.modifyDimensions(width,0,depth);
-            this.base_calculatePoints();
         }
     }
 
-    class CreatePyramidalBase {
+    class CreatePyramidalBase extends CreateObject {
         base_class: CreatePolygon | CreateRectangle;
-        points_list: Point3D[];
-        width: number;
-        height: number;
-        depth: number;
+        choice: number;
         constructor (vertex_number = 3,width = 10,height = 10,depth = 10,choice = 1,start_vertex = 0) {
-            this.width = width;
-            this.height = height;
-            this.depth = depth;
-
-            switch(choice) {
-                case 1:
-                    this.base_class = new CreatePolygon(vertex_number,width,depth,1,start_vertex);
-                    break;
-                case 2:
-                    this.base_class = new CreateRectangle(width,depth,1,start_vertex);
-            }
+            super(width,height,depth,start_vertex);
+            this.initBase(choice,vertex_number,start_vertex);
             this.base_class.height = height;
         }
 
-        pyramid_calculatePoints() {
+        reconstructMesh(vertex_number = 3,choice = 1,start_vertex = 0): void {
+            this.vert_st = start_vertex;
+            this.refreshBase(choice,vertex_number,start_vertex);
+        }
+
+        initBase(choice: number,vertex_number: number,start_vertex: number) {
+            switch(choice) {
+                case 1:
+                    this.base_class = new CreatePolygon(vertex_number,this.width,this.depth,1,start_vertex);
+                    break;
+                case 2:
+                    this.base_class = new CreateRectangle(this.width,this.depth,1,start_vertex);
+            }
+            this.choice = choice;
+        }
+
+        refreshBase(choice: number,vertex_number: number,start_vertex: number) {
+            if(this.choice === choice) {
+                if(this.base_class.shape === "rectangle") (this.base_class as CreateRectangle).reconstructMesh(this.base_class.increment,start_vertex);
+                if(this.base_class.shape === "polygon") (this.base_class as CreatePolygon).reconstructMesh(vertex_number,this.base_class.increment,start_vertex);
+            }
+
+            else this.initBase(choice,vertex_number,start_vertex);
+        }
+
+        calculatePoints() {
             this.base_class.points_list[0] = new Point3D(0,this.height / 2,0);
-            this.base_class.base_calculatePoints();
+            this.base_class.calculatePoints();
             this.points_list = [...this.base_class.points_list];
         }
 
-        pyramid_editDimensions(width = this.width,height = this.height,depth = this.depth) {
-            this.base_class.modifyDimensions(width,height,depth);
-            this.points_list = [];
-            this.pyramid_calculatePoints();
+        editDimensions(width = this.width,height = this.height,depth = this.depth) {
+            if(this.base_class.shape === "polygon") {
+                this.base_class.modifyDimensions(width,height,depth);
+                this.points_list = [];
+            }
         }
     }
 
@@ -1444,9 +1511,19 @@
         last: number;
         penultimate: number;
         primary: number;
-        mesh: MeshDataStructure;
         constructor (base_vertex_number = 3,width = 10,height = 10,depth = 10,choice = 1,start_vertex = 0) {
             super(base_vertex_number,width,height,depth,choice,start_vertex);
+            this.initMesh(base_vertex_number);
+        }
+
+        reconstructMesh(base_vertex_number = 3,choice = 1,start_vertex = 0) {
+            super.reconstructMesh(base_vertex_number,choice,start_vertex);
+            this.mesh.reset();
+            this.initMesh(base_vertex_number);
+        }
+
+        initMesh(base_vertex_number = 3) {
+            this.shape = "pyramid";
             this.half_edges = [];
             this.faces = [];
             this.mesh = this.base_class.mesh;
@@ -1457,14 +1534,13 @@
             for(let i = 0; i < base_vertex_number; i++) {
                 const proposed_half_edge = `${0}-${this.half_edges[i]}`;
                 const permutations = misc.getPermutationsArr(proposed_half_edge.split("-").map(value => Number(value)),3);
-                this.setMesh(permutations);
+                this.initMeshHelper(permutations);
             }
 
             for(const face of this.faces) this.mesh.addFace(face.join("-"));
-            this.pyramid_calculatePoints();
         }
 
-        setMesh(permutations: number[][]) {
+        initMeshHelper(permutations: number[][]) {
             optionLoop: for(const permutation of permutations) {
                 const tmp_edge_list: string[] = [];
                 const edges = permutation.map((value,index,array) => `${value}-${array[(index + 1) % array.length]}`);
@@ -1477,30 +1553,47 @@
                 break optionLoop;
             }
         }
+
+        calculatePoints() {
+            super.calculatePoints();
+        }
+
+        editDimensions(width = this.width,height = this.height,depth = this.depth) {
+            super.editDimensions(width,height,depth);
+        }
     }
 
-    class CreateCone extends CreateEllipse {
+    class CreateCone extends CreatePolygon {
         faces: number[][];
         last: number;
         penultimate: number;
         primary: number;
 
-        constructor (radius = 10,base_vertex_number = 10,start_vertex = 0) {
-            super(base_vertex_number,radius,radius,1,start_vertex);
+        constructor (base_vertex_number = 10,radius = 10,height = 10,start_vertex = 0) {
+            super(base_vertex_number,radius,radius,1,start_vertex,height);
+            this.initMesh(base_vertex_number);
+        }
+
+        reconstructMesh(base_vertex_number = 10,start_vertex = 0): void {
+            this.vert_st = start_vertex;
+            super.reconstructMesh(base_vertex_number, 1, start_vertex);
+            this.initMesh(base_vertex_number);
+        }
+
+        initMesh(base_vertex_number = 10): void {
+            this.shape = "cone";
             this.faces = [];
             this.faces.push(this.face);
 
             for(let i = 0; i < base_vertex_number; i++) {
                 const proposed_half_edge = `${0}-${this.half_edges[i]}`;
                 const permutations = misc.getPermutationsArr(proposed_half_edge.split("-").map(value => Number(value)),3);
-                this.setMesh(permutations);
+                this.initMeshHelper(permutations);
             }
 
             for(const face of this.faces) this.mesh.addFace(face.join("-"));
-            this.ellipse_calculatePoints();
         }
-
-        setMesh(permutations: number[][]) {
+        initMeshHelper(permutations: number[][]) {
             optionLoop: for(const permutation of permutations) {
                 const tmp_edge_list: string[] = [];
                 const edges = permutation.map((value,index,array) => `${value}-${array[(index + 1) % array.length]}`);
@@ -1514,14 +1607,16 @@
             }
         }
 
-        cone_editDimensions_R(radius = this.width) {
-            this.modifyDimensions(radius,0,radius);
-            this.ellipse_calculatePoints();
+        calculatePoints() {
+            super.calculatePoints();
         }
 
-        cone_editDimensions_WD(width = this.width,depth = this.depth) {
-            this.modifyDimensions(width,0,depth);
-            this.ellipse_calculatePoints();
+        editDimensions_R(radius = this.width, height = this.height) {
+            this.modifyDimensions(radius,height,radius);
+        }
+
+        editDimensions_WHD(width = this.width,height = this.height,depth = this.depth) {
+            this.modifyDimensions(width,height,depth);
         }
     }
 
@@ -1531,25 +1626,33 @@
 
         constructor (width = 10,height = 10,depth = 10,start_vertex = 0) {
             super(width,height,depth,start_vertex);
+            this.shape = "cuboid";
             this.default_faces = [[0,1,2,3],[4,6,7,5],[0,3,6,4],[1,5,7,2],[3,2,7,6],[0,4,5,1]] // standard default mesh configuration
+            this.default_vertex_map = [0,1,3,2,4,5,6,7];
+            this.initMesh();
+        }
+
+        reconstructMesh(start_vertex = 0): void {   
+            this.vert_st = start_vertex;
+            this.mesh.reset();
+            this.initMesh();
+        }
+
+        initMesh(){
             for(const index in this.default_faces) {
                 for(const sub_index in this.default_faces[index]) {
                     const value = this.default_faces[index][sub_index] + this.vert_st;
                     this.default_faces[index][sub_index] = value;
                 }
             }
-            this.default_vertex_map = [0,1,3,2,4,5,6,7];
-            ;
             for(const face of this.default_faces) this.mesh.addFace(face.join("-"));
-            this.cuboid_calculatePoints();
         }
 
-        cuboid_editDimensions(width = this.width,height = this.height,depth = this.depth) {
+        editDimensions(width = this.width,height = this.height,depth = this.depth) {
             this.modifyDimensions(width,height,depth);
-            this.cuboid_calculatePoints();
         }
 
-        cuboid_calculatePoints() {
+        calculatePoints() {
             var sgn_k = 1;
             var sgn_j = 1;
             var sgn_i = 1;
@@ -1581,9 +1684,19 @@
 
         constructor (radius = 10,latitude_divisions = 10,longitude_divisions = 10,start_vertex = 0) {
             super(radius,radius,radius,start_vertex);
-            this.lat_divs = latitude_divisions;
-            this.long_divs = longitude_divisions;
+            this.shape = "sphere";
             this.radius = radius;
+            this.initMesh(latitude_divisions,longitude_divisions,start_vertex);
+        }
+
+        reconstructMesh(latitude_divisions = 10,longitude_divisions = 10,start_vertex = 0): void {
+            this.mesh.reset();
+            this.initMesh(latitude_divisions,longitude_divisions,start_vertex);
+        }
+
+        initMesh(latitude_divisions = 10,longitude_divisions = 10,start_vertex = 0): void {
+            this.lat_divs = Math.max(latitude_divisions,10);
+            this.long_divs = Math.max(longitude_divisions,10);
             const north_pole = start_vertex;
             this.vert_st = ++start_vertex;
             const south_pole = ((this.lat_divs - 1) * this.long_divs) + this.vert_st;
@@ -1607,11 +1720,9 @@
                     this.mesh.addFace(`${first + this.vert_st}-${second + this.vert_st}-${fourth + this.vert_st}-${third + this.vert_st}`);
                 }
             }
-
-            this.sphere_calculatePoints();
         }
 
-        sphere_calculatePoints() {
+        calculatePoints() {
             this.points_list.push(new Point3D(0,this.height,0)); // north pole;
             for(let lat = 0; lat <= this.lat_divs; lat++) {
                 const theta = lat * Math.PI / this.lat_divs;
@@ -1633,16 +1744,14 @@
             this.points_list.push(new Point3D(0,-this.height,0)); // south pole
         }
 
-        sphere_editDimensions_R(radius = this.width) {
+        editDimensions_R(radius = this.width) {
             this.modifyDimensions(radius,radius,radius);
-            this.sphere_calculatePoints();
             this.radius = radius;
         }
 
-        sphere_editDimensions_WHD(width = this.width,height = this.height,depth = this.depth) {
+        editDimensions_WHD(width = this.width,height = this.height,depth = this.depth) {
             this.modifyDimensions(width,height,depth);
             this.radius = undefined;
-            this.sphere_calculatePoints();
         }
     }
 
@@ -1658,14 +1767,25 @@
 
         constructor (R = 7,r = 3,latitude_divisions = 10,longitude_divisions = 10,start_vertex = 0) {
             super(R + 2 * r,r,R + 2 * r,start_vertex);
-            this.lat_divs = latitude_divisions;
-            this.long_divs = longitude_divisions;
+            this.shape = "torus";
             this.toroidal_radius = R;
             this.toroidal_width = R;
             this.toroidal_depth = R;
             this.polar_radius = r;
             this.polar_width = r;
             this.polar_height = r;
+            this.initMesh(latitude_divisions,longitude_divisions);
+        }
+
+        reconstructMesh(latitude_divisions = 10,longitude_divisions = 10,start_vertex = 0): void {
+            this.vert_st = start_vertex;
+            this.mesh.reset();
+            this.initMesh(latitude_divisions,longitude_divisions);
+        }
+
+        initMesh(latitude_divisions = 10,longitude_divisions = 10) {
+            this.lat_divs = Math.max(latitude_divisions,10);
+            this.long_divs = Math.max(longitude_divisions,10);
 
             var inc = 0;
             var moderate_inc = 0;
@@ -1727,19 +1847,19 @@
                         if(long === this.long_divs - 1) inc = moderate_inc;
                     }
 
-                    this.mesh.addFace(`${first + this.vert_st}-${second + this.vert_st}-${fourth + this.vert_st}-${third + this.vert_st}`);
-                    this.mesh.addFace(`${other_second + this.vert_st}-${other_first + this.vert_st}-${other_third + this.vert_st}-${other_fourth + this.vert_st}`);
+                    this.mesh.addFace(`${first + this.vert_st}-${second + this.vert_st}-${fourth + this.vert_st}-${third + this.vert_st}`); // outer face
+                    this.mesh.addFace(`${other_second + this.vert_st}-${other_first + this.vert_st}-${other_third + this.vert_st}-${other_fourth + this.vert_st}`); // inner face
                 }
             }
 
-            this.torus_calculatePoints();
         }
 
-        torus_calculatePoints() {
+        calculatePoints() {
             for(let lat = 0; lat <= this.lat_divs; lat++) {
                 const theta = lat * Math.PI / this.lat_divs;
                 const sin_theta = Math.sin(theta);
                 const cos_theta = Math.cos(theta);
+                const other_points_list_tmp: Point3D[] = [];
 
                 for(let long = 0; long < this.long_divs; long++) {
                     const phi = long * 2 * Math.PI / this.long_divs;
@@ -1753,15 +1873,15 @@
                     const Z_2 = (this.toroidal_depth * -sin_phi) + ((this.polar_width - (this.polar_width * sin_theta)) * -sin_phi);
 
                     this.points_list.push(new Point3D(X_1,Y,Z_1));
-
                     if(lat === 0 || lat === this.lat_divs) continue;
-
-                    this.points_list.push(new Point3D(X_2,Y,Z_2));
+                    other_points_list_tmp.push(new Point3D(X_2,Y,Z_2));
                 }
+
+                this.points_list.push(...other_points_list_tmp);
             }
         }
 
-        torus_editDimensions_R(toroidal_radius = this.toroidal_width,polar_radius = this.polar_width) {
+        editDimensions_R(toroidal_radius = this.toroidal_width,polar_radius = this.polar_width) {
             this.modifyDimensions(toroidal_radius + 2 * polar_radius,polar_radius,toroidal_radius + 2 * polar_radius);
             this.toroidal_radius = toroidal_radius;
             this.polar_radius = polar_radius;
@@ -1769,11 +1889,9 @@
             this.toroidal_depth = toroidal_radius;
             this.polar_width = polar_radius;
             this.polar_height = polar_radius;
-            this.torus_calculatePoints();
-
         }
 
-        torus_editDimensions_WHD(inner_width = this.polar_width,inner_height = this.polar_height,outer_width = this.toroidal_width,outer_depth = this.toroidal_depth) {
+        editDimensions_WHD(inner_width = this.polar_width,inner_height = this.polar_height,outer_width = this.toroidal_width,outer_depth = this.toroidal_depth) {
             this.modifyDimensions(outer_width + 2 * inner_width,inner_height,outer_depth * 2 * inner_width);
             this.toroidal_radius = undefined;
             this.polar_radius = undefined;
@@ -1781,7 +1899,6 @@
             this.toroidal_depth = outer_depth;
             this.polar_width = inner_width;
             this.polar_height = inner_height;
-            this.torus_calculatePoints();
         }
     }
 
@@ -1826,14 +1943,14 @@
 
 
             if(consider_prev_next === true) {
-                const prev = (this.mesh.HalfEdgeDict[edge] as _HALFEDGE_).prev;
-                const next = (this.mesh.HalfEdgeDict[edge] as _HALFEDGE_).next;
+                const prev = this.mesh.HalfEdgeDict[edge].prev;
+                const next = this.mesh.HalfEdgeDict[edge].next;
 
-                (this.mesh.HalfEdgeDict[halfEdgeKey_1] as _HALFEDGE_).prev = prev;
-                (this.mesh.HalfEdgeDict[halfEdgeKey_2] as _HALFEDGE_).next = next;
+                this.mesh.HalfEdgeDict[halfEdgeKey_1].prev = prev;
+                this.mesh.HalfEdgeDict[halfEdgeKey_2].next = next;
 
-                if(prev !== "-") (this.mesh.HalfEdgeDict[prev] as _HALFEDGE_).next = halfEdgeKey_1;
-                if(next !== "-") (this.mesh.HalfEdgeDict[next] as _HALFEDGE_).prev = halfEdgeKey_2;
+                if(prev !== "-") this.mesh.HalfEdgeDict[prev].next = halfEdgeKey_1;
+                if(next !== "-") this.mesh.HalfEdgeDict[next].prev = halfEdgeKey_2;
             }
 
             if(!this.mesh.HalfEdgeDict[twin]) this.mesh.edge_no--;
@@ -1885,10 +2002,10 @@
                 const [a,b] = edge.split("-");
                 const twinHalfEdgeKey = b + "-" + a;
 
-                const edge_face_index = (mesh_halfedgedict_copy[edge] as _HALFEDGE_).face_index - this.mesh_faces_len;
+                const edge_face_index = mesh_halfedgedict_copy[edge].face_index - this.mesh_faces_len;
                 const f_p_a = this.face_points[edge_face_index];
 
-                const twin_edge_face_index = (mesh_halfedgedict_copy[twinHalfEdgeKey] as _HALFEDGE_).face_index - this.mesh_faces_len;
+                const twin_edge_face_index = mesh_halfedgedict_copy[twinHalfEdgeKey].face_index - this.mesh_faces_len;
                 const f_p_b = this.face_points[twin_edge_face_index];
 
                 edge_vertices_full.push(this.points_list[Number(a)],this.points_list[Number(b)],f_p_a,f_p_b);
@@ -1998,28 +2115,28 @@
                     const third_edge = this.mesh.setHalfEdge(d,p_len + Number(face_list_index));
                     const fourth_edge = this.mesh.setHalfEdge(p_len + Number(face_list_index),a);
 
-                    (this.mesh.HalfEdgeDict[`${a}-${b}`] as _HALFEDGE_).face_vertices = [a,b,d,p_len + Number(face_list_index)];
-                    (this.mesh.HalfEdgeDict[`${c}-${d}`] as _HALFEDGE_).face_vertices = [a,b,d,p_len + Number(face_list_index)];
-                    (this.mesh.HalfEdgeDict[third_edge] as _HALFEDGE_).face_vertices = [a,b,d,p_len + Number(face_list_index)];
-                    (this.mesh.HalfEdgeDict[fourth_edge] as _HALFEDGE_).face_vertices = [a,b,d,p_len + Number(face_list_index)];
+                    this.mesh.HalfEdgeDict[`${a}-${b}`].face_vertices = [a,b,d,p_len + Number(face_list_index)];
+                    this.mesh.HalfEdgeDict[`${c}-${d}`].face_vertices = [a,b,d,p_len + Number(face_list_index)];
+                    this.mesh.HalfEdgeDict[third_edge].face_vertices = [a,b,d,p_len + Number(face_list_index)];
+                    this.mesh.HalfEdgeDict[fourth_edge].face_vertices = [a,b,d,p_len + Number(face_list_index)];
 
                     const face_index_beta = this.mesh.faces.add(`${a}-${b}-${d}-${p_len + Number(face_list_index)}`).size - 1 + this.mesh_faces_len;
 
-                    (this.mesh.HalfEdgeDict[`${a}-${b}`] as _HALFEDGE_).face_index = face_index_beta;
-                    (this.mesh.HalfEdgeDict[`${c}-${d}`] as _HALFEDGE_).face_index = face_index_beta;
-                    (this.mesh.HalfEdgeDict[third_edge] as _HALFEDGE_).face_index = face_index_beta;
-                    (this.mesh.HalfEdgeDict[fourth_edge] as _HALFEDGE_).face_index = face_index_beta;
-                    this.mesh.face_index_map[face_index_beta] = [a,b,d,p_len + Number(face_list_index)].join("-");
+                    this.mesh.HalfEdgeDict[`${a}-${b}`].face_index = face_index_beta;
+                    this.mesh.HalfEdgeDict[`${c}-${d}`].face_index = face_index_beta;
+                    this.mesh.HalfEdgeDict[third_edge].face_index = face_index_beta;
+                    this.mesh.HalfEdgeDict[fourth_edge].face_index = face_index_beta;
+                    this.mesh.face_index_map.set(face_index_beta,[a,b,d,p_len + Number(face_list_index)].join("-"));
 
-                    (this.mesh.HalfEdgeDict[`${a}-${b}`] as _HALFEDGE_).prev = fourth_edge;
-                    (this.mesh.HalfEdgeDict[`${c}-${d}`] as _HALFEDGE_).prev = `${a}-${b}`;
-                    (this.mesh.HalfEdgeDict[third_edge] as _HALFEDGE_).prev = `${c}-${d}`;
-                    (this.mesh.HalfEdgeDict[fourth_edge] as _HALFEDGE_).prev = third_edge;
+                    this.mesh.HalfEdgeDict[`${a}-${b}`].prev = fourth_edge;
+                    this.mesh.HalfEdgeDict[`${c}-${d}`].prev = `${a}-${b}`;
+                    this.mesh.HalfEdgeDict[third_edge].prev = `${c}-${d}`;
+                    this.mesh.HalfEdgeDict[fourth_edge].prev = third_edge;
 
-                    (this.mesh.HalfEdgeDict[`${a}-${b}`] as _HALFEDGE_).next = `${c}-${d}`;
-                    (this.mesh.HalfEdgeDict[`${c}-${d}`] as _HALFEDGE_).next = third_edge;
-                    (this.mesh.HalfEdgeDict[third_edge] as _HALFEDGE_).next = fourth_edge;
-                    (this.mesh.HalfEdgeDict[fourth_edge] as _HALFEDGE_).next = `${a}-${b}`;
+                    this.mesh.HalfEdgeDict[`${a}-${b}`].next = `${c}-${d}`;
+                    this.mesh.HalfEdgeDict[`${c}-${d}`].next = third_edge;
+                    this.mesh.HalfEdgeDict[third_edge].next = fourth_edge;
+                    this.mesh.HalfEdgeDict[fourth_edge].next = `${a}-${b}`;
 
                     this.mesh.face_indexes_set.add(face_index_beta);
                     this.mesh.maxFaceIndex();
@@ -2068,18 +2185,15 @@
 
     const misc = new Miscellanous();
 
-    const pyramid = new CreatePyramid();
-    const cube = new CreateCuboid();
+    //const pyramid = new CreatePyramid();
+    // const cube = new CreateCuboid();
+    // const sphere = new CreateSphere(5,6,8,0);
+    // const torus = new CreateTorus(7,3,4,4,0);
+    // const ellipse = new CreateEllipse(10,15,10,0,0);
+    // const circle = new CreateCircle(20,5,0,0);
+    const cone = new CreateCone()
 
-    const sphere = new CreateSphere(5,6,8,0);
-
-    const torus = new CreateTorus(7,3,4,4,0);
-    console.log(torus.mesh.HalfEdgeDict)
-    console.log(torus.mesh.faces)
-    console.log(torus.mesh.vertex_indexes)
-    // console.log(sphere.points_list)
-    // console.log(sphere.points_list.length)
-    // console.log(sphere.mesh.vertex_indexes)
+    console.log(cone.mesh.faces)
 
 
 
@@ -2097,7 +2211,7 @@
     // const c_f_e = cube_catmull_clark.mesh.edgeToNumber()
     // const e_e = new Date().getTime()
     // const c_e_v = cube_catmull_clark.mesh.getEdgesOfVertexFast(0, c_f_e)
-    // const e_v = new Date().getTime()
+    // const e_v = new Date(tTime()
     // const c_f = cube_catmull_clark.mesh.getFacesOfVertexSpecific(c_e_v)
     // const e_f = new Date().getTime();
     // const no_hf = cube_catmull_clark.mesh.getEdgesOfVertex(0, true);
