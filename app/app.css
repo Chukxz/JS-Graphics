@@ -19,8 +19,8 @@ ul.nav {
     width: 75%;
     display: inline-block;
     cursor: pointer;
-    user-select: none;
     -webkit-user-select: none;
+    user-select: none;
     border-radius: 5px;
 }
 
@@ -50,8 +50,8 @@ li.nav {
 .drop#drop {
     position: static;
     display: inline-block;
-    user-select: none;
     -webkit-user-select: none;
+    user-select: none;
 }
 
 .drop {
@@ -64,8 +64,8 @@ li.nav {
     height: 50px;
     border: 3px solid blue;
     display: inline-block;
-    user-select: none;
     -webkit-user-select: none;
+    user-select: none;
 }
 
 .drop-content {
@@ -171,6 +171,7 @@ canvas {
 
 .inline-div {
     display: inline-block;
+    width: -moz-fit-content;
     width: fit-content;
 }
 
