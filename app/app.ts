@@ -3,15 +3,16 @@
     const pListCache: {} = {};
     const pArgCache: {} = {};
 
-    const main_nav = document.getElementById("main_nav") as HTMLUListElement;
-    main_nav.style.width = `${window.innerWidth - 80}px`;    
+    const root = document.querySelector(":root") as HTMLElement;
 
-    const drop = document.getElementById("main_drop") as HTMLDivElement;
-    var drop_v = false;
-    const drop_content = document.getElementById("main_drop_c") as HTMLDivElement;
+    const nav = document.getElementsByTagName("nav")[0];
+    const main_nav = document.getElementById("main_nav") as HTMLUListElement;
+    main_nav.style.width = `${window.innerWidth-15}px`;    
 
     const canvas = document.getElementsByTagName('canvas')[0];
     const ctx = canvas.getContext('2d',{ willReadFrequently: true }) as CanvasRenderingContext2D;
+    const svg_container = document.getElementById("container") as HTMLDivElement;
+    const main_menu = document.getElementById("main") as HTMLDivElement;
     const stats = document.getElementById("status") as HTMLElement;
 
     const anim_number = document.getElementById("anim1_value") as HTMLElement;
@@ -28,6 +29,11 @@
     const c_2 = document.getElementById("c_2") as HTMLButtonElement;
     const c_3 = document.getElementById("c_3") as HTMLButtonElement;
     const c_elems = document.getElementsByClassName("cdv_elem") as HTMLCollectionOf<HTMLButtonElement>;
+
+    const svg_vert_bar_color = "#aaa";
+    const svg_objects_color = "#333";
+    const svg_hover_color = "#ccc";
+    const svg_objects_strokeWidth = "2";
 
     const sendMessage = (function_name : string) => window.parent.postMessage(function_name);
 
@@ -119,21 +125,21 @@
         edges: string[];
     }
 
-    interface DRAG {
-        change: (value: number) => void,
-        start: (element: any) => void,
-        sensitivity: number
+    interface IMPL_DRAG {
+        changeAcc: (acc : number) => void,
+        start: (element: GlobalEventHandlers, call_func : (deltaX : number, deltaY : number) => void) => void,
+        acceleration : number,
+        deltaX : number,
+        deltaY : number,
     }
 
     interface _BASIC_PARAMS_ {
         _GLOBAL_ALPHA: number,
         _CANVAS_OPACITY: string,
         _CANVAS_WIDTH: number,
+        _LAST_CANVAS_WIDTH : number,
         _CANVAS_HEIGHT: number,
         _BORDER_COLOR: string,
-        _BORDER_WIDTH: string,
-        _BORDER_RADIUS: string,
-        _BORDER_STYLE: string,
         _THETA: number,
         _ANGLE_UNIT: _ANGLE_UNIT_
         _ANGLE_CONSTANT: number,
@@ -156,18 +162,17 @@
         _PROJECTION_MAT: _16D_VEC_,
         _INV_PROJECTION_MAT: _16D_VEC_,
         _ACTIVE: string,
+        _SIDE_BAR_WIDTH : number,
     }
 
     const DEFAULT_PARAMS: _BASIC_PARAMS_ =
     {
         _GLOBAL_ALPHA: 1,
         _CANVAS_OPACITY: '1',
-        _CANVAS_WIDTH: 1,
-        _CANVAS_HEIGHT: 1,
-        _BORDER_COLOR: 'red',
-        _BORDER_WIDTH: '4',
-        _BORDER_RADIUS: '2',
-        _BORDER_STYLE: "solid",
+        _CANVAS_WIDTH: 100,
+        _CANVAS_HEIGHT: 100,
+        _LAST_CANVAS_WIDTH : 100,
+        _BORDER_COLOR: '#aaa',
         _THETA: 0,
         _ANGLE_UNIT: "deg",
         _ANGLE_CONSTANT: Math.PI / 180,
@@ -190,6 +195,7 @@
         _PROJECTION_MAT: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
         _INV_PROJECTION_MAT: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
         _ACTIVE: "",
+        _SIDE_BAR_WIDTH : 100,
     }
 
     const MODIFIED_PARAMS: _BASIC_PARAMS_ = JSON.parse(JSON.stringify(DEFAULT_PARAMS));    
@@ -238,6 +244,141 @@
         }
     }
 
+    const implementDrag: IMPL_DRAG =
+    (function () {
+        var pos1 = 0,
+            pos2 = 0,
+            pos3 = 0,
+            pos4 = 0,
+            prev = 0,
+            now = Date.now(),
+            dt = now - prev + 1,
+            dX = 0,
+            dY = 0,
+            acc = 1,
+            call_function = (deltaX : number, deltaY : number) => {},
+
+            // We invoke the local functions (changeSens and startDrag) as methods
+            // of the object 'retObject' and set the return value of the local function
+            // to 'retObject'
+
+            retObject: IMPL_DRAG = {
+                changeAcc: changeAcceleration,
+                start: drag,
+                acceleration : getAcceleration(),
+                deltaX : dX,
+                deltaY : dY,
+            };
+
+        function changeAcceleration(acceleration : number) {
+            acc = acceleration;
+        }
+
+        function getAcceleration(): number {
+            return acc;
+        }
+
+        function drag(element: GlobalEventHandlers, call_func : (deltaX : number, deltaY : number) => void) {
+            startDrag(element);
+            startDragMobile(element);
+            call_function = call_func;
+        }
+
+        function startDrag(element: GlobalEventHandlers) {
+            element.onmousedown = dragMouseDown;
+        }
+
+        function startDragMobile(element: GlobalEventHandlers) {
+            element.addEventListener('touchstart',dragTouchstart,{ 'passive': true });
+        }
+
+        function dragMouseDown(e: MouseEvent) {
+            e = e || undefined;
+            e.preventDefault();
+
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+
+            document.onmouseup = dragMouseup;
+            document.onmousemove = dragMousemove;
+        }
+
+        function dragTouchstart(e: TouchEvent) {
+            e = e || undefined;
+
+            pos3 = e.touches[0].clientX;
+            pos4 = e.touches[0].clientY;
+
+            document.addEventListener('touchend',dragTouchend,{ 'passive': true });
+            document.addEventListener('touchmove',dragTouchmove,{ 'passive': true });
+        }
+
+        function dragMousemove(e: MouseEvent) {
+            e = e || undefined;
+            e.preventDefault();
+
+            pos1 = e.clientX - pos3;
+            pos2 = e.clientY - pos4;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+
+            dX = pos1 / dt * acc;
+            dY = pos2 / dt * acc;
+
+            prev = now;
+            now = Date.now();
+            dt = now - prev + 1;
+
+            call_function(dX, dY);
+        }
+
+        function dragTouchmove(e: TouchEvent) {
+            e = e || undefined;
+
+            pos1 = e.touches[0].clientX - pos3;
+            pos2 = e.touches[0].clientY - pos4;
+            pos3 = e.touches[0].clientX;
+            pos4 = e.touches[0].clientY;
+
+            dX = pos1 / dt * acc;
+            dY = pos2 / dt * acc;
+
+            prev = now;
+            now = Date.now();
+            dt = now - prev + 1;
+
+            call_function(dX, dY);
+        }
+
+        function dragMouseup() {
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+
+        function dragTouchend() {
+            document.addEventListener('touchend',() => null,{ 'passive': true });
+            document.addEventListener('touchmove',() => null,{ 'passive': true });
+        }
+
+        return retObject;
+    })()
+
+    const basicDrawFunction = (set_last_canvas_width = true) =>{
+        canvas.width = MODIFIED_PARAMS._CANVAS_WIDTH;
+        canvas.height = MODIFIED_PARAMS._CANVAS_HEIGHT;
+        svg_container.style.left = `${MODIFIED_PARAMS._CANVAS_WIDTH + 20}px`;
+        main_menu.style.left = `${MODIFIED_PARAMS._CANVAS_WIDTH + 30}px`;
+        main_menu.style.width = `${MODIFIED_PARAMS._SIDE_BAR_WIDTH - 20}px`;
+
+        if(set_last_canvas_width) MODIFIED_PARAMS._LAST_CANVAS_WIDTH = MODIFIED_PARAMS._CANVAS_WIDTH;
+
+        // Coordinate Space
+        MODIFIED_PARAMS._HALF_X = MODIFIED_PARAMS._CANVAS_WIDTH / 2;
+        MODIFIED_PARAMS._HALF_Y = MODIFIED_PARAMS._CANVAS_HEIGHT / 2;
+
+        // Perspective Projection
+        MODIFIED_PARAMS._ASPECT_RATIO = MODIFIED_PARAMS._CANVAS_WIDTH / MODIFIED_PARAMS._CANVAS_HEIGHT;
+    }
 
     class MeshDataStructure {
         HalfEdgeDict: { [halfedge: string]: _HALFEDGE_ };
@@ -1349,39 +1490,33 @@
         private _last_active: HTMLLIElement;
 
         constructor () {
-            (drop as HTMLElement).style.top = `${-(drop as HTMLElement).offsetTop + canvas.offsetTop}px`;
+            // (drop as HTMLElement).style.top = `${-(drop as HTMLElement).offsetTop + canvas.offsetTop}px`;
             this.setCanvas();
 
-            drop.onclick = function () {
-                if(drop_v === true) {
-                    drop_content.style.display = "none";
-                    drop_v = false;
-                }
+            // drop.onclick = function () {
+            //     if(drop_v === true) {
+            //         drop_content.style.display = "none";
+            //         drop_v = false;
+            //     }
 
-                else if(drop_v === false) {
-                    drop_content.style.display = "inline-block";
-                    drop_v = true;
-                }
-            }
+            //     else if(drop_v === false) {
+            //         drop_content.style.display = "inline-block";
+            //         drop_v = true;
+            //     }
+            // }
 
-            drop.addEventListener("mouseover",() => { if(drop_v === false) drop_content.style.display = "inline-block" });
-            drop.addEventListener("mouseout",() => { if(drop_v === false) drop_content.style.display = "none" });
-            drop_content.addEventListener("click",(ev) => {
-                ev.stopPropagation();
-            });
+            // drop.addEventListener("mouseover",() => { if(drop_v === false) drop_content.style.display = "inline-block" });
+            // drop.addEventListener("mouseout",() => { if(drop_v === false) drop_content.style.display = "none" });
+            // drop_content.addEventListener("click",(ev) => {
+            //     ev.stopPropagation();
+            // });
 
-            canvas.addEventListener("click",() => {
-                if(drop_v === true) {
-                    drop_content.style.display = "none";
-                    drop_v = false;
-                }
-            });
-
-            window.addEventListener("resize",() => {
-                this.refreshCanvas();
-                main_nav.style.width = `${window.innerWidth - 80}px`;
-            });
-
+            // canvas.addEventListener("click",() => {
+            //     if(drop_v === true) {
+            //         drop_content.style.display = "none";
+            //         drop_v = false;
+            //     }
+            // });
             var numero = 0;
             for(let child of main_nav.children) {
                 const _child = document.getElementById(child.id) as HTMLLIElement;
@@ -1402,34 +1537,19 @@
         }
 
         setCanvas(): void {
-            // Canvas
-            var width = window.innerWidth - 50;
+            // Canvas and sidebar
 
-            const height = window.innerHeight - 100;
+            MODIFIED_PARAMS._SIDE_BAR_WIDTH = window.innerWidth / 4;
+
+            var width = window.innerWidth - MODIFIED_PARAMS._SIDE_BAR_WIDTH - 15;
 
             MODIFIED_PARAMS._CANVAS_WIDTH = width;
-
-            MODIFIED_PARAMS._CANVAS_HEIGHT = height;
-
-            // Coordinate Space
-            MODIFIED_PARAMS._HALF_X = width / 2;
-            MODIFIED_PARAMS._HALF_Y = height / 2;
-
-            // Perspective Projection
-            MODIFIED_PARAMS._ASPECT_RATIO = width / height;
+            MODIFIED_PARAMS._CANVAS_HEIGHT = window.innerHeight - 100;
         }
 
         resetCanvasToDefault() {
             canvas.style.borderColor = DEFAULT_PARAMS._BORDER_COLOR;
-            canvas.style.borderWidth = DEFAULT_PARAMS._BORDER_WIDTH;
-            canvas.style.borderRadius = DEFAULT_PARAMS._BORDER_RADIUS;
-            canvas.style.borderStyle = DEFAULT_PARAMS._BORDER_STYLE;
             ctx.globalAlpha = DEFAULT_PARAMS._GLOBAL_ALPHA;
-        }
-
-        refreshCanvas() {
-            ctx.clearRect(0,0,canvas.width,canvas.height);
-            this.setCanvas();
         }
 
         changeAngleUnit(angleUnit: _ANGLE_UNIT_) {
@@ -1481,22 +1601,123 @@
         refreshState() {}
     }
 
+    class CreateSVG{
+        svg : SVGSVGElement;
+        svg_ns : string;
+        max_child_elem_count : number;
 
+        constructor(container:HTMLElement, width:string, height:string, max_child_element_count = 1){
+            const svgNS = "http://www.w3.org/2000/svg";
+            const _svg = document.createElementNS(svgNS, "svg");
+            this.svg = _svg;
+            this.svg_ns = svgNS;
+            this.max_child_elem_count = max_child_element_count;
+            
+            _svg.setAttribute("width", width);
+            _svg.setAttribute("height", height);
+
+            container.appendChild(_svg);
+        }
+    }
+
+    class CreateSVGLine{
+        line : Element;
+        line_ns : string;
+
+        constructor(svg_class:CreateSVG, x1:string, y1:string, x2:string, y2:string, stroke:string, strokeWidth:string, hover_color:string){
+            const _line = document.createElementNS(svg_class.svg_ns, "line");
+            this.line = _line;
+            this.line_ns = svg_class.svg_ns;
+
+            _line.setAttribute("x1", x1);
+            _line.setAttribute("y1", y1);
+            _line.setAttribute("x2", x2);
+            _line.setAttribute("y2", y2);
+            _line.setAttribute("stroke", stroke);
+            _line.setAttribute("stroke-width", strokeWidth);
+
+            if(svg_class.svg.childElementCount < svg_class.max_child_elem_count) {
+                svg_class.svg.appendChild(_line);
+                svg_class.svg.addEventListener("mousemove",()=>_line.setAttribute("stroke", hover_color));
+                svg_class.svg.addEventListener("mouseout",()=>_line.setAttribute("stroke", stroke));
+            }
+        }
+    }
+
+
+    class CreateSVGLineDrag extends CreateSVGLine{
+        implement_drag : IMPL_DRAG;
+
+        constructor(svg_class:CreateSVG, x1:string, y1:string, x2:string, y2:string, stroke:string, strokeWidth:string, hover_color:string){
+            super(svg_class,x1,y1,x2,y2,stroke,strokeWidth,hover_color);
+
+            this.implement_drag = implementDrag;
+
+            if(svg_class.max_child_elem_count === 1) {                
+                this.implement_drag.start(svg_class.svg, this.dragFunction);
+                this.changeAcceleration(10);
+            }
+        }
+
+        dragFunction(deltaX : number, deltaY : number){
+            MODIFIED_PARAMS._CANVAS_WIDTH += deltaX;
+            MODIFIED_PARAMS._SIDE_BAR_WIDTH -= deltaX;
+
+            if(MODIFIED_PARAMS._CANVAS_WIDTH > DEFAULT_PARAMS._CANVAS_WIDTH && MODIFIED_PARAMS._SIDE_BAR_WIDTH > DEFAULT_PARAMS._SIDE_BAR_WIDTH) basicDrawFunction();
+
+            else{
+                MODIFIED_PARAMS._CANVAS_WIDTH -= deltaX;
+                MODIFIED_PARAMS._SIDE_BAR_WIDTH += deltaX;
+            }
+        }
+
+        changeAcceleration(acceleration : number){
+            this.implement_drag.changeAcc(acceleration);
+        }
+    }
+                    
 
     class DrawCanvas {
         protected static drawCount = 0;
         constructor () {
             this.drawCanvas();
-            window.addEventListener("resize",() => this.drawCanvas());
-        }
-        drawCanvas() {
+            window.addEventListener("resize",() => {
+                const _last = window.innerWidth > MODIFIED_PARAMS._LAST_CANVAS_WIDTH;
+                const _last_helper = window.innerWidth > (MODIFIED_PARAMS._LAST_CANVAS_WIDTH + 15 + MODIFIED_PARAMS._SIDE_BAR_WIDTH);
+                const _last_modifier = MODIFIED_PARAMS._CANVAS_WIDTH - MODIFIED_PARAMS._LAST_CANVAS_WIDTH >= 0;
+                const modify_side_width = DEFAULT_PARAMS._SIDE_BAR_WIDTH < window.innerWidth - 15 - MODIFIED_PARAMS._CANVAS_WIDTH;
+                const process_modify =  ( ( ( modify_side_width || _last_helper ) && _last ) && _last_modifier );
+            
+                MODIFIED_PARAMS._SIDE_BAR_WIDTH = process_modify ? window.innerWidth - 15 - MODIFIED_PARAMS._CANVAS_WIDTH : DEFAULT_PARAMS._SIDE_BAR_WIDTH;
+                MODIFIED_PARAMS._CANVAS_WIDTH = process_modify ? MODIFIED_PARAMS._CANVAS_WIDTH : Math.max(DEFAULT_PARAMS._CANVAS_WIDTH, window.innerWidth - MODIFIED_PARAMS._SIDE_BAR_WIDTH - 15);
+
+                MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(window.innerHeight - 100);
+
+                this.drawCanvas(false);
+            }
+        )}
+
+        drawCanvas(set_last_canvas_width = true) {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+
+            const off_set_height = 15 + Number(window.getComputedStyle(nav).height.split("px")[0]);
+            canvas.style.top = `${off_set_height}px`;
+            svg_container.style.top = `${off_set_height}px`;
+            main_menu.style.top = `${off_set_height}px`;
+
             ctx.globalAlpha = MODIFIED_PARAMS._GLOBAL_ALPHA;
-            canvas.style.borderStyle = MODIFIED_PARAMS._BORDER_STYLE;
-            canvas.style.borderWidth = MODIFIED_PARAMS._BORDER_WIDTH;
             canvas.style.borderColor = MODIFIED_PARAMS._BORDER_COLOR;
             canvas.style.opacity = MODIFIED_PARAMS._CANVAS_OPACITY;
-            canvas.width = MODIFIED_PARAMS._CANVAS_WIDTH;
-            canvas.height = MODIFIED_PARAMS._CANVAS_HEIGHT;
+
+            while(svg_container.firstChild) svg_container.removeChild(svg_container.firstChild);
+            const canvas_border_width = Number(window.getComputedStyle(canvas).borderWidth.split("px")[0]);
+            const svg_child = new CreateSVG(svg_container,"10",`${MODIFIED_PARAMS._CANVAS_HEIGHT+2*canvas_border_width}`);
+            new CreateSVGLineDrag(svg_child,"0","0","0",`${MODIFIED_PARAMS._CANVAS_HEIGHT+2*canvas_border_width}`,svg_vert_bar_color,"14",svg_hover_color);
+
+            main_menu.style.height = `${MODIFIED_PARAMS._CANVAS_HEIGHT+2*canvas_border_width}px`;            
+            main_nav.style.width = `${window.innerWidth - 15}px`;
+
+            basicDrawFunction(set_last_canvas_width);
 
             DrawCanvas.drawCount++;
         }

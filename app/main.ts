@@ -1,3 +1,4 @@
+(function(){
 "use strict"
 
 const _app_main_nav = document.getElementById("main_nav") as HTMLUListElement;
@@ -1846,3 +1847,5 @@ class OpticalElement_Objects {
   }
   
   const _Optical_Objects = new OpticalElement_Objects();
+
+}());

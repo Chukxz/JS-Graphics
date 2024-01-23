@@ -1,188 +1,3 @@
-"use strict";
-const pListCache = {};
-const pArgCache = {};
-const root = document.querySelector(":root");
-const nav = document.getElementsByTagName("nav")[0];
-const main_nav = document.getElementById("main_nav");
-main_nav.style.width = `${window.innerWidth - 15}px`;
-const canvas = document.getElementsByTagName('canvas')[0];
-const ctx = canvas.getContext('2d', { willReadFrequently: true });
-const svg_container = document.getElementById("container");
-const main_menu = document.getElementById("main");
-const stats = document.getElementById("status");
-const anim_number = document.getElementById("anim1_value");
-const anim_number_input = document.getElementById("animation_number");
-const anim_speed = document.getElementById("anim2_value");
-const anim_speed_input = document.getElementById("animation_speed");
-const anim_info_btn = document.getElementById("anim_info");
-const after_anim1 = document.getElementById("after_anim1");
-const c_1 = document.getElementById("c_1");
-const c_2 = document.getElementById("c_2");
-const c_3 = document.getElementById("c_3");
-const c_elems = document.getElementsByClassName("cdv_elem");
-const svg_vert_bar_color = "#aaa";
-const svg_objects_color = "#333";
-const svg_hover_color = "#ccc";
-const svg_objects_strokeWidth = "2";
-const sendMessage = (function_name) => window.parent.postMessage(function_name);
-const DEFAULT_PARAMS = {
-    _GLOBAL_ALPHA: 1,
-    _CANVAS_OPACITY: '1',
-    _CANVAS_WIDTH: 100,
-    _CANVAS_HEIGHT: 100,
-    _LAST_CANVAS_WIDTH: 100,
-    _BORDER_COLOR: '#aaa',
-    _THETA: 0,
-    _ANGLE_UNIT: "deg",
-    _ANGLE_CONSTANT: Math.PI / 180,
-    _REVERSE_ANGLE_CONSTANT: 180 / Math.PI,
-    _HANDEDNESS: "right",
-    _HANDEDNESS_CONSTANT: 1,
-    _X: [1, 0, 0],
-    _Y: [0, 1, 0],
-    _Z: [0, 0, 1],
-    _Q_VEC: [0, 0, 0],
-    _Q_QUART: [0, 0, 0, 0],
-    _Q_INV_QUART: [0, 0, 0, 0],
-    _NZ: -0.1,
-    _FZ: -100,
-    _PROJ_ANGLE: 60,
-    _ASPECT_RATIO: 1,
-    _DIST: 1,
-    _HALF_X: 1,
-    _HALF_Y: 1,
-    _PROJECTION_MAT: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    _INV_PROJECTION_MAT: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    _ACTIVE: "",
-    _SIDE_BAR_WIDTH: 100,
-};
-const MODIFIED_PARAMS = JSON.parse(JSON.stringify(DEFAULT_PARAMS));
-//const catmull_clark_subdivision_worker = new Worker("catmull_clark_worker.js");
-const worker_script = `
-    onmessage = (e) => {
-        console.log(e.data)
-      
-        postMessage("goodluck");
-      };
-    `;
-const blob = new Blob([worker_script], { type: 'application/javascript' });
-const blobURL = URL.createObjectURL(blob);
-const chunkify = new Worker(blobURL);
-chunkify.postMessage("hello");
-chunkify.onmessage = (e) => {
-    console.log(e.data);
-};
-URL.revokeObjectURL(blobURL);
-class SpawnWorker {
-    is_active;
-    blob_url;
-    constructor(function_script, args) {
-        const worker_script = `onmessage = (e) => {
-                const result = ${function_script};
-
-                postMessage(result);
-            }`;
-        const blob = new Blob([worker_script], { type: 'application/javascript' });
-        const blobURL = URL.createObjectURL(blob);
-        const worker = new Worker(blobURL);
-        worker.postMessage(args);
-    }
-}
-const implementDrag = (function () {
-    var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0, prev = 0, now = Date.now(), dt = now - prev + 1, dX = 0, dY = 0, acc = 1, call_function = (deltaX, deltaY) => { }, 
-    // We invoke the local functions (changeSens and startDrag) as methods
-    // of the object 'retObject' and set the return value of the local function
-    // to 'retObject'
-    retObject = {
-        changeAcc: changeAcceleration,
-        start: drag,
-        acceleration: getAcceleration(),
-        deltaX: dX,
-        deltaY: dY,
-    };
-    function changeAcceleration(acceleration) {
-        acc = acceleration;
-    }
-    function getAcceleration() {
-        return acc;
-    }
-    function drag(element, call_func) {
-        startDrag(element);
-        startDragMobile(element);
-        call_function = call_func;
-    }
-    function startDrag(element) {
-        element.onmousedown = dragMouseDown;
-    }
-    function startDragMobile(element) {
-        element.addEventListener('touchstart', dragTouchstart, { 'passive': true });
-    }
-    function dragMouseDown(e) {
-        e = e || undefined;
-        e.preventDefault();
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-        document.onmouseup = dragMouseup;
-        document.onmousemove = dragMousemove;
-    }
-    function dragTouchstart(e) {
-        e = e || undefined;
-        pos3 = e.touches[0].clientX;
-        pos4 = e.touches[0].clientY;
-        document.addEventListener('touchend', dragTouchend, { 'passive': true });
-        document.addEventListener('touchmove', dragTouchmove, { 'passive': true });
-    }
-    function dragMousemove(e) {
-        e = e || undefined;
-        e.preventDefault();
-        pos1 = e.clientX - pos3;
-        pos2 = e.clientY - pos4;
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-        dX = pos1 / dt * acc;
-        dY = pos2 / dt * acc;
-        prev = now;
-        now = Date.now();
-        dt = now - prev + 1;
-        call_function(dX, dY);
-    }
-    function dragTouchmove(e) {
-        e = e || undefined;
-        pos1 = e.touches[0].clientX - pos3;
-        pos2 = e.touches[0].clientY - pos4;
-        pos3 = e.touches[0].clientX;
-        pos4 = e.touches[0].clientY;
-        dX = pos1 / dt * acc;
-        dY = pos2 / dt * acc;
-        prev = now;
-        now = Date.now();
-        dt = now - prev + 1;
-        call_function(dX, dY);
-    }
-    function dragMouseup() {
-        document.onmouseup = null;
-        document.onmousemove = null;
-    }
-    function dragTouchend() {
-        document.addEventListener('touchend', () => null, { 'passive': true });
-        document.addEventListener('touchmove', () => null, { 'passive': true });
-    }
-    return retObject;
-})();
-const basicDrawFunction = (set_last_canvas_width = true) => {
-    canvas.width = MODIFIED_PARAMS._CANVAS_WIDTH;
-    canvas.height = MODIFIED_PARAMS._CANVAS_HEIGHT;
-    svg_container.style.left = `${MODIFIED_PARAMS._CANVAS_WIDTH + 20}px`;
-    main_menu.style.left = `${MODIFIED_PARAMS._CANVAS_WIDTH + 30}px`;
-    main_menu.style.width = `${MODIFIED_PARAMS._SIDE_BAR_WIDTH - 20}px`;
-    if (set_last_canvas_width)
-        MODIFIED_PARAMS._LAST_CANVAS_WIDTH = MODIFIED_PARAMS._CANVAS_WIDTH;
-    // Coordinate Space
-    MODIFIED_PARAMS._HALF_X = MODIFIED_PARAMS._CANVAS_WIDTH / 2;
-    MODIFIED_PARAMS._HALF_Y = MODIFIED_PARAMS._CANVAS_HEIGHT / 2;
-    // Perspective Projection
-    MODIFIED_PARAMS._ASPECT_RATIO = MODIFIED_PARAMS._CANVAS_WIDTH / MODIFIED_PARAMS._CANVAS_HEIGHT;
-};
 class MeshDataStructure {
     HalfEdgeDict;
     face_tmp;
@@ -1113,259 +928,1007 @@ class MeshDataStructure {
         return { mesh: new_mesh, points: triangulated_points_list };
     }
 }
-class Point2D {
-    x;
-    y;
-    r;
-    constructor(x, y, r = 0) {
-        this.x = x;
-        this.y = y;
-        this.r = r;
+class CreateObject {
+    width;
+    height;
+    depth;
+    points_list;
+    mesh;
+    _is_degenerate_;
+    vert_st;
+    shape;
+    constructor(width, height, depth, start_vertex) {
+        this.points_list = [];
+        this.mesh = new MeshDataStructure();
+        this.width = width;
+        this.height = height;
+        this.depth = depth;
+        this._is_degenerate_ = false;
+        this.vert_st = start_vertex;
+        this.shape = "Generic";
     }
-}
-class Point3D {
-    x;
-    y;
-    z;
-    constructor(x, y, z) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-    }
-}
-class Ret {
-    _ret;
-    _color_code;
-    _line;
-    _s_width;
-    _type;
-    constructor(ret, color_code = "black", line = true, _s_width = 1, type = "A") {
-        this._line = line;
-        this._ret = ret;
-        this._color_code = color_code;
-        this._s_width = _s_width;
-        this._type = type;
-    }
-    equals(input) {
-        if (this._line === true) {
-            const [i_a, i_b] = input.split("-");
-            const [r_a, r_b] = this._ret.split("-");
-            if ((i_a === r_a) && (i_b === r_b))
-                return true;
-            else
-                return false;
+    reconstructMesh() { }
+    initMesh() { }
+    ;
+    changePoint(index, new_x, new_y, new_z) {
+        if (index < this.points_list.length) {
+            this.points_list[index] = new Point3D(new_x, new_y, new_z);
+            return true;
         }
-        else
-            return false;
+        return false;
     }
-}
-class BasicSettings {
-    // Miscellanous
-    object_vertices;
-    prev_hovered_vertices_array;
-    hovered_vertices_array;
-    pre_selected_vertices_array;
-    selected_vertices_array;
-    _last_active;
-    constructor() {
-        // (drop as HTMLElement).style.top = `${-(drop as HTMLElement).offsetTop + canvas.offsetTop}px`;
-        this.setCanvas();
-        // drop.onclick = function () {
-        //     if(drop_v === true) {
-        //         drop_content.style.display = "none";
-        //         drop_v = false;
-        //     }
-        //     else if(drop_v === false) {
-        //         drop_content.style.display = "inline-block";
-        //         drop_v = true;
-        //     }
-        // }
-        // drop.addEventListener("mouseover",() => { if(drop_v === false) drop_content.style.display = "inline-block" });
-        // drop.addEventListener("mouseout",() => { if(drop_v === false) drop_content.style.display = "none" });
-        // drop_content.addEventListener("click",(ev) => {
-        //     ev.stopPropagation();
-        // });
-        // canvas.addEventListener("click",() => {
-        //     if(drop_v === true) {
-        //         drop_content.style.display = "none";
-        //         drop_v = false;
-        //     }
-        // });
-        var numero = 0;
-        for (let child of main_nav.children) {
-            const _child = document.getElementById(child.id);
-            if (numero === 0)
-                this.modifyState(child.id, _child, true);
-            numero++;
-            _child.addEventListener("mouseenter", () => { this.hoverState(child.id, _child); });
-            _child.addEventListener("mouseout", () => { this.unhoverState(child.id, _child); });
-            _child.addEventListener("click", () => { this.modifyState(child.id, _child); });
-        }
-    }
-    setGlobalAlpha(alpha) {
-        MODIFIED_PARAMS._GLOBAL_ALPHA = alpha;
-    }
-    setCanvasOpacity(opacity) {
-        MODIFIED_PARAMS._CANVAS_OPACITY = opacity;
-    }
-    setCanvas() {
-        // Canvas and sidebar
-        MODIFIED_PARAMS._SIDE_BAR_WIDTH = window.innerWidth / 4;
-        var width = window.innerWidth - MODIFIED_PARAMS._SIDE_BAR_WIDTH - 15;
-        MODIFIED_PARAMS._CANVAS_WIDTH = width;
-        MODIFIED_PARAMS._CANVAS_HEIGHT = window.innerHeight - 100;
-    }
-    resetCanvasToDefault() {
-        canvas.style.borderColor = DEFAULT_PARAMS._BORDER_COLOR;
-        ctx.globalAlpha = DEFAULT_PARAMS._GLOBAL_ALPHA;
-    }
-    changeAngleUnit(angleUnit) {
-        MODIFIED_PARAMS._ANGLE_UNIT = angleUnit;
-        MODIFIED_PARAMS._ANGLE_CONSTANT = this.angleUnit(angleUnit);
-        MODIFIED_PARAMS._REVERSE_ANGLE_CONSTANT = this.revAngleUnit(angleUnit);
-    }
-    setHandedness(value) {
-        if (value === 'left')
-            MODIFIED_PARAMS._HANDEDNESS_CONSTANT = -1;
-        else if (value === 'right')
-            MODIFIED_PARAMS._HANDEDNESS_CONSTANT = 1;
-    }
-    angleUnit(angle_unit) {
-        if (angle_unit === "deg")
-            return Math.PI / 180; // deg to rad
-        else if (angle_unit === 'grad')
-            return Math.PI / 200; // grad to rad
-        else
-            return 1; // rad to rad
-    }
-    revAngleUnit(angle_unit) {
-        if (angle_unit === "deg")
-            return 180 / Math.PI; // rad to deg
-        else if (angle_unit === 'grad')
-            return 200 / Math.PI; // rad to grad
-        else
-            return 1; // rad to rad
-    }
-    unhoverState(value, elem) {
-        if (value !== MODIFIED_PARAMS._ACTIVE) {
-            elem.style.backgroundColor = "#333";
-        }
-    }
-    hoverState(value, elem) {
-        if (value !== MODIFIED_PARAMS._ACTIVE) {
-            elem.style.backgroundColor = "#111";
-        }
-    }
-    modifyState(value, elem, first = false) {
-        if (value !== MODIFIED_PARAMS._ACTIVE) {
-            MODIFIED_PARAMS._ACTIVE = value;
-            this.refreshState();
-            elem.style.backgroundColor = "#4CAF50";
-            if (first === false)
-                this._last_active.style.backgroundColor = "#333";
-            this._last_active = elem;
-            sendMessage(value);
-        }
-    }
-    refreshState() { }
-}
-class CreateSVG {
-    svg;
-    svg_ns;
-    max_child_elem_count;
-    constructor(container, width, height, max_child_element_count = 1) {
-        const svgNS = "http://www.w3.org/2000/svg";
-        const _svg = document.createElementNS(svgNS, "svg");
-        this.svg = _svg;
-        this.svg_ns = svgNS;
-        this.max_child_elem_count = max_child_element_count;
-        _svg.setAttribute("width", width);
-        _svg.setAttribute("height", height);
-        container.appendChild(_svg);
-    }
-}
-class CreateSVGLine {
-    line;
-    line_ns;
-    constructor(svg_class, x1, y1, x2, y2, stroke, strokeWidth, hover_color) {
-        const _line = document.createElementNS(svg_class.svg_ns, "line");
-        this.line = _line;
-        this.line_ns = svg_class.svg_ns;
-        _line.setAttribute("x1", x1);
-        _line.setAttribute("y1", y1);
-        _line.setAttribute("x2", x2);
-        _line.setAttribute("y2", y2);
-        _line.setAttribute("stroke", stroke);
-        _line.setAttribute("stroke-width", strokeWidth);
-        if (svg_class.svg.childElementCount < svg_class.max_child_elem_count) {
-            svg_class.svg.appendChild(_line);
-            svg_class.svg.addEventListener("mousemove", () => _line.setAttribute("stroke", hover_color));
-            svg_class.svg.addEventListener("mouseout", () => _line.setAttribute("stroke", stroke));
-        }
-    }
-}
-class CreateSVGLineDrag extends CreateSVGLine {
-    implement_drag;
-    constructor(svg_class, x1, y1, x2, y2, stroke, strokeWidth, hover_color) {
-        super(svg_class, x1, y1, x2, y2, stroke, strokeWidth, hover_color);
-        this.implement_drag = implementDrag;
-        if (svg_class.max_child_elem_count === 1) {
-            this.implement_drag.start(svg_class.svg, this.dragFunction);
-            this.changeAcceleration(10);
-        }
-    }
-    dragFunction(deltaX, deltaY) {
-        MODIFIED_PARAMS._CANVAS_WIDTH += deltaX;
-        MODIFIED_PARAMS._SIDE_BAR_WIDTH -= deltaX;
-        if (MODIFIED_PARAMS._CANVAS_WIDTH > DEFAULT_PARAMS._CANVAS_WIDTH && MODIFIED_PARAMS._SIDE_BAR_WIDTH > DEFAULT_PARAMS._SIDE_BAR_WIDTH)
-            basicDrawFunction();
+    addPoint(new_x, new_y, new_z, vertex_or_face_or_edge = "") {
+        if (vertex_or_face_or_edge === "")
+            return this.points_list.length;
+        if (this._is_degenerate_)
+            return this.points_list.length;
         else {
-            MODIFIED_PARAMS._CANVAS_WIDTH -= deltaX;
-            MODIFIED_PARAMS._SIDE_BAR_WIDTH += deltaX;
+            this.mesh.addVertex(this.mesh.max_vertex_index + 1, vertex_or_face_or_edge);
+            return this.points_list.push(new Point3D(new_x, new_y, new_z));
         }
     }
-    changeAcceleration(acceleration) {
-        this.implement_drag.changeAcc(acceleration);
+    removePoint(vertex_index = -1) {
+        if (vertex_index >= 0) {
+            const count = this.mesh.removeVertex(vertex_index);
+            if (count > 0) {
+                this.points_list.splice(vertex_index, 1);
+                return true;
+            }
+        }
+        return false;
+    }
+    addEdge(edge = "") {
+        if (edge === "")
+            return [];
+        return this.mesh.addEdge(edge);
+    }
+    removeEdge(edge = "") {
+        if (edge === "")
+            return false;
+        return this.mesh.removeEdge(edge);
+    }
+    addFace(face = "") {
+        if (face === "")
+            return false;
+        return this.mesh.addFace(face);
+    }
+    removeFace(face = "") {
+        if (face === "")
+            return false;
+        return this.mesh.removeFace(face);
+    }
+    modifyDimensions(width = this.width, height = this.height, depth = this.depth) {
+        if (!this._is_degenerate_) {
+            this.width = width;
+            this.height = height;
+            this.depth = depth;
+            this.points_list = [];
+        }
+    }
+    calculatePoints() { }
+    editDimensions() { }
+}
+class CreatePoint extends CreateObject {
+    point;
+    constructor(x = 0, y = 0, z = 0, start_vertex = 0) {
+        super(0, 0, 0, start_vertex);
+        this.shape = "Point";
+        this.point = new Point3D(x, y, z);
+        this._is_degenerate_ = true;
+        return this.initMesh();
+    }
+    reconstructMesh(start_vertex = 0) {
+        this.vert_st = start_vertex;
+        this.mesh.reset();
+        return this.initMesh();
+    }
+    initMesh() {
+        this.mesh.addVertex(this.vert_st, [this.vert_st]);
+        return this;
+    }
+    calculatePoints() {
+        this.points_list[0] = this.point;
+        return this;
+    }
+    editDimensions(x = this.point.x, y = this.point.y, z = this.point.z) {
+        this.point = new Point3D(x, y, z);
+        this.points_list = [];
+        return this;
     }
 }
-class DrawCanvas {
-    static drawCount = 0;
-    constructor() {
-        this.drawCanvas();
-        window.addEventListener("resize", () => {
-            const _last = window.innerWidth > MODIFIED_PARAMS._LAST_CANVAS_WIDTH;
-            const _last_helper = window.innerWidth > (MODIFIED_PARAMS._LAST_CANVAS_WIDTH + 15 + MODIFIED_PARAMS._SIDE_BAR_WIDTH);
-            const _last_modifier = MODIFIED_PARAMS._CANVAS_WIDTH - MODIFIED_PARAMS._LAST_CANVAS_WIDTH >= 0;
-            const modify_side_width = DEFAULT_PARAMS._SIDE_BAR_WIDTH < window.innerWidth - 15 - MODIFIED_PARAMS._CANVAS_WIDTH;
-            const process_modify = (((modify_side_width || _last_helper) && _last) && _last_modifier);
-            MODIFIED_PARAMS._SIDE_BAR_WIDTH = process_modify ? window.innerWidth - 15 - MODIFIED_PARAMS._CANVAS_WIDTH : DEFAULT_PARAMS._SIDE_BAR_WIDTH;
-            MODIFIED_PARAMS._CANVAS_WIDTH = process_modify ? MODIFIED_PARAMS._CANVAS_WIDTH : Math.max(DEFAULT_PARAMS._CANVAS_WIDTH, window.innerWidth - MODIFIED_PARAMS._SIDE_BAR_WIDTH - 15);
-            MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(window.innerHeight - 100);
-            this.drawCanvas(false);
-        });
+class CreateLine extends CreateObject {
+    start;
+    end;
+    constructor(s_x = 0, s_y = 0, s_z = 0, e_x = 0, e_y = 0, e_z = 0, start_vertex = 0) {
+        super(0, 0, 0, start_vertex);
+        this.shape = "Line";
+        this._is_degenerate_ = true;
+        this.start = new Point3D(s_x, s_y, s_z);
+        this.end = new Point3D(e_x, e_y, e_z);
+        return this.initMesh();
     }
-    drawCanvas(set_last_canvas_width = true) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const off_set_height = 15 + Number(window.getComputedStyle(nav).height.split("px")[0]);
-        canvas.style.top = `${off_set_height}px`;
-        svg_container.style.top = `${off_set_height}px`;
-        main_menu.style.top = `${off_set_height}px`;
-        ctx.globalAlpha = MODIFIED_PARAMS._GLOBAL_ALPHA;
-        canvas.style.borderColor = MODIFIED_PARAMS._BORDER_COLOR;
-        canvas.style.opacity = MODIFIED_PARAMS._CANVAS_OPACITY;
-        while (svg_container.firstChild)
-            svg_container.removeChild(svg_container.firstChild);
-        const canvas_border_width = Number(window.getComputedStyle(canvas).borderWidth.split("px")[0]);
-        const svg_child = new CreateSVG(svg_container, "10", `${MODIFIED_PARAMS._CANVAS_HEIGHT + 2 * canvas_border_width}`);
-        new CreateSVGLineDrag(svg_child, "0", "0", "0", `${MODIFIED_PARAMS._CANVAS_HEIGHT + 2 * canvas_border_width}`, svg_vert_bar_color, "14", svg_hover_color);
-        main_menu.style.height = `${MODIFIED_PARAMS._CANVAS_HEIGHT + 2 * canvas_border_width}px`;
-        main_nav.style.width = `${window.innerWidth - 15}px`;
-        basicDrawFunction(set_last_canvas_width);
-        DrawCanvas.drawCount++;
+    reconstructMesh(start_vertex = 0) {
+        this.vert_st = start_vertex;
+        this.mesh.reset();
+        return this.initMesh();
+    }
+    initMesh() {
+        this.addEdge(`${this.vert_st}-${this.vert_st + 1}`);
+        return this;
+    }
+    calculatePoints() {
+        this.points_list = [this.start, this.end];
+        return this;
+    }
+    editDimensions(s_x = this.start.x, s_y = this.start.y, s_z = this.start.z, e_x = this.end.x, e_y = this.end.y, e_z = this.end.z) {
+        this.start = new Point3D(s_x, s_y, s_z);
+        this.end = new Point3D(e_x, e_y, e_z);
+        this.points_list = [];
+        return this;
     }
 }
-window.onload = function () {
-    const _BasicSettings = new BasicSettings();
-    _BasicSettings.setGlobalAlpha(0.6);
-    const _DrawCanvas = new DrawCanvas();
-};
+class CreatePolygon extends CreateObject {
+    vertex_number;
+    half_edges;
+    face;
+    increment;
+    constructor(vertex_number = 3, width = 10, depth = 10, increment = 0, start_vertex = 0) {
+        super(width, 0, depth, start_vertex);
+        this.shape = "Polygon";
+        this.half_edges = [];
+        this.face = [];
+        this.vertex_number = Math.max(vertex_number, 3);
+        this.increment = increment;
+        return this.initMesh();
+    }
+    reconstructMesh(vertex_number = 3, increment = 0, start_vertex = 0) {
+        this.vert_st = start_vertex;
+        this.half_edges = [];
+        this.face = [];
+        this.vertex_number = Math.max(vertex_number, 3);
+        this.increment = increment;
+        this.mesh.reset();
+        return this.initMesh();
+    }
+    initMesh() {
+        for (let i = 0; i < this.vertex_number; i++) {
+            const num = i + 1 + this.increment + this.vert_st;
+            const modulo_operand = this.vertex_number + this.increment + this.vert_st;
+            const input_res = num % modulo_operand;
+            const output_res = input_res === 0 ? this.increment + this.vert_st : input_res;
+            this.half_edges.push(`${i + this.increment + this.vert_st}-${output_res}`);
+            this.face.push(i + this.increment + this.vert_st);
+        }
+        if (this.increment === 0)
+            this.addFace(this.face.join("-"));
+        return this;
+    }
+    calculatePoints() {
+        const angle_inc = 360 / this.vertex_number;
+        var inc = 0;
+        if (this.increment === 1)
+            inc = 1;
+        for (let i = 0; i < this.vertex_number; i++) {
+            const cur_ang = i * angle_inc;
+            const conv = Math.PI / 180;
+            this.points_list[i + inc] = new Point3D(Math.cos((cur_ang + 90) * conv) * (this.width / 2), this.height / 2, Math.sin((cur_ang + 90) * conv) * (this.depth / 2));
+        }
+        return this;
+    }
+    editDimensions(width = this.width, depth = this.depth, height = this.height) {
+        this.modifyDimensions(width, height, depth);
+        return this;
+    }
+}
+class CreateEllipse extends CreatePolygon {
+    constructor(vertex_number = 10, width = 10, depth = 10, increment = 0, start_vertex = 0) {
+        const vert_number = Math.max(vertex_number, 10);
+        super(vert_number, width, depth, increment, start_vertex);
+        this.shape = "Ellipse";
+    }
+    reconstructMesh(vertex_number = 10, increment = 0, start_vertex = 0) {
+        return super.reconstructMesh(Math.max(vertex_number, 10), increment, start_vertex);
+    }
+    calculatePoints() {
+        if (this.increment === 1) {
+            this.points_list[0] = new Point3D(0, this.height / 2, 0);
+            super.calculatePoints();
+        }
+        else
+            super.calculatePoints();
+        return this;
+    }
+    editDimensions(width = this.width, depth = this.depth) {
+        this.modifyDimensions(width, 0, depth);
+        return this;
+    }
+}
+class CreateCircle extends CreateEllipse {
+    constructor(vertex_number = 10, radius = 10, increment = 0, start_vertex = 0) {
+        super(vertex_number, radius, radius, increment, start_vertex);
+        this.shape = "Circle";
+    }
+    reconstructMesh(vertex_number = 10, increment = 0, start_vertex = 0) {
+        return super.reconstructMesh(vertex_number, increment, start_vertex);
+    }
+    editDimensions(radius = this.width) {
+        this.modifyDimensions(radius, 0, radius);
+        return this;
+    }
+}
+class CreateRectangle extends CreateObject {
+    half_edges;
+    face;
+    increment;
+    constructor(width = 10, depth = 10, increment = 0, start_vertex = 0) {
+        super(width, 0, depth, start_vertex);
+        this.shape = "Rectangle";
+        this.half_edges = [];
+        this.face = [];
+        this.increment = increment;
+        return this.initMesh();
+    }
+    reconstructMesh(increment = 0, start_vertex = 0) {
+        this.vert_st = start_vertex;
+        this.half_edges = [];
+        this.face = [];
+        this.increment = increment;
+        this.mesh.reset();
+        return this.initMesh();
+    }
+    initMesh() {
+        for (let i = 0; i < 4; i++) {
+            const num = i + 1 + this.increment + this.vert_st;
+            const modulo_operand = 4 + this.increment + this.vert_st;
+            const input_res = num % modulo_operand;
+            const output_res = input_res === 0 ? this.increment + this.vert_st : input_res;
+            this.half_edges.push(`${i + this.increment + this.vert_st}-${output_res}`);
+            this.face.push(i + this.increment + this.vert_st);
+        }
+        if (this.increment === 0)
+            this.addFace(this.face.join("-"));
+        return this;
+    }
+    calculatePoints() {
+        var inc = 0;
+        if (this.increment === 1)
+            inc = 1;
+        this.points_list[0 + inc] = new Point3D(-this.width / 2, this.height / 2, -this.depth / 2);
+        this.points_list[1 + inc] = new Point3D(this.width / 2, this.height / 2, -this.depth / 2);
+        this.points_list[2 + inc] = new Point3D(this.width / 2, this.height / 2, this.depth / 2);
+        this.points_list[3 + inc] = new Point3D(-this.width / 2, this.height / 2, this.depth / 2);
+        return this;
+    }
+    editDimensions(width = this.width, depth = this.depth) {
+        this.modifyDimensions(width, 0, depth);
+        return this;
+    }
+}
+class CreatePyramidalBase extends CreateObject {
+    base_class;
+    choice;
+    constructor(vertex_number = 3, width = 10, height = 10, depth = 10, choice = 1, start_vertex = 0) {
+        super(width, height, depth, start_vertex);
+        this.initBase(choice, vertex_number, start_vertex);
+        this.base_class.height = height;
+    }
+    reconstructMesh(vertex_number = 3, choice = 1, start_vertex = 0) {
+        this.vert_st = start_vertex;
+        this.refreshBase(choice, vertex_number, start_vertex);
+    }
+    initBase(choice, vertex_number, start_vertex) {
+        switch (choice) {
+            case 1:
+                this.base_class = new CreatePolygon(vertex_number, this.width, this.depth, 1, start_vertex);
+                break;
+            case 2:
+                this.base_class = new CreateRectangle(this.width, this.depth, 1, start_vertex);
+        }
+        this.choice = choice;
+    }
+    refreshBase(choice, vertex_number, start_vertex) {
+        this.vert_st = start_vertex;
+        if (this.choice === choice) {
+            if (this.base_class.shape === "Rectangle")
+                this.base_class.reconstructMesh(this.base_class.increment, start_vertex);
+            if (this.base_class.shape === "Rolygon")
+                this.base_class.reconstructMesh(vertex_number, this.base_class.increment, start_vertex);
+        }
+        else
+            this.initBase(choice, vertex_number, start_vertex);
+    }
+    calculatePoints() {
+        this.base_class.points_list[0] = new Point3D(0, this.height / 2, 0);
+        this.base_class.calculatePoints();
+        this.points_list = [...this.base_class.points_list];
+    }
+    editDimensions(width = this.width, height = this.height, depth = this.depth) {
+        this.modifyDimensions(width, height, depth);
+        this.base_class.modifyDimensions(width, height, depth);
+        this.points_list = [];
+    }
+}
+class CreatePyramid extends CreatePyramidalBase {
+    half_edges;
+    faces;
+    last;
+    penultimate;
+    primary;
+    constructor(base_vertex_number = 3, width = 10, height = 10, depth = 10, choice = 1, start_vertex = 0) {
+        super(base_vertex_number, width, height, depth, choice, start_vertex);
+        this.shape = "Pyramid";
+        this.half_edges = [];
+        this.faces = [];
+        this.mesh = this.base_class.mesh;
+        return this.initMesh(base_vertex_number);
+    }
+    reconstructMesh(base_vertex_number = 3, choice = 1, start_vertex = 0) {
+        super.reconstructMesh(base_vertex_number, choice, start_vertex);
+        this.half_edges = [];
+        this.faces = [];
+        this.mesh = this.base_class.mesh;
+        this.mesh.reset();
+        return this.initMesh(base_vertex_number);
+    }
+    initMesh(base_vertex_number = 0) {
+        this.half_edges.push(...this.base_class.half_edges);
+        this.faces.push(this.base_class.face);
+        for (let i = 0; i < base_vertex_number; i++) {
+            const proposed_half_edge = `${0}-${this.half_edges[i]}`;
+            const permutations = misc.getPermutationsArr(proposed_half_edge.split("-").map(value => Number(value)), 3);
+            this.initMeshHelper(permutations);
+        }
+        for (const face of this.faces)
+            this.addFace(face.join("-"));
+        return this;
+    }
+    initMeshHelper(permutations) {
+        optionLoop: for (const permutation of permutations) {
+            const tmp_edge_list = [];
+            const edges = permutation.map((value, index, array) => `${value}-${array[(index + 1) % array.length]}`);
+            for (const edge of edges) {
+                if (!this.half_edges.includes(edge))
+                    tmp_edge_list.push(edge);
+                else
+                    continue optionLoop;
+            }
+            this.half_edges.push(...tmp_edge_list);
+            this.faces.push(permutation);
+            break optionLoop;
+        }
+    }
+    calculatePoints() {
+        super.calculatePoints();
+        return this;
+    }
+    editDimensions(width = this.width, height = this.height, depth = this.depth) {
+        super.editDimensions(width, height, depth);
+        return this;
+    }
+}
+class CreateCone extends CreatePyramid {
+    constructor(base_vertex_number = 10, radius = 10, height = 10, start_vertex = 0) {
+        super(Math.max(base_vertex_number, 10), radius, height, radius, 1, start_vertex);
+        this.shape = "Cone";
+        return this;
+    }
+    reconstructMesh(base_vertex_number = 10, start_vertex = 0) {
+        super.reconstructMesh(base_vertex_number, 1, start_vertex);
+        return this;
+    }
+    calculatePoints() {
+        super.calculatePoints();
+        return this;
+    }
+    editDimensions_RH(radius = this.width, height = this.height) {
+        this.modifyDimensions(radius, height, radius);
+        return this;
+    }
+    editDimensions_WHD(width = this.width, height = this.height, depth = this.depth) {
+        this.modifyDimensions(width, height, depth);
+        return this;
+    }
+}
+class CreatePrismBases extends CreateObject {
+    base_class_1;
+    base_class_2;
+    choice;
+    constructor(vertex_number = 3, width = 10, height = 10, depth = 10, choice = 1, start_vertex = 0) {
+        super(width, height, depth, start_vertex);
+        this.initBase(choice, vertex_number, start_vertex);
+        this.base_class_1.height = -height;
+        this.base_class_2.height = height;
+    }
+    reconstructMesh(vertex_number = 3, choice = 1, start_vertex = 0) {
+        this.vert_st = start_vertex;
+        this.refreshBase(choice, vertex_number, start_vertex);
+    }
+    initBase(choice, vertex_number, start_vertex) {
+        switch (choice) {
+            case 1:
+                this.base_class_1 = new CreatePolygon(vertex_number, this.width, this.depth, 2, start_vertex);
+                start_vertex += this.base_class_1.half_edges.length;
+                this.base_class_2 = new CreatePolygon(vertex_number, this.width, this.depth, 2, start_vertex);
+                break;
+            case 2:
+                this.base_class_1 = new CreateRectangle(this.width, this.depth, 2, start_vertex);
+                start_vertex += this.base_class_1.half_edges.length;
+                this.base_class_2 = new CreateRectangle(this.width, this.depth, 2, start_vertex);
+        }
+        this.choice = choice;
+    }
+    refreshBase(choice, vertex_number, start_vertex) {
+        if (this.choice === choice) {
+            if (this.base_class_1.shape === "Rectangle") {
+                this.base_class_1.reconstructMesh(this.base_class_1.increment, start_vertex);
+                start_vertex += this.base_class_1.half_edges.length;
+                this.base_class_2.reconstructMesh(this.base_class_2.increment, start_vertex);
+            }
+            if (this.base_class_1.shape === "Polygon") {
+                this.base_class_1.reconstructMesh(vertex_number, this.base_class_1.increment, start_vertex);
+                start_vertex += this.base_class_1.half_edges.length;
+                this.base_class_2.reconstructMesh(vertex_number, this.base_class_2.increment, start_vertex);
+            }
+        }
+        else
+            this.initBase(choice, vertex_number, start_vertex);
+    }
+    calculatePoints() {
+        this.base_class_1.calculatePoints();
+        this.base_class_2.calculatePoints();
+        this.points_list = [...this.base_class_1.points_list, ...this.base_class_2.points_list];
+    }
+    editDimensions(width = this.width, height = this.height, depth = this.depth) {
+        this.modifyDimensions(width, height, depth);
+        this.base_class_1.modifyDimensions(width, -height, depth);
+        this.base_class_2.modifyDimensions(width, height, depth);
+        this.points_list = [];
+    }
+}
+class CreatePrism extends CreatePrismBases {
+    half_edges;
+    faces;
+    last;
+    penultimate;
+    primary;
+    constructor(vertex_number = 3, width = 10, height = 10, depth = 10, choice = 1, start_vertex = 0) {
+        super(vertex_number, width, height, depth, choice, start_vertex);
+        this.shape = "Prism";
+        this.half_edges = [];
+        this.faces = [];
+        this.mesh = this.base_class_1.mesh;
+        this.addFace(this.base_class_1.face.join("-"));
+        this.addFace(this.base_class_2.face.reverse().join("-"));
+        return this.initMesh();
+    }
+    reconstructMesh(vertex_number = 3, choice = 1, start_vertex = 0) {
+        super.reconstructMesh(vertex_number, choice, start_vertex);
+        this.half_edges = [];
+        this.faces = [];
+        this.mesh = this.base_class_1.mesh;
+        this.addFace(this.base_class_1.face.join("-"));
+        this.addFace(this.base_class_2.face.reverse().join("-"));
+        this.mesh.reset();
+        return this.initMesh();
+    }
+    initMesh() {
+        for (const index in this.base_class_2.half_edges) {
+            const edge = this.base_class_1.half_edges[index];
+            const other_edge = this.base_class_2.half_edges[index];
+            const mod_edge = other_edge.split("-").reverse().join("-");
+            this.addFace(edge + "-" + mod_edge);
+        }
+        return this;
+    }
+    calculatePoints() {
+        super.calculatePoints();
+        return this;
+    }
+    editDimensions(width = this.width, height = this.height, depth = this.depth) {
+        super.editDimensions(width, height, depth);
+        return this;
+    }
+}
+class CreateCylinder extends CreatePrism {
+    constructor(base_vertex_number = 10, radius = 10, height = 10, start_vertex = 0) {
+        super(Math.max(base_vertex_number, 10), radius, height, radius, 1, start_vertex);
+        this.shape = "Cylinder";
+        return this;
+    }
+    reconstructMesh(base_vertex_number = 10, start_vertex = 0) {
+        this.vert_st = start_vertex;
+        super.reconstructMesh(base_vertex_number, 1, start_vertex);
+        return this;
+    }
+    calculatePoints() {
+        super.calculatePoints();
+        return this;
+    }
+    editDimensions_RH(radius = this.width, height = this.height) {
+        this.modifyDimensions(radius, height, radius);
+        return this;
+    }
+    editDimensions_WHD(width = this.width, height = this.height, depth = this.depth) {
+        this.modifyDimensions(width, height, depth);
+        return this;
+    }
+}
+class CreateCuboid extends CreateObject {
+    default_faces;
+    default_vertex_map;
+    constructor(width = 10, height = 10, depth = 10, start_vertex = 0) {
+        super(width, height, depth, start_vertex);
+        this.shape = "Cuboid";
+        this.default_faces = [[0, 1, 2, 3], [4, 6, 7, 5], [0, 3, 6, 4], [1, 5, 7, 2], [3, 2, 7, 6], [0, 4, 5, 1]]; // standard default mesh configuration
+        this.default_vertex_map = [0, 1, 3, 2, 4, 5, 6, 7];
+        return this.initMesh();
+    }
+    reconstructMesh(start_vertex = 0) {
+        this.vert_st = start_vertex;
+        this.mesh.reset();
+        return this.initMesh();
+    }
+    initMesh() {
+        for (const index in this.default_faces) {
+            for (const sub_index in this.default_faces[index]) {
+                const value = this.default_faces[index][sub_index] + this.vert_st;
+                this.default_faces[index][sub_index] = value;
+            }
+        }
+        for (const face of this.default_faces)
+            this.addFace(face.join("-"));
+        return this;
+    }
+    editDimensions(width = this.width, height = this.height, depth = this.depth) {
+        this.modifyDimensions(width, height, depth);
+        return this;
+    }
+    calculatePoints() {
+        var sgn_k = 1;
+        var sgn_j = 1;
+        var sgn_i = 1;
+        for (let k = 0; k < 2; k++) {
+            for (let j = 0; j < 2; j++) {
+                for (let i = 0; i < 2; i++) {
+                    const index = k * 4 + j * 2 + i;
+                    if (k === 0)
+                        sgn_k = -1;
+                    else
+                        sgn_k = 1;
+                    if (j === 0)
+                        sgn_j = -1;
+                    else
+                        sgn_j = 1;
+                    if (i === 0)
+                        sgn_i = -1;
+                    else
+                        sgn_i = 1;
+                    this.points_list[this.default_vertex_map[index]] = new Point3D(sgn_i * (this.width / 2), sgn_j * (this.height / 2), sgn_k * (this.depth / 2));
+                }
+            }
+        }
+        return this;
+    }
+}
+class CreateSphere extends CreateObject {
+    lat_divs;
+    long_divs;
+    radius;
+    constructor(radius = 10, latitude_divisions = 10, longitude_divisions = 10, start_vertex = 0) {
+        super(radius, radius, radius, start_vertex);
+        this.shape = "Sphere";
+        this.radius = radius;
+        return this.initMesh(latitude_divisions, longitude_divisions, start_vertex);
+    }
+    reconstructMesh(latitude_divisions = 10, longitude_divisions = 10, start_vertex = 0) {
+        this.mesh.reset();
+        return this.initMesh(latitude_divisions, longitude_divisions, start_vertex);
+    }
+    initMesh(latitude_divisions = 10, longitude_divisions = 10, start_vertex = 0) {
+        this.lat_divs = Math.max(latitude_divisions, 10);
+        this.long_divs = Math.max(longitude_divisions, 10);
+        const north_pole = start_vertex;
+        this.vert_st = ++start_vertex;
+        const south_pole = ((this.lat_divs - 1) * this.long_divs) + this.vert_st;
+        for (let lat = 0; lat <= this.lat_divs; lat++) {
+            if (lat === 0 || lat === this.lat_divs)
+                continue;
+            for (let long = 0; long < this.long_divs; long++) {
+                const inc = ((lat - 1) * this.long_divs);
+                const first = inc + long;
+                const second = (first + 1) % this.long_divs + inc;
+                if (lat === this.lat_divs - 1) {
+                    this.addFace(`${first + this.vert_st}-${second + this.vert_st}-${south_pole}`);
+                    continue;
+                }
+                if (lat === 1)
+                    this.addFace(`${north_pole}-${first + this.vert_st}-${second + this.vert_st}`);
+                const third = first + this.long_divs;
+                const fourth = (third + 1) % this.long_divs + (lat * this.long_divs);
+                this.addFace(`${first + this.vert_st}-${second + this.vert_st}-${fourth + this.vert_st}-${third + this.vert_st}`);
+            }
+        }
+        return this;
+    }
+    calculatePoints() {
+        this.points_list.push(new Point3D(0, this.height, 0)); // north pole;
+        for (let lat = 0; lat <= this.lat_divs; lat++) {
+            const theta = lat * Math.PI / this.lat_divs;
+            const sin_theta = Math.sin(theta);
+            const cos_theta = Math.cos(theta);
+            if (lat === 0 || lat === this.lat_divs)
+                continue;
+            for (let long = 0; long < this.long_divs; long++) {
+                const phi = long * 2 * Math.PI / this.long_divs;
+                const sin_phi = Math.sin(phi);
+                const cos_phi = Math.cos(phi);
+                const X = this.width * sin_theta * cos_phi;
+                const Y = this.height * cos_theta;
+                const Z = this.depth * sin_theta * -sin_phi;
+                this.points_list.push(new Point3D(X, Y, Z));
+            }
+        }
+        this.points_list.push(new Point3D(0, -this.height, 0)); // south pole
+        return this;
+    }
+    editDimensions_R(radius = this.width) {
+        this.modifyDimensions(radius, radius, radius);
+        this.radius = radius;
+        return this;
+    }
+    editDimensions_WHD(width = this.width, height = this.height, depth = this.depth) {
+        this.modifyDimensions(width, height, depth);
+        this.radius = undefined;
+        return this;
+    }
+}
+class CreateTorus extends CreateObject {
+    lat_divs;
+    long_divs;
+    toroidal_radius;
+    toroidal_width;
+    toroidal_depth;
+    polar_width;
+    polar_radius;
+    polar_height;
+    constructor(R = 7, r = 3, latitude_divisions = 10, longitude_divisions = 10, start_vertex = 0) {
+        super(R + 2 * r, r, R + 2 * r, start_vertex);
+        this.shape = "Torus";
+        this.toroidal_radius = R;
+        this.toroidal_width = R;
+        this.toroidal_depth = R;
+        this.polar_radius = r;
+        this.polar_width = r;
+        this.polar_height = r;
+        return this.initMesh(latitude_divisions, longitude_divisions);
+    }
+    reconstructMesh(latitude_divisions = 10, longitude_divisions = 10, start_vertex = 0) {
+        this.vert_st = start_vertex;
+        this.mesh.reset();
+        return this.initMesh(latitude_divisions, longitude_divisions);
+    }
+    initMesh(latitude_divisions = 10, longitude_divisions = 10) {
+        this.lat_divs = Math.max(latitude_divisions, 10);
+        this.long_divs = Math.max(longitude_divisions, 10);
+        var inc = 0;
+        var moderate_inc = 0;
+        var first = 0;
+        var second = 0;
+        var third = 0;
+        var fourth = 0;
+        var other_first = 0;
+        var other_second = 0;
+        var other_third = 0;
+        var other_fourth = 0;
+        for (let lat = 0; lat <= this.lat_divs; lat++) {
+            if (lat === this.lat_divs)
+                continue;
+            for (let long = 0; long < this.long_divs; long++) {
+                if (lat === 0) {
+                    first = long;
+                    second = (first + 1) % this.long_divs;
+                    third = first + this.long_divs;
+                    fourth = (third + 1) % this.long_divs + this.long_divs;
+                    other_first = first;
+                    other_second = second;
+                    other_third = third + this.long_divs;
+                    other_fourth = fourth + this.long_divs;
+                    if (long === 0)
+                        moderate_inc = third;
+                    if (long === this.long_divs - 1)
+                        inc = moderate_inc;
+                }
+                else if (lat === this.lat_divs - 1) {
+                    first = inc + long;
+                    second = (first + 1) % this.long_divs + inc;
+                    third = first + (2 * this.long_divs);
+                    fourth = (third + 1) % this.long_divs + inc + (2 * this.long_divs);
+                    other_first = first + this.long_divs;
+                    other_second = second + this.long_divs;
+                    other_third = third;
+                    other_fourth = fourth;
+                    if (long === 0)
+                        moderate_inc = third;
+                    if (long === this.long_divs - 1)
+                        inc = moderate_inc;
+                }
+                else {
+                    first = inc + long;
+                    second = (first + 1) % this.long_divs + inc;
+                    third = first + (2 * this.long_divs);
+                    fourth = (third + 1) % this.long_divs + inc + (2 * this.long_divs);
+                    other_first = first + this.long_divs;
+                    other_second = second + this.long_divs;
+                    other_third = third + this.long_divs;
+                    other_fourth = fourth + this.long_divs;
+                    if (long === 0)
+                        moderate_inc = third;
+                    if (long === this.long_divs - 1)
+                        inc = moderate_inc;
+                }
+                this.addFace(`${first + this.vert_st}-${second + this.vert_st}-${fourth + this.vert_st}-${third + this.vert_st}`); // outer face
+                this.addFace(`${other_second + this.vert_st}-${other_first + this.vert_st}-${other_third + this.vert_st}-${other_fourth + this.vert_st}`); // inner face
+            }
+        }
+        return this;
+    }
+    calculatePoints() {
+        for (let lat = 0; lat <= this.lat_divs; lat++) {
+            const theta = lat * Math.PI / this.lat_divs;
+            const sin_theta = Math.sin(theta);
+            const cos_theta = Math.cos(theta);
+            const other_points_list_tmp = [];
+            for (let long = 0; long < this.long_divs; long++) {
+                const phi = long * 2 * Math.PI / this.long_divs;
+                const sin_phi = Math.sin(phi);
+                const cos_phi = Math.cos(phi);
+                const X_1 = (this.toroidal_width * cos_phi) + ((this.polar_width + (this.polar_width * sin_theta)) * cos_phi);
+                const X_2 = (this.toroidal_width * cos_phi) + ((this.polar_width - (this.polar_width * sin_theta)) * cos_phi);
+                const Y = this.polar_height * cos_theta;
+                const Z_1 = (this.toroidal_depth * -sin_phi) + ((this.polar_width + (this.polar_width * sin_theta)) * -sin_phi);
+                const Z_2 = (this.toroidal_depth * -sin_phi) + ((this.polar_width - (this.polar_width * sin_theta)) * -sin_phi);
+                this.points_list.push(new Point3D(X_1, Y, Z_1));
+                if (lat === 0 || lat === this.lat_divs)
+                    continue;
+                other_points_list_tmp.push(new Point3D(X_2, Y, Z_2));
+            }
+            this.points_list.push(...other_points_list_tmp);
+        }
+        return this;
+    }
+    editDimensions_R(toroidal_radius = this.toroidal_width, polar_radius = this.polar_width) {
+        this.modifyDimensions(toroidal_radius + 2 * polar_radius, polar_radius, toroidal_radius + 2 * polar_radius);
+        this.toroidal_radius = toroidal_radius;
+        this.polar_radius = polar_radius;
+        this.toroidal_width = toroidal_radius;
+        this.toroidal_depth = toroidal_radius;
+        this.polar_width = polar_radius;
+        this.polar_height = polar_radius;
+        return this;
+    }
+    editDimensions_WHD(inner_width = this.polar_width, inner_height = this.polar_height, outer_width = this.toroidal_width, outer_depth = this.toroidal_depth) {
+        this.modifyDimensions(outer_width + 2 * inner_width, inner_height, outer_depth * 2 * inner_width);
+        this.toroidal_radius = undefined;
+        this.polar_radius = undefined;
+        this.toroidal_width = outer_width;
+        this.toroidal_depth = outer_depth;
+        this.polar_width = inner_width;
+        this.polar_height = inner_height;
+        return this;
+    }
+}
+class CatmullClark {
+    points_list;
+    mesh;
+    face_points;
+    edge_points;
+    done_edges_dict;
+    mesh_faces_len;
+    tmp_faces;
+    constructor(object) {
+        this.points_list = object.points_list;
+        this.mesh = object.mesh;
+        this.face_points = [];
+        this.edge_points = [];
+        this.done_edges_dict = {};
+        this.mesh_faces_len = 0;
+        this.mesh.sorted_faces = [];
+        this.tmp_faces = new Set();
+    }
+    getEdgePoints(edge) {
+        return edge.split("-").map(value => this.points_list[Number(value)]);
+    }
+    getFacePoints(face) {
+        return face.split("-").map(value => this.points_list[Number(value)]);
+    }
+    getPoints(array) {
+        return array.map(value => this.points_list[value]);
+    }
+    insertVertexInHalfEdge(vertex, edge, face_index, consider_prev_next = true) {
+        const [a, b] = edge.split("-").map(value => Number(value));
+        const twin = `${b}-${a}`;
+        const halfEdgeKey_1 = this.mesh.setHalfEdge(a, vertex, face_index);
+        const halfEdgeKey_2 = this.mesh.setHalfEdge(vertex, b, face_index);
+        if (consider_prev_next === true) {
+            const prev = this.mesh.HalfEdgeDict[edge].prev;
+            const next = this.mesh.HalfEdgeDict[edge].next;
+            this.mesh.HalfEdgeDict[halfEdgeKey_1].prev = prev;
+            this.mesh.HalfEdgeDict[halfEdgeKey_2].next = next;
+            if (prev !== "-")
+                this.mesh.HalfEdgeDict[prev].next = halfEdgeKey_1;
+            if (next !== "-")
+                this.mesh.HalfEdgeDict[next].prev = halfEdgeKey_2;
+        }
+        if (!this.mesh.HalfEdgeDict[twin])
+            this.mesh.edge_no--;
+        delete this.mesh.HalfEdgeDict[edge];
+        return [halfEdgeKey_1, halfEdgeKey_2];
+    }
+    iterate(iteration_num = 1, orig_iter = iteration_num + 1) {
+        if (iteration_num <= 0)
+            return;
+        this.tmp_faces = new Set([...this.mesh.faces]);
+        this.mesh.faces.clear();
+        // const overall_start = new Date().getTime();
+        // console.log(`Iteration Number : ${orig_iter - iteration_num}`);
+        // console.log(`Mesh faces difference : ${this.mesh_faces_len}`);
+        // console.log(`Points List Length : ${this.points_list.length}`);
+        // console.log(`Object Faces Length : ${this.tmp_faces.size}`);
+        // console.log(`Object Edges Length : ${Object.keys(this.mesh.HalfEdgeDict).length / 2}`);
+        iteration_num--;
+        // const start = new Date().getTime();
+        const fast_edge_list = this.mesh.edgeToNumber();
+        // const end = new Date().getTime();
+        // console.log(`Time taken to get fast edge list : ${end - start} ms`)
+        // let _a_ = new Date().getTime()
+        const mesh_halfedgedict_copy = JSON.parse(JSON.stringify(this.mesh.HalfEdgeDict));
+        // let _b_ = new Date().getTime()
+        // console.log(`Time taken to copy mesh : ${_b_ - _a_} ms`);
+        // const face_start = new Date().getTime()
+        for (const face of this.tmp_faces) {
+            const face_points = this.getFacePoints(face);
+            const sum = this.mesh.sumPoints(face_points);
+            const len = face_points.length;
+            const face_point = new Point3D(sum.x / len, sum.y / len, sum.z / len);
+            this.face_points.push(face_point);
+        }
+        // const face_end = new Date().getTime()
+        // console.log(`Time taken for face iteration : ${face_end - face_start} ms`)
+        // const edge_start = new Date().getTime()
+        for (const edge in mesh_halfedgedict_copy) {
+            const edge_vertices_full = [];
+            const [a, b] = edge.split("-");
+            const twinHalfEdgeKey = b + "-" + a;
+            const edge_face_index = mesh_halfedgedict_copy[edge].face_index - this.mesh_faces_len;
+            const f_p_a = this.face_points[edge_face_index];
+            const twin_edge_face_index = mesh_halfedgedict_copy[twinHalfEdgeKey].face_index - this.mesh_faces_len;
+            const f_p_b = this.face_points[twin_edge_face_index];
+            edge_vertices_full.push(this.points_list[Number(a)], this.points_list[Number(b)], f_p_a, f_p_b);
+            const sum = this.mesh.sumPoints(edge_vertices_full);
+            const edge_point = new Point3D(sum.x / 4, sum.y / 4, sum.z / 4);
+            const edge_index = this.edge_points.push(edge_point) - 1 + this.face_points.length + this.points_list.length;
+            if (mesh_halfedgedict_copy[twinHalfEdgeKey])
+                delete mesh_halfedgedict_copy[twinHalfEdgeKey]; // we don't need the twin halfedges again in the mesh halfedge dict copy
+            this.done_edges_dict[edge] = edge_index;
+            this.done_edges_dict[twinHalfEdgeKey] = edge_index;
+        }
+        // const edge_end = new Date().getTime()
+        // console.log(`Time taken for edge iteration : ${edge_end - edge_start} ms`)
+        // const point_start = new Date().getTime()
+        // var FofV = 0;
+        // var EofV = 0;
+        // var EDofV = 0;
+        // var FDofV = 0;
+        for (const point_index in this.points_list) {
+            const P = this.points_list[point_index];
+            const F_list = [];
+            const R_list = [];
+            var n_f = 0;
+            var n_e = 0;
+            // const EofV_start = new Date().getTime();
+            const edge_list = this.mesh.getEdgesOfVertexFast(Number(point_index), fast_edge_list);
+            const EofV_end = new Date().getTime();
+            // EofV += EofV_end - EofV_start;
+            // const EDofV_start = new Date().getTime();
+            edge_list.map(value => {
+                const edge_vertices = value.split("-").map(value => this.points_list[Number(value)]);
+                const sum = this.mesh.sumPoints(edge_vertices);
+                const edge_midpoint = new Point3D(sum.x / 2, sum.y / 2, sum.z / 2);
+                R_list.push(edge_midpoint);
+                n_e++;
+            });
+            // const EDofV_end = new Date().getTime();
+            // EDofV += EDofV_end - EDofV_start;
+            // const FofV_start = new Date().getTime()
+            const face_index_list = this.mesh.getFaceIndexesOfVertexSpecific(edge_list);
+            // const FofV_end = new Date().getTime();
+            // FofV += FofV_end - FofV_start;
+            // const FDofV_start = new Date().getTime();
+            face_index_list.map(value => {
+                const face_point = this.face_points[value - this.mesh_faces_len];
+                F_list.push(face_point);
+                n_f++;
+            });
+            // const FDofV_end = new Date().getTime();
+            // FDofV += FDofV_end - FDofV_start;
+            const n = (n_f + n_e) / 2;
+            const f_sum = this.mesh.sumPoints(F_list);
+            const r_sum = this.mesh.sumPoints(R_list);
+            const F = new Point3D(f_sum.x / n, f_sum.y / n, f_sum.z / n);
+            const R = new Point3D(r_sum.x / n, r_sum.y / n, r_sum.z / n);
+            const X = (F.x + 2 * R.x + (n - 3) * P.x) / n;
+            const Y = (F.y + 2 * R.y + (n - 3) * P.y) / n;
+            const Z = (F.z + 2 * R.z + (n - 3) * P.z) / n;
+            this.points_list[point_index] = new Point3D(X, Y, Z);
+        }
+        // const point_end = new Date().getTime()
+        // console.log(`Current Mesh Multiplier value : ${this.mesh.multiplier}`)
+        // console.log(`Time taken to get edges of vertex : ${EofV} ms`)
+        // console.log(`Time taken to get edge points of edges of vertex : ${EDofV} ms`)
+        // console.log(`Time taken to get faces of edges of vertex : ${FofV} ms`)
+        // console.log(`Time taken to get face points of faces of edges of vertex : ${EDofV} ms`)
+        // console.log(`Time taken for point iteration : ${point_end - point_start} ms`)
+        const p_len = this.points_list.length;
+        this.mesh_faces_len += this.tmp_faces.size;
+        this.points_list.push(...this.face_points, ...this.edge_points);
+        // const face_index_start = new Date().getTime();
+        for (const face of this.tmp_faces) {
+            const face_list_index = this.mesh.getFaceIndexOfFace(face);
+            const face_edges = this.mesh.getEdgesOfFace(face.split("-").map(value => Number(value)));
+            const boundary = [];
+            for (const face_edge_index in face_edges) {
+                const face_edge = face_edges[face_edge_index];
+                const index = this.done_edges_dict[face_edge];
+                const halfEdgeKeys = this.insertVertexInHalfEdge(index, face_edge, -1, false);
+                boundary.push(...halfEdgeKeys);
+            }
+            const b_len = boundary.length;
+            const iter_num = b_len * 0.5;
+            let edge_index = 0;
+            while (edge_index < iter_num) {
+                const [a, b] = boundary[((Number(edge_index) * 2) + 1) % b_len].split("-").map(value => Number(value)); // shift the edge index
+                const [c, d] = boundary[((Number(edge_index) * 2) + 2) % b_len].split("-").map(value => Number(value)); // shift the edge index
+                const third_edge = this.mesh.setHalfEdge(d, p_len + Number(face_list_index));
+                const fourth_edge = this.mesh.setHalfEdge(p_len + Number(face_list_index), a);
+                this.mesh.HalfEdgeDict[`${a}-${b}`].face_vertices = [a, b, d, p_len + Number(face_list_index)];
+                this.mesh.HalfEdgeDict[`${c}-${d}`].face_vertices = [a, b, d, p_len + Number(face_list_index)];
+                this.mesh.HalfEdgeDict[third_edge].face_vertices = [a, b, d, p_len + Number(face_list_index)];
+                this.mesh.HalfEdgeDict[fourth_edge].face_vertices = [a, b, d, p_len + Number(face_list_index)];
+                const face_index_beta = this.mesh.faces.add(`${a}-${b}-${d}-${p_len + Number(face_list_index)}`).size - 1 + this.mesh_faces_len;
+                this.mesh.HalfEdgeDict[`${a}-${b}`].face_index = face_index_beta;
+                this.mesh.HalfEdgeDict[`${c}-${d}`].face_index = face_index_beta;
+                this.mesh.HalfEdgeDict[third_edge].face_index = face_index_beta;
+                this.mesh.HalfEdgeDict[fourth_edge].face_index = face_index_beta;
+                this.mesh.face_index_map.set(face_index_beta, [a, b, d, p_len + Number(face_list_index)].join("-"));
+                this.mesh.HalfEdgeDict[`${a}-${b}`].prev = fourth_edge;
+                this.mesh.HalfEdgeDict[`${c}-${d}`].prev = `${a}-${b}`;
+                this.mesh.HalfEdgeDict[third_edge].prev = `${c}-${d}`;
+                this.mesh.HalfEdgeDict[fourth_edge].prev = third_edge;
+                this.mesh.HalfEdgeDict[`${a}-${b}`].next = `${c}-${d}`;
+                this.mesh.HalfEdgeDict[`${c}-${d}`].next = third_edge;
+                this.mesh.HalfEdgeDict[third_edge].next = fourth_edge;
+                this.mesh.HalfEdgeDict[fourth_edge].next = `${a}-${b}`;
+                this.mesh.face_indexes_set.add(face_index_beta);
+                this.mesh.maxFaceIndex();
+                edge_index++;
+            }
+            this.mesh.face_indexes_set.delete(-1);
+        }
+        // const face_index_end = new Date().getTime()
+        // console.log(`Time taken for face iteration to get boundary : ${face_index_end - face_index_start} ms`)
+        this.tmp_faces.clear();
+        this.face_points = [];
+        this.edge_points = [];
+        this.done_edges_dict = {};
+        // const overall_end = new Date().getTime();
+        // console.log(`Total time taken : ${overall_end - overall_start} ms`)
+        // console.log("\n\n");
+        this.iterate(iteration_num, orig_iter);
+    }
+    triangulate() {
+        this.mesh.triangulate(this.points_list);
+    }
+    display() {
+        return { points: this.points_list, mesh: this.mesh };
+    }
+}
