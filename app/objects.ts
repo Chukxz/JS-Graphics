@@ -85,6 +85,7 @@ class CreateObject {
   editDimensions() {}
 }
 
+/* 1D Shapes */
 class CreatePoint extends CreateObject {
   point: Point3D;
   constructor (x = 0,y = 0,z = 0,start_vertex = 0) {
@@ -153,7 +154,9 @@ class CreateLine extends CreateObject {
       return this;
   }
 }
+/* 1D Shapes */
 
+/* 2D Shapes */
 class CreatePolygon extends CreateObject {
   vertex_number: number;
   half_edges: string[];
@@ -307,7 +310,9 @@ class CreateRectangle extends CreateObject {
       return this;
   }
 }
+/* 2D Shapes */
 
+/* 3D Shapes */
 class CreatePyramidalBase extends CreateObject {
   base_class: CreatePolygon | CreateRectangle;
   choice: number;
@@ -645,6 +650,7 @@ class CreateCuboid extends CreateObject {
       return this;
   }
 }
+/* 3D Shapes */
 
 
 class CreateSphere extends CreateObject {

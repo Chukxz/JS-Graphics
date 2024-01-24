@@ -5,16 +5,27 @@ window.parent.addEventListener("message", (e)=>{if(e.data === "Editing") edit()}
 
 function edit(){
   while (main_menu.firstChild) main_menu.removeChild(main_menu.firstChild);
-
-  const object_div = document.createElement("div");
-  main_menu.appendChild(object_div);
-
   const objs = document.createElement("p");
   objs.textContent = "Create Objects";
-  object_div.style.zIndex = "inherit";
-  object_div.appendChild(objs);
+  main_menu.appendChild(objs);
 
-  new Box_SVG_Indicator(object_div); 
+  const object_div_2d = document.createElement("div");
+  object_div_2d.style.zIndex = "inherit";
+
+  const object_div_3d = document.createElement("div");
+  object_div_3d.style.zIndex = "inherit";
+
+  main_menu.appendChild(object_div_2d);
+  main_menu.appendChild(object_div_3d);
+  /* 1D Shapes */
+
+
+  /* 2D Shapes */
+  new CreateRectangle_SVG_InDicator(object_div_2d);
+  new CreateTriangle_SVG_InDicator(object_div_2d);
+
+  /* 3D Shapes */
+  new Cuboid_SVG_Indicator(object_div_3d); 
 
 }
 
@@ -56,8 +67,10 @@ class CreateToolTip{
     }
 
     tooltip.appendChild(tooltip_text_element);
-    tooltip.addEventListener("mousemove", () => tooltip_text_element.style.visibility = "visible");
-    tooltip.addEventListener("mouseout", () => tooltip_text_element.style.visibility = "hidden");
+    tooltip.addEventListener("mouseover", () => {if(!isTouchDevice) tooltip_text_element.style.visibility = "visible"});
+    tooltip.addEventListener("mouseout", () => {if(!isTouchDevice) tooltip_text_element.style.visibility = "hidden"});
+    tooltip.addEventListener("touchstart", () => {if(isTouchDevice) tooltip_text_element.style.visibility = "visible"}, { 'passive': true });
+    tooltip.addEventListener("touchend", () => {if(isTouchDevice) tooltip_text_element.style.visibility = "hidden"}, { 'passive': true });
   }
 
   change_vert_padding(vert_padding:number){
@@ -110,9 +123,17 @@ class CreateToolTip{
     this.tooltip_text_elem.style.margin = "5px 0";
 
     this.tooltip_elem.addEventListener("mousemove", () => {
-    this.tooltip_text_elem.style.marginLeft = `-${half_width-before+after}px`;
-    root.style.setProperty("--margin-left-percent",`${(half_width-before+after)/this.width*100}%`);
+      if(!isTouchDevice){
+        this.tooltip_text_elem.style.marginLeft = `-${half_width-before+after}px`;
+        root.style.setProperty("--margin-left-percent",`${(half_width-before+after)/this.width*100}%`);
+      }
     });
+    this.tooltip_elem.addEventListener("touchstart", () => {
+      if(isTouchDevice){
+      this.tooltip_text_elem.style.marginLeft = `-${half_width-before+after}px`;
+      root.style.setProperty("--margin-left-percent",`${(half_width-before+after)/this.width*100}%`);
+      }
+    }, { 'passive': true });
   }
 
   bottom_tooltip(){
@@ -127,9 +148,17 @@ class CreateToolTip{
     this.tooltip_text_elem.style.margin = "5px 0";
 
     this.tooltip_elem.addEventListener("mousemove", () => {
+      if(!isTouchDevice){
+        this.tooltip_text_elem.style.marginLeft = `-${half_width-before+after}px`;
+        root.style.setProperty("--margin-left-percent",`${(half_width-before+after)/this.width*100}%`);
+      }
+    });
+    this.tooltip_elem.addEventListener("touchstart", () => {
+      if(isTouchDevice){
       this.tooltip_text_elem.style.marginLeft = `-${half_width-before+after}px`;
       root.style.setProperty("--margin-left-percent",`${(half_width-before+after)/this.width*100}%`);
-      });
+      }
+    }, { 'passive': true });
   }
 }
 
@@ -143,10 +172,37 @@ class SVG_Indicator{
     this.svg_class = new CreateSVG(sub_container, "20","20", max_child_elem_count);
     this.tooltip_class = new CreateToolTip(container,sub_container,tooltip_text,5,100);
     this.tooltip_class.top_tooltip();
+    //this.svg_class.svg.addEventListener("click", (()=>console.log(tooltip_text)))
   }
 }
 
-class Box_SVG_Indicator extends SVG_Indicator{
+/* 1D Shapes */
+/* 1D Shapes */
+
+
+/* 2D Shapes */
+class CreateRectangle_SVG_InDicator extends SVG_Indicator{
+  constructor(container:HTMLElement){
+    super(container,12,"Rectangle");
+    new CreateSVGLine(this.svg_class, "1", "1", "19", "1", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "1", "19", "19", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "1", "1", "1", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "19", "1", "19", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+  }
+}
+
+class CreateTriangle_SVG_InDicator extends SVG_Indicator{
+  constructor(container:HTMLElement){
+    super(container,12,"Triangle");
+    new CreateSVGLine(this.svg_class, "1", "19", "9", "1", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "10", "1", "19", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "1", "19", "19", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+  }
+}
+/* 2D Shapes */
+
+/* 3D Shapes */
+class Cuboid_SVG_Indicator extends SVG_Indicator{
   constructor(container:HTMLElement){
     super(container,12,"Cuboid");
     new CreateSVGLine(this.svg_class, "1", "1", "12", "1", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
@@ -163,3 +219,4 @@ class Box_SVG_Indicator extends SVG_Indicator{
     new CreateSVGLine(this.svg_class, "12", "13", "19", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);   
   }
 }
+/* 3D Shapes */

@@ -24,6 +24,9 @@ const svg_vert_bar_color = "#aaa";
 const svg_objects_color = "#333";
 const svg_hover_color = "#ccc";
 const svg_objects_strokeWidth = "2";
+var isTouchDevice = "ontouchstart" in window;
+var isTouchDeviceToggleable = true;
+const TouchMouseEventId = "Clicking";
 const sendMessage = (function_name) => window.parent.postMessage(function_name);
 const DEFAULT_PARAMS = {
     _GLOBAL_ALPHA: 1,
@@ -1170,6 +1173,7 @@ class BasicSettings {
     constructor() {
         // (drop as HTMLElement).style.top = `${-(drop as HTMLElement).offsetTop + canvas.offsetTop}px`;
         this.setCanvas();
+        this.displayMouseTouchEvent();
         // drop.onclick = function () {
         //     if(drop_v === true) {
         //         drop_content.style.display = "none";
@@ -1194,13 +1198,43 @@ class BasicSettings {
         var numero = 0;
         for (let child of main_nav.children) {
             const _child = document.getElementById(child.id);
-            if (numero === 0)
-                this.modifyState(child.id, _child, true);
-            numero++;
-            _child.addEventListener("mouseenter", () => { this.hoverState(child.id, _child); });
-            _child.addEventListener("mouseout", () => { this.unhoverState(child.id, _child); });
-            _child.addEventListener("click", () => { this.modifyState(child.id, _child); });
+            if (_child.id !== TouchMouseEventId) {
+                if (numero === 0)
+                    this.modifyState(child.id, _child, true);
+                numero++;
+                _child.addEventListener("mouseenter", () => { this.hoverState(child.id, _child); });
+                _child.addEventListener("mouseout", () => { this.unhoverState(child.id, _child); });
+                _child.addEventListener("click", () => { this.modifyState(child.id, _child); });
+            }
+            else
+                _child.addEventListener("click", () => this.toggleMouseTouchEvent());
         }
+    }
+    toggleMouseTouchEvent() {
+        if (isTouchDeviceToggleable) {
+            const elem = document.getElementById(TouchMouseEventId);
+            elem.style.backgroundColor = "#4CAF50";
+            if (isTouchDevice === true) {
+                isTouchDevice = false;
+                setTimeout((() => {
+                    elem.style.backgroundColor = "#333";
+                }), 500);
+            }
+            else {
+                isTouchDevice = true;
+                setTimeout((() => {
+                    elem.style.backgroundColor = "#333";
+                }), 500);
+            }
+            this.displayMouseTouchEvent();
+        }
+    }
+    displayMouseTouchEvent() {
+        const elem = document.getElementById(TouchMouseEventId);
+        if (isTouchDevice === true)
+            elem.innerHTML = "Touch";
+        else
+            elem.innerHTML = "Mouse";
     }
     setGlobalAlpha(alpha) {
         MODIFIED_PARAMS._GLOBAL_ALPHA = alpha;
@@ -1299,8 +1333,14 @@ class CreateSVGLine {
         _line.setAttribute("stroke-width", strokeWidth);
         if (svg_class.svg.childElementCount < svg_class.max_child_elem_count) {
             svg_class.svg.appendChild(_line);
-            svg_class.svg.addEventListener("mousemove", () => _line.setAttribute("stroke", hover_color));
-            svg_class.svg.addEventListener("mouseout", () => _line.setAttribute("stroke", stroke));
+            svg_class.svg.addEventListener("mousemove", () => { if (!isTouchDevice)
+                _line.setAttribute("stroke", hover_color); });
+            svg_class.svg.addEventListener("mouseout", () => { if (!isTouchDevice)
+                _line.setAttribute("stroke", stroke); });
+            svg_class.svg.addEventListener("touchstart", () => { if (isTouchDevice)
+                _line.setAttribute("stroke", hover_color); }, { "passive": true });
+            svg_class.svg.addEventListener("touchend", () => { if (isTouchDevice)
+                _line.setAttribute("stroke", stroke); }, { "passive": true });
         }
     }
 }

@@ -47,6 +47,11 @@ li.nav {
     text-decoration: none;
 }
 
+#Clicking {
+    position: absolute;
+    right: 0;
+}
+
 
 /* li.nav a.nav:hover:not(.active) {
     background-color: #111;
