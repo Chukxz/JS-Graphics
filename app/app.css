@@ -1,5 +1,7 @@
 * {
     background-color: #888;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 
@@ -28,8 +30,6 @@ ul.nav {
     width: 75%;
     display: inline-block;
     cursor: pointer;
-    -webkit-user-select: none;
-    user-select: none;
     border-radius: 5px;
 }
 
@@ -116,7 +116,8 @@ canvas {
 
 .menu {
     z-index: 2;
-    overflow: hidden;
+    overflow-x: hidden ;
+    overflow y : "scroll";
     padding-left: 10px;
 }
 

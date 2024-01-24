@@ -2,6 +2,7 @@
 
 window.parent.addEventListener("message", (e)=>{if(e.data === "Editing") edit()});
 
+type _VERT_TOOLTIP_HELPER_ = {before:number; after:number};
 
 function edit(){
   while (main_menu.firstChild) main_menu.removeChild(main_menu.firstChild);
@@ -17,17 +18,120 @@ function edit(){
 
   main_menu.appendChild(object_div_2d);
   main_menu.appendChild(object_div_3d);
+  
   /* 1D Shapes */
-
-
+  new CreatePoint_SVG_Indicator(object_div_2d);
+  new CreateLine_SVG_Indicator(object_div_2d);
+  
   /* 2D Shapes */
-  new CreateRectangle_SVG_InDicator(object_div_2d);
-  new CreateTriangle_SVG_InDicator(object_div_2d);
-
+  new CreatePolygon_SVG_Indicator(object_div_2d);
+  new CreateRectangle_SVG_Indicator(object_div_2d);
+  new CreateEllipse_SVG_Indicator(object_div_2d);
+  new CreateCircle_SVG_Indicator(object_div_2d);
+  
   /* 3D Shapes */
+  new Pyramid_SVG_Indicator(object_div_3d);
   new Cuboid_SVG_Indicator(object_div_3d); 
-
 }
+
+class SVG_Indicator{
+  svg_class : CreateSVG;
+  tooltip_class : CreateToolTip;
+  constructor(container:HTMLElement, max_child_elem_count:number,tooltip_text="Generic"){
+    const sub_container = document.createElement("div");
+    sub_container.style.margin = "10px";
+    container.appendChild(sub_container);
+    this.svg_class = new CreateSVG(sub_container, "20","20", max_child_elem_count);
+    this.tooltip_class = new CreateToolTip(container,sub_container,tooltip_text,5,100);
+    this.tooltip_class.top_tooltip();
+    //this.svg_class.svg.addEventListener("click", (()=>console.log(tooltip_text)))
+  }
+}
+
+/* 1D Shapes */
+class CreatePoint_SVG_Indicator extends SVG_Indicator{
+  constructor(container:HTMLElement){
+    super(container,1,"Point");
+    new CreateSVGCircle(this.svg_class, "9", "9", "2", svg_objects_color, svg_objects_strokeWidth,svg_hover_color, svg_objects_color);
+  }
+}
+
+class CreateLine_SVG_Indicator extends SVG_Indicator{
+  constructor(container:HTMLElement){
+    super(container,1,"Line");
+    new CreateSVGLine(this.svg_class, "1", "19", "19", "1", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+  }
+}
+/* 1D Shapes */
+
+
+/* 2D Shapes */
+
+class CreatePolygon_SVG_Indicator extends SVG_Indicator{
+  constructor(container:HTMLElement){
+    super(container,3,"Polygon");
+    new CreateSVGLine(this.svg_class, "1", "19", "9", "1", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "10", "1", "19", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "1", "19", "19", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+  }
+}
+
+class CreateEllipse_SVG_Indicator extends SVG_Indicator{
+  constructor(container:HTMLElement){
+    super(container,1,"Ellipse");
+    new CreateSVGEllipse(this.svg_class, "9", "9", "8", "5", svg_objects_color, svg_objects_strokeWidth,svg_hover_color, genBackgroundColor);
+  }
+}
+
+class CreateCircle_SVG_Indicator extends SVG_Indicator{
+  constructor(container:HTMLElement){
+    super(container,1,"Circle");
+    new CreateSVGCircle(this.svg_class, "9", "9", "8", svg_objects_color, svg_objects_strokeWidth,svg_hover_color, genBackgroundColor);
+  }
+}
+
+class CreateRectangle_SVG_Indicator extends SVG_Indicator{
+  constructor(container:HTMLElement){
+    super(container,4,"Rectangle");
+    new CreateSVGLine(this.svg_class, "1", "1", "19", "1", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "1", "19", "19", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "1", "1", "1", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "19", "1", "19", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+  }
+}
+/* 2D Shapes */
+
+/* 3D Shapes */
+class Pyramid_SVG_Indicator extends SVG_Indicator{
+  constructor(container:HTMLElement){
+    super(container,6,"Pyramid");
+    new CreateSVGLine(this.svg_class, "1", "12", "9", "1", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "10", "1", "19", "12", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "9", "1", "9", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "1", "13", "9", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "10", "19", "19", "13", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "1", "13", "19", "13", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    }
+}
+
+class Cuboid_SVG_Indicator extends SVG_Indicator{
+  constructor(container:HTMLElement){
+    super(container,12,"Cuboid");
+    new CreateSVGLine(this.svg_class, "1", "1", "12", "1", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "8", "7", "19", "7", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "1", "13", "12", "13", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "8", "19", "19", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "1", "1", "1", "13", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "8", "7", "8", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "12", "1", "12", "13", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "19", "7", "19", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "1", "1", "8", "7", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "12", "1", "19", "7", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "1", "13", "8", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
+    new CreateSVGLine(this.svg_class, "12", "13", "19", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);   
+  }
+}
+/* 3D Shapes */
 
 class CreateToolTip{
   tooltip_container_elem : HTMLElement;
@@ -115,23 +219,25 @@ class CreateToolTip{
     this.toDefault();
     this.tooltip_text_elem.style.bottom = "100%";
     this.tooltip_text_elem.style.left = "50%";
-    const half_width = this.width/2;
-    const container_width = Number(window.getComputedStyle(this.tooltip_container_elem).width.split("px")[0]);
-    const before = half_width > this.tooltip_elem.offsetLeft ? half_width - this.tooltip_elem.offsetLeft : 0;
-    const after = half_width > (container_width - this.tooltip_elem.offsetLeft) ? half_width - (container_width - this.tooltip_elem.offsetLeft) + this.tooltip_container_elem.offsetLeft : 0;
     this.tooltip_text_elem.className = "tooltiptext_top";
     this.tooltip_text_elem.style.margin = "5px 0";
 
     this.tooltip_elem.addEventListener("mousemove", () => {
       if(!isTouchDevice){
-        this.tooltip_text_elem.style.marginLeft = `-${half_width-before+after}px`;
-        root.style.setProperty("--margin-left-percent",`${(half_width-before+after)/this.width*100}%`);
+        const half_width = this.width/2;
+        const container_width = Number(window.getComputedStyle(this.tooltip_container_elem).width.split("px")[0]);
+        const helper : _VERT_TOOLTIP_HELPER_ = this.vertical_tooltip_helper(half_width, container_width);
+        this.tooltip_text_elem.style.marginLeft = `-${half_width-helper.before+helper.after}px`;
+        root.style.setProperty("--margin-left-percent",`${(half_width-helper.before+helper.after)/this.width*100}%`);
       }
     });
     this.tooltip_elem.addEventListener("touchstart", () => {
       if(isTouchDevice){
-      this.tooltip_text_elem.style.marginLeft = `-${half_width-before+after}px`;
-      root.style.setProperty("--margin-left-percent",`${(half_width-before+after)/this.width*100}%`);
+        const half_width = this.width/2;
+        const container_width = Number(window.getComputedStyle(this.tooltip_container_elem).width.split("px")[0]);
+        const helper : _VERT_TOOLTIP_HELPER_ = this.vertical_tooltip_helper(half_width, container_width);          
+        this.tooltip_text_elem.style.marginLeft = `-${half_width-helper.before+helper.after}px`;
+        root.style.setProperty("--margin-left-percent",`${(half_width-helper.before+helper.after)/this.width*100}%`);
       }
     }, { 'passive': true });
   }
@@ -140,83 +246,32 @@ class CreateToolTip{
     this.toDefault();
     this.tooltip_text_elem.style.top = "100%";
     this.tooltip_text_elem.style.left = "50%";
-    const half_width = this.width/2;
-    const container_width = Number(window.getComputedStyle(this.tooltip_container_elem).width.split("px")[0]);
-    const before = half_width > this.tooltip_elem.offsetLeft ? half_width - this.tooltip_elem.offsetLeft : 0;
-    const after = half_width > (container_width - this.tooltip_elem.offsetLeft) ? half_width - (container_width - this.tooltip_elem.offsetLeft) + this.tooltip_container_elem.offsetLeft : 0;
     this.tooltip_text_elem.className = "tooltiptext_bottom";
-    this.tooltip_text_elem.style.margin = "5px 0";
+    this.tooltip_text_elem.style.margin = "5px 0";   
 
     this.tooltip_elem.addEventListener("mousemove", () => {
       if(!isTouchDevice){
-        this.tooltip_text_elem.style.marginLeft = `-${half_width-before+after}px`;
-        root.style.setProperty("--margin-left-percent",`${(half_width-before+after)/this.width*100}%`);
+        const half_width = this.width/2;
+        const container_width = Number(window.getComputedStyle(this.tooltip_container_elem).width.split("px")[0]);      
+        const helper : _VERT_TOOLTIP_HELPER_ = this.vertical_tooltip_helper(half_width, container_width);
+        this.tooltip_text_elem.style.marginLeft = `-${half_width-helper.before+helper.after}px`;
+        root.style.setProperty("--margin-left-percent",`${(half_width-helper.before+helper.after)/this.width*100}%`);
       }
     });
     this.tooltip_elem.addEventListener("touchstart", () => {
       if(isTouchDevice){
-      this.tooltip_text_elem.style.marginLeft = `-${half_width-before+after}px`;
-      root.style.setProperty("--margin-left-percent",`${(half_width-before+after)/this.width*100}%`);
+        const half_width = this.width/2;
+        const container_width = Number(window.getComputedStyle(this.tooltip_container_elem).width.split("px")[0]);
+        const helper : _VERT_TOOLTIP_HELPER_ = this.vertical_tooltip_helper(half_width, container_width);     
+        this.tooltip_text_elem.style.marginLeft = `-${half_width-helper.before+helper.after}px`;
+        root.style.setProperty("--margin-left-percent",`${(half_width-helper.before+helper.after)/this.width*100}%`);
       }
     }, { 'passive': true });
   }
-}
-
-class SVG_Indicator{
-  svg_class : CreateSVG;
-  tooltip_class : CreateToolTip;
-  constructor(container:HTMLElement, max_child_elem_count:number,tooltip_text="Generic"){
-    const sub_container = document.createElement("div");
-    sub_container.style.margin = "10px";
-    container.appendChild(sub_container);
-    this.svg_class = new CreateSVG(sub_container, "20","20", max_child_elem_count);
-    this.tooltip_class = new CreateToolTip(container,sub_container,tooltip_text,5,100);
-    this.tooltip_class.top_tooltip();
-    //this.svg_class.svg.addEventListener("click", (()=>console.log(tooltip_text)))
+  
+  vertical_tooltip_helper(half_width:number, container_width:number) : _VERT_TOOLTIP_HELPER_{
+    const before = half_width > this.tooltip_elem.offsetLeft ? half_width - this.tooltip_elem.offsetLeft : 0;
+    const after = half_width > (container_width - this.tooltip_elem.offsetLeft) ? half_width - (container_width - this.tooltip_elem.offsetLeft) + this.tooltip_container_elem.offsetLeft : 0;
+    return {before : before, after : after};
   }
 }
-
-/* 1D Shapes */
-/* 1D Shapes */
-
-
-/* 2D Shapes */
-class CreateRectangle_SVG_InDicator extends SVG_Indicator{
-  constructor(container:HTMLElement){
-    super(container,12,"Rectangle");
-    new CreateSVGLine(this.svg_class, "1", "1", "19", "1", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
-    new CreateSVGLine(this.svg_class, "1", "19", "19", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
-    new CreateSVGLine(this.svg_class, "1", "1", "1", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
-    new CreateSVGLine(this.svg_class, "19", "1", "19", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
-  }
-}
-
-class CreateTriangle_SVG_InDicator extends SVG_Indicator{
-  constructor(container:HTMLElement){
-    super(container,12,"Triangle");
-    new CreateSVGLine(this.svg_class, "1", "19", "9", "1", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
-    new CreateSVGLine(this.svg_class, "10", "1", "19", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
-    new CreateSVGLine(this.svg_class, "1", "19", "19", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
-  }
-}
-/* 2D Shapes */
-
-/* 3D Shapes */
-class Cuboid_SVG_Indicator extends SVG_Indicator{
-  constructor(container:HTMLElement){
-    super(container,12,"Cuboid");
-    new CreateSVGLine(this.svg_class, "1", "1", "12", "1", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
-    new CreateSVGLine(this.svg_class, "8", "7", "19", "7", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
-    new CreateSVGLine(this.svg_class, "1", "13", "12", "13", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
-    new CreateSVGLine(this.svg_class, "8", "19", "19", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
-    new CreateSVGLine(this.svg_class, "1", "1", "1", "13", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
-    new CreateSVGLine(this.svg_class, "8", "7", "8", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
-    new CreateSVGLine(this.svg_class, "12", "1", "12", "13", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
-    new CreateSVGLine(this.svg_class, "19", "7", "19", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
-    new CreateSVGLine(this.svg_class, "1", "1", "8", "7", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
-    new CreateSVGLine(this.svg_class, "12", "1", "19", "7", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
-    new CreateSVGLine(this.svg_class, "1", "13", "8", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);
-    new CreateSVGLine(this.svg_class, "12", "13", "19", "19", svg_objects_color, svg_objects_strokeWidth,svg_hover_color);   
-  }
-}
-/* 3D Shapes */
