@@ -884,3 +884,10 @@ class CreateTorus extends CreateObject {
 }
 /* 3D Shapes */
 
+/* Grid Object */
+class CreateGrid extends CreateObject{
+    constructor(width:number,depth:number){
+        super(width,0,depth,0);
+    }
+}
+/* Grid Object */
