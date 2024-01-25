@@ -1659,7 +1659,7 @@ class CreateSVGPath {
     path: Element;
     path_ns: string;
 
-    constructor (svg_class: CreateSVG,d: string,stroke: string,strokeWidth: string,hover_color: string) {
+    constructor (svg_class: CreateSVG,d: string,stroke: string,strokeWidth: string,hover_color: string, fill="none", hover_fill=false) {
         const _path = document.createElementNS(svg_class.svg_ns,"path");
         this.path = _path;
         this.path_ns = svg_class.svg_ns;
@@ -1673,6 +1673,12 @@ class CreateSVGPath {
             svg_class.svg.addEventListener("mouseout",() => { if(!isTouchDevice) _path.setAttribute("stroke",stroke) });
             svg_class.svg.addEventListener("touchstart",() => { if(isTouchDevice) _path.setAttribute("stroke",hover_color) },{ "passive": true });
             svg_class.svg.addEventListener("touchend",() => { if(isTouchDevice) _path.setAttribute("stroke",stroke) },{ "passive": true });
+        
+            if(hover_fill) svg_class.svg.addEventListener("mousemove",() => { if(!isTouchDevice) _path.setAttribute("fill",hover_color) });
+            svg_class.svg.addEventListener("mouseout",() => { if(!isTouchDevice) _path.setAttribute("fill",fill) });
+            if(hover_fill) svg_class.svg.addEventListener("touchstart",() => { if(isTouchDevice) _path.setAttribute("fill",hover_color) },{ "passive": true });
+            svg_class.svg.addEventListener("touchend",() => { if(isTouchDevice) _path.setAttribute("fill",fill) },{ "passive": true });
+
         }
     }
 }
