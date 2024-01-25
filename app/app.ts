@@ -1533,23 +1533,23 @@ class BasicSettings {
                 _child.addEventListener("mouseout",() => { this.unhoverState(child.id,_child) });
                 _child.addEventListener("click",() => { this.modifyState(child.id,_child) });
             }
-            else _child.addEventListener("click", () => this.toggleMouseTouchEvent());
+            else _child.addEventListener("click",() => this.toggleMouseTouchEvent());
         }
     }
 
-    toggleMouseTouchEvent(){
-        if(isTouchDeviceToggleable){
+    toggleMouseTouchEvent() {
+        if(isTouchDeviceToggleable) {
             const elem = document.getElementById(TouchMouseEventId) as HTMLLIElement;
             elem.style.backgroundColor = "#4CAF50";
             if(isTouchDevice === true) {
                 isTouchDevice = false;
-                setTimeout((()=>{
+                setTimeout((() => {
                     elem.style.backgroundColor = "#333";
                 }),500);
             }
             else {
                 isTouchDevice = true;
-                setTimeout((()=>{
+                setTimeout((() => {
                     elem.style.backgroundColor = "#333";
                 }),500);
             }
@@ -1557,9 +1557,9 @@ class BasicSettings {
         }
     }
 
-    displayMouseTouchEvent(){
+    displayMouseTouchEvent() {
         const elem = document.getElementById(TouchMouseEventId) as HTMLLIElement;
-        if (isTouchDevice === true) elem.innerHTML = "Touch";
+        if(isTouchDevice === true) elem.innerHTML = "Touch";
         else elem.innerHTML = "Mouse";
     }
 
@@ -1656,7 +1656,7 @@ class CreateSVG {
 }
 
 class CreateSVGPath {
-    path : Element;
+    path: Element;
     path_ns: string;
 
     constructor (svg_class: CreateSVG,d: string,stroke: string,strokeWidth: string,hover_color: string) {
@@ -1665,12 +1665,14 @@ class CreateSVGPath {
         this.path_ns = svg_class.svg_ns;
 
         _path.setAttribute("d",d);
+        _path.setAttribute("stroke",stroke);
+        _path.setAttribute("stroke-width",strokeWidth);
         if(svg_class.svg.childElementCount < svg_class.max_child_elem_count) {
             svg_class.svg.appendChild(_path);
-            svg_class.svg.addEventListener("mousemove",() => {if (!isTouchDevice) _path.setAttribute("stroke",hover_color)});
-            svg_class.svg.addEventListener("mouseout",() => {if (!isTouchDevice) _path.setAttribute("stroke",stroke)});
-            svg_class.svg.addEventListener("touchstart",() => {if (isTouchDevice) _path.setAttribute("stroke",hover_color)}, { "passive": true });
-            svg_class.svg.addEventListener("touchend",() => {if (isTouchDevice) _path.setAttribute("stroke",stroke)}, { "passive": true });
+            svg_class.svg.addEventListener("mousemove",() => { if(!isTouchDevice) _path.setAttribute("stroke",hover_color) });
+            svg_class.svg.addEventListener("mouseout",() => { if(!isTouchDevice) _path.setAttribute("stroke",stroke) });
+            svg_class.svg.addEventListener("touchstart",() => { if(isTouchDevice) _path.setAttribute("stroke",hover_color) },{ "passive": true });
+            svg_class.svg.addEventListener("touchend",() => { if(isTouchDevice) _path.setAttribute("stroke",stroke) },{ "passive": true });
         }
     }
 }
@@ -1692,10 +1694,10 @@ class CreateSVGLine {
         _line.setAttribute("stroke-width",strokeWidth);
         if(svg_class.svg.childElementCount < svg_class.max_child_elem_count) {
             svg_class.svg.appendChild(_line);
-            svg_class.svg.addEventListener("mousemove",() => {if (!isTouchDevice) _line.setAttribute("stroke",hover_color)});
-            svg_class.svg.addEventListener("mouseout",() => {if (!isTouchDevice) _line.setAttribute("stroke",stroke)});
-            svg_class.svg.addEventListener("touchstart",() => {if (isTouchDevice) _line.setAttribute("stroke",hover_color)}, { "passive": true });
-            svg_class.svg.addEventListener("touchend",() => {if (isTouchDevice) _line.setAttribute("stroke",stroke)}, { "passive": true });
+            svg_class.svg.addEventListener("mousemove",() => { if(!isTouchDevice) _line.setAttribute("stroke",hover_color) });
+            svg_class.svg.addEventListener("mouseout",() => { if(!isTouchDevice) _line.setAttribute("stroke",stroke) });
+            svg_class.svg.addEventListener("touchstart",() => { if(isTouchDevice) _line.setAttribute("stroke",hover_color) },{ "passive": true });
+            svg_class.svg.addEventListener("touchend",() => { if(isTouchDevice) _line.setAttribute("stroke",stroke) },{ "passive": true });
         }
     }
 }
@@ -1704,7 +1706,7 @@ class CreateSVGCircle {
     circle: Element;
     circle_ns: string;
 
-    constructor (svg_class: CreateSVG,cx: string,cy: string,r: string,stroke: string,strokeWidth: string,hover_color: string,fill: string) {
+    constructor (svg_class: CreateSVG,cx: string,cy: string,r: string,stroke: string,strokeWidth: string,hover_color: string,fill: string,hover_fill = true) {
         const _circle = document.createElementNS(svg_class.svg_ns,"circle");
         this.circle = _circle;
         this.circle_ns = svg_class.svg_ns;
@@ -1717,15 +1719,15 @@ class CreateSVGCircle {
         _circle.setAttribute("fill",fill);
         if(svg_class.svg.childElementCount < svg_class.max_child_elem_count) {
             svg_class.svg.appendChild(_circle);
-            svg_class.svg.addEventListener("mousemove",() => {if (!isTouchDevice) _circle.setAttribute("stroke",hover_color)});
-            svg_class.svg.addEventListener("mouseout",() => {if (!isTouchDevice) _circle.setAttribute("stroke",stroke)});
-            svg_class.svg.addEventListener("touchstart",() => {if (isTouchDevice) _circle.setAttribute("stroke",hover_color)}, { "passive": true });
-            svg_class.svg.addEventListener("touchend",() => {if (isTouchDevice) _circle.setAttribute("stroke",stroke)}, { "passive": true });
-            
-          svg_class.svg.addEventListener("mousemove",() => {if (!isTouchDevice) _circle.setAttribute("fill",hover_color)});
-            svg_class.svg.addEventListener("mouseout",() => {if (!isTouchDevice) _circle.setAttribute("fill",fill)});
-            svg_class.svg.addEventListener("touchstart",() => {if (isTouchDevice) _circle.setAttribute("fill",hover_color)}, { "passive": true });
-            svg_class.svg.addEventListener("touchend",() => {if (isTouchDevice) _circle.setAttribute("fill",fill)}, { "passive": true });            
+            svg_class.svg.addEventListener("mousemove",() => { if(!isTouchDevice) _circle.setAttribute("stroke",hover_color) });
+            svg_class.svg.addEventListener("mouseout",() => { if(!isTouchDevice) _circle.setAttribute("stroke",stroke) });
+            svg_class.svg.addEventListener("touchstart",() => { if(isTouchDevice) _circle.setAttribute("stroke",hover_color) },{ "passive": true });
+            svg_class.svg.addEventListener("touchend",() => { if(isTouchDevice) _circle.setAttribute("stroke",stroke) },{ "passive": true });
+
+            if(hover_fill) svg_class.svg.addEventListener("mousemove",() => { if(!isTouchDevice) _circle.setAttribute("fill",hover_color) });
+            svg_class.svg.addEventListener("mouseout",() => { if(!isTouchDevice) _circle.setAttribute("fill",fill) });
+            if(hover_fill) svg_class.svg.addEventListener("touchstart",() => { if(isTouchDevice) _circle.setAttribute("fill",hover_color) },{ "passive": true });
+            svg_class.svg.addEventListener("touchend",() => { if(isTouchDevice) _circle.setAttribute("fill",fill) },{ "passive": true });
         }
     }
 }
@@ -1734,7 +1736,7 @@ class CreateSVGEllipse {
     ellipse: Element;
     ellipse_ns: string;
 
-    constructor (svg_class: CreateSVG,cx: string,cy: string,rx: string,ry: string,stroke: string,strokeWidth: string,hover_color: string,fill: string) {
+    constructor (svg_class: CreateSVG,cx: string,cy: string,rx: string,ry: string,stroke: string,strokeWidth: string,hover_color: string,fill: string,hover_fill = true) {
         const _ellipse = document.createElementNS(svg_class.svg_ns,"ellipse");
         this.ellipse = _ellipse;
         this.ellipse_ns = svg_class.svg_ns;
@@ -1748,15 +1750,15 @@ class CreateSVGEllipse {
         _ellipse.setAttribute("fill",fill);
         if(svg_class.svg.childElementCount < svg_class.max_child_elem_count) {
             svg_class.svg.appendChild(_ellipse);
-            svg_class.svg.addEventListener("mousemove",() => {if (!isTouchDevice) _ellipse.setAttribute("stroke",hover_color)});
-            svg_class.svg.addEventListener("mouseout",() => {if (!isTouchDevice) _ellipse.setAttribute("stroke",stroke)});
-            svg_class.svg.addEventListener("touchstart",() => {if (isTouchDevice) _ellipse.setAttribute("stroke",hover_color)}, { "passive": true });
-            svg_class.svg.addEventListener("touchend",() => {if (isTouchDevice) _ellipse.setAttribute("stroke",stroke)}, { "passive": true });
-            
-          svg_class.svg.addEventListener("mousemove",() => {if (!isTouchDevice) _ellipse.setAttribute("fill",hover_color)});
-            svg_class.svg.addEventListener("mouseout",() => {if (!isTouchDevice) _ellipse.setAttribute("fill",fill)});
-            svg_class.svg.addEventListener("touchstart",() => {if (isTouchDevice) _ellipse.setAttribute("fill",hover_color)}, { "passive": true });
-            svg_class.svg.addEventListener("touchend",() => {if (isTouchDevice) _ellipse.setAttribute("fill",fill)}, { "passive": true });            
+            svg_class.svg.addEventListener("mousemove",() => { if(!isTouchDevice) _ellipse.setAttribute("stroke",hover_color) });
+            svg_class.svg.addEventListener("mouseout",() => { if(!isTouchDevice) _ellipse.setAttribute("stroke",stroke) });
+            svg_class.svg.addEventListener("touchstart",() => { if(isTouchDevice) _ellipse.setAttribute("stroke",hover_color) },{ "passive": true });
+            svg_class.svg.addEventListener("touchend",() => { if(isTouchDevice) _ellipse.setAttribute("stroke",stroke) },{ "passive": true });
+
+            if(hover_fill) svg_class.svg.addEventListener("mousemove",() => { if(!isTouchDevice) _ellipse.setAttribute("fill",hover_color) });
+            svg_class.svg.addEventListener("mouseout",() => { if(!isTouchDevice) _ellipse.setAttribute("fill",fill) });
+            if(hover_fill) svg_class.svg.addEventListener("touchstart",() => { if(isTouchDevice) _ellipse.setAttribute("fill",hover_color) },{ "passive": true });
+            svg_class.svg.addEventListener("touchend",() => { if(isTouchDevice) _ellipse.setAttribute("fill",fill) },{ "passive": true });
         }
     }
 }
@@ -1768,7 +1770,7 @@ class CreateSVGLineDrag extends CreateSVGLine {
         super(svg_class,x1,y1,x2,y2,stroke,strokeWidth,hover_color);
 
         this.implement_drag = implementDrag;
-        
+
         if(svg_class.max_child_elem_count === 1) {
             this.implement_drag.start(svg_class.svg,this.dragFunction);
             this.changeAcceleration(10);
@@ -1778,7 +1780,7 @@ class CreateSVGLineDrag extends CreateSVGLine {
     dragFunction(deltaX: number,deltaY: number) {
         MODIFIED_PARAMS._CANVAS_WIDTH += deltaX;
         MODIFIED_PARAMS._SIDE_BAR_WIDTH -= deltaX;
-            
+
         if(MODIFIED_PARAMS._CANVAS_WIDTH > DEFAULT_PARAMS._CANVAS_WIDTH && MODIFIED_PARAMS._SIDE_BAR_WIDTH > DEFAULT_PARAMS._SIDE_BAR_WIDTH) basicDrawFunction();
 
         else {

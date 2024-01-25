@@ -650,8 +650,6 @@ class CreateCuboid extends CreateObject {
       return this;
   }
 }
-/* 3D Shapes */
-
 
 class CreateSphere extends CreateObject {
   lat_divs: number;
@@ -884,3 +882,5 @@ class CreateTorus extends CreateObject {
       return this;
   }
 }
+/* 3D Shapes */
+
