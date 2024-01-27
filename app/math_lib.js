@@ -234,6 +234,34 @@ class Miscellanous {
         }
         return retList;
     }
+    points3DToVec3D(pointList) {
+        const retList = [];
+        for (let point of pointList) {
+            retList.push([point.x, point.y, point.z]);
+        }
+        return retList;
+    }
+    vecs3DToPoints3D(vecList) {
+        const retList = [];
+        for (let vec of vecList) {
+            retList.push(new Point3D(vec[0], vec[1], vec[2]));
+        }
+        return retList;
+    }
+    vecs4DToPoints3D(vecList) {
+        const retList = [];
+        for (let vec of vecList) {
+            retList.push(new Point3D(vec[0], vec[1], vec[2]));
+        }
+        return retList;
+    }
+    vecs4DToPoints2D(vecList) {
+        const retList = [];
+        for (let vec of vecList) {
+            retList.push(new Point2D(vec[0], vec[1]));
+        }
+        return retList;
+    }
     genEdgefromArray(array, sort = true) {
         var prev = array[array.length - 1]; // set previous to last element in the array
         var a = 0;
@@ -278,7 +306,6 @@ class Miscellanous {
     getRanHex = (size = 1) => [...Array(size)].map((elem) => elem = Math.floor(Math.random() * 16).toString(16)).join("");
     ranHexCol = (num = 100, size = 6, exclude_col = "black") => [...Array(num)].map((elem, index) => elem = index === 0 ? exclude_col : "#" + this.getRanHex(size));
 }
-const _Miscellanous = new Miscellanous();
 class Linear {
     constructor() { }
     getSlope(A_, B_) {
@@ -567,7 +594,6 @@ class Linear {
         return q2;
     }
 }
-const _Linear = new Linear();
 class Quarternion {
     normalize;
     theta;
@@ -652,7 +678,6 @@ class Quarternion {
         return this.q_v_q_mult(_point);
     }
 }
-const _Quartenion = new Quarternion();
 class Matrix {
     constructor() { }
     // // Pitch
@@ -811,6 +836,7 @@ class Matrix {
         for (let i = 0; i < shapeNum; i++) {
             for (let j = 0; j < shapeNum; j++) {
                 const result = this.getDet(this.getRestMat(matIn, shapeNum, i, j), shapeNum - 1);
+                matOut.push(result);
             }
         }
         return matOut;
@@ -833,6 +859,7 @@ class Matrix {
     getCofMat(matIn, shapeNum) {
         const cofMatSgn = this.getCofSgnMat([shapeNum, shapeNum]);
         const minorMat = this.getMinorMat(matIn, shapeNum);
+        console.log(minorMat);
         const matOut = [];
         const len = shapeNum ** 2;
         for (let i = 0; i < len; i++) {
@@ -852,7 +879,6 @@ class Matrix {
         return _Matrix.scaMult(1 / det_result, adj_result);
     }
 }
-const _Matrix = new Matrix();
 class Vector {
     constructor() { }
     mag(vec) {
@@ -982,15 +1008,14 @@ class Vector {
         return cross_product_unit_vec;
     }
 }
-const _Vector = new Vector();
 class PerspectiveProjection {
     constructor() { }
     changeNearZ(val) {
-        MODIFIED_PARAMS._NZ = -val; // right to left hand coordinate system
+        MODIFIED_PARAMS._NZ = val;
         this.setPersProjectParam();
     }
     changeFarZ(val) {
-        MODIFIED_PARAMS._FZ = -val; // right to left hand coordinate system
+        MODIFIED_PARAMS._FZ = val;
         this.setPersProjectParam();
     }
     changeProjAngle(val) {
@@ -1000,6 +1025,7 @@ class PerspectiveProjection {
     setPersProjectParam() {
         MODIFIED_PARAMS._DIST = 1 / (Math.tan(MODIFIED_PARAMS._PROJ_ANGLE / 2 * MODIFIED_PARAMS._ANGLE_CONSTANT));
         MODIFIED_PARAMS._PROJECTION_MAT = [MODIFIED_PARAMS._DIST / MODIFIED_PARAMS._ASPECT_RATIO, 0, 0, 0, 0, MODIFIED_PARAMS._DIST, 0, 0, 0, 0, (-MODIFIED_PARAMS._NZ - MODIFIED_PARAMS._FZ) / (MODIFIED_PARAMS._NZ - MODIFIED_PARAMS._FZ), (2 * MODIFIED_PARAMS._FZ * MODIFIED_PARAMS._NZ) / (MODIFIED_PARAMS._NZ - MODIFIED_PARAMS._FZ), 0, 0, 1, 0];
+        console.log("persproj");
         const inverse_res = _Matrix.getInvMat(MODIFIED_PARAMS._PROJECTION_MAT, 4);
         if (typeof inverse_res === "undefined")
             return;
@@ -1014,4 +1040,424 @@ class PerspectiveProjection {
         return _Matrix.matMult(MODIFIED_PARAMS._INV_PROJECTION_MAT, input_array, [4, 4], [4, 1]);
     }
 }
+class Clip {
+    constructor() { }
+    canvasTo(arr) {
+        const array = [...arr];
+        array[0] -= MODIFIED_PARAMS._HALF_X;
+        array[1] -= MODIFIED_PARAMS._HALF_Y;
+        return array;
+    }
+    clipCoords(arr) {
+        const array = [...arr];
+        array[0] /= MODIFIED_PARAMS._HALF_X;
+        array[1] /= MODIFIED_PARAMS._HALF_Y;
+        return array;
+    }
+    toCanvas(arr) {
+        const array = [...arr];
+        array[0] += MODIFIED_PARAMS._HALF_X;
+        array[1] += MODIFIED_PARAMS._HALF_Y;
+        return array;
+    }
+    unclipCoords(arr) {
+        const array = [...arr];
+        array[0] *= MODIFIED_PARAMS._HALF_X;
+        array[1] *= MODIFIED_PARAMS._HALF_Y;
+        return array;
+    }
+}
+class CreateObject {
+    object_rotation_angle;
+    object_revolution_angle;
+    object_translation_array;
+    object_rotation_axis;
+    object_revolution_axis;
+    rendered_points_list;
+    object_revolution_angle_backup;
+    object_translation_array_backup;
+    points_list;
+    constructor() {
+        this.object_rotation_angle = 0;
+        this.object_revolution_angle = 0;
+        this.object_translation_array = [0, 0, 0];
+        this.object_rotation_axis = [0, 0, 0];
+        this.object_revolution_axis = [0, 0, 0];
+        this.rendered_points_list = [];
+        this.object_revolution_angle_backup = 0;
+        this.object_translation_array_backup = [0, 0, 0];
+        this.points_list = [];
+    }
+}
+class OpticalElement extends CreateObject {
+    // Default
+    // _CAM_MATRIX : [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+    // _INV_CAM_MATRIX : [1, -0, 0, -0, -0, 1, -0, 0, 0, -0, 1, -0, -0, 0, -0, 1],
+    // actpos = [0,0,1],
+    // usedpos = [0,0,-1]
+    instance = {
+        instance_number: 0,
+        optical_type: "none",
+        _LOOK_AT_POINT: [0, 0, 0],
+        _U: [0, 0, 0],
+        _V: [0, 0, 0],
+        _N: [0, 0, 0],
+        _C: [0, 0, 0],
+        _MATRIX: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        _INV_MATRIX: [1, -0, 0, -0, -0, 1, -0, 0, 0, -0, 1, -0, -0, 0, -0, 1],
+        depthBuffer: _Miscellanous.initDepthBuffer(),
+        frameBuffer: _Miscellanous.initFrameBuffer(),
+        translation_array: [0, 0, 0],
+    };
+    constructor(optical_type_input) {
+        super();
+        this.instance.optical_type = optical_type_input;
+        return this;
+    }
+    resetBuffers() {
+        //_Miscellanous.resetDepthBuffer(this.instance.depthBuffer);
+        //_Miscellanous.resetFrameBuffer(this.instance.frameBuffer);
+    }
+    setCoordSystem() {
+        const DIFF = _Matrix.matAdd(this.instance._LOOK_AT_POINT, this.instance._C, true);
+        const UP = [0, 1, 0];
+        this.instance._N = _Vector.normalizeVec(DIFF);
+        this.instance._U = _Vector.normalizeVec(_Vector.crossProduct([UP, this.instance._N]));
+        this.instance._V = _Vector.normalizeVec(_Vector.crossProduct([this.instance._N, this.instance._U]));
+        this.points_list = _Miscellanous.vecs3DToPoints3D([this.instance._U, this.instance._V, this.instance._N]);
+    }
+    setConversionMatrices() {
+        this.instance._MATRIX = [...this.instance._U, this.instance._C[0], ...this.instance._V, this.instance._C[1], ...this.instance._N, this.instance._C[2], ...[0, 0, 0, 1]];
+        this.instance._INV_MATRIX = _Matrix.getInvMat(this.instance._MATRIX, 4);
+    }
+    setLookAtPos(look_at_point) {
+        this.instance._LOOK_AT_POINT = look_at_point;
+    }
+    // rotateObject(axis: _3D_VEC_,angle: number) {
+    //     for(const index in object.points_list) {
+    //         const orig_pt = object.points_list[index];
+    //         const original_vector: _3D_VEC_ = [orig_pt.x,orig_pt.y,orig_pt.z];
+    //         const rotated_vector = this.vertexRotate(original_vector,axis,angle);
+    //         const translated_vector = this.vertexTranslate(rotated_vector,object.object_translation_array);
+    //         const revolved_vector = this.vertexRotate(translated_vector,object.object_revolution_axis,object.object_revolution_angle);
+    //         object.rendered_points_list.push(revolved_vector);
+    //     }
+    //     object.object_rotation_angle = angle;
+    //     object.object_rotation_axis = axis;
+    // }
+    // revolveObject(axis: _3D_VEC_,angle: number) {
+    //     const object = this.getCurrentObjectInstance();
+    //     if(typeof object === "undefined") return;
+    //     object.rendered_points_list = [];
+    //     for(const index in object.points_list) {
+    //         const orig_pt = object.points_list[index];
+    //         const original_vector: _3D_VEC_ = [orig_pt.x,orig_pt.y,orig_pt.z];
+    //         const rotated_vector = this.vertexRotate(original_vector,object.object_rotation_axis,object.object_rotation_angle);
+    //         const translated_vector = this.vertexTranslate(rotated_vector,object.object_translation_array);
+    //         const revolved_vector = this.vertexRotate(translated_vector,axis,angle);
+    //         object.rendered_points_list.push(revolved_vector);
+    //     }
+    //     object.object_revolution_angle = angle;
+    //     object.object_revolution_angle_backup = angle;
+    //     object.object_revolution_axis = axis;
+    // }
+    // translateObject(translation_array: _3D_VEC_) {
+    //     const object = this.getCurrentObjectInstance();
+    //     if(typeof object === "undefined") return;
+    //     object.rendered_points_list = [];
+    //     for(const index in object.points_list) {
+    //         const orig_pt = object.points_list[index];
+    //         const original_vector: _3D_VEC_ = [orig_pt.x,orig_pt.y,orig_pt.z];
+    //         const rotated_vector = this.vertexRotate(original_vector,object.object_rotation_axis,object.object_rotation_angle);
+    //         const translated_vector = this.vertexTranslate(rotated_vector,translation_array);
+    //         const revolved_vector = this.vertexRotate(translated_vector,object.object_revolution_axis,object.object_revolution_angle);
+    //         object.rendered_points_list.push(revolved_vector);
+    //     }
+    //     object.object_translation_array = translation_array;
+    //     object.object_translation_array_backup = translation_array;
+    // }
+    rotate(plane, angle) {
+        if (plane === "U-V") {
+            const _U_N = _Quartenion.q_rot(angle, this.instance._U, this.instance._N);
+            const _V_N = _Quartenion.q_rot(angle, this.instance._V, this.instance._N);
+            if (typeof _U_N === "number")
+                return undefined;
+            if (typeof _V_N === "number")
+                return undefined;
+            this.instance._U = _U_N;
+            this.instance._V = _V_N;
+        }
+        else if (plane === "U-N") {
+            const _U_V = _Quartenion.q_rot(angle, this.instance._U, this.instance._V);
+            const _V_N = _Quartenion.q_rot(angle, this.instance._V, this.instance._N);
+            if (typeof _U_V === "number")
+                return undefined;
+            if (typeof _V_N === "number")
+                return undefined;
+            this.instance._U = _U_V;
+            this.instance._V = _V_N;
+        }
+        else if (plane === "V-N") {
+            const _U_V = _Quartenion.q_rot(angle, this.instance._U, this.instance._V);
+            const _U_N = _Quartenion.q_rot(angle, this.instance._U, this.instance._N);
+            if (typeof _U_V === "number")
+                return undefined;
+            if (typeof _U_N === "number")
+                return undefined;
+            this.instance._U = _U_V;
+            this.instance._V = _U_N;
+        }
+        this.setConversionMatrices();
+    }
+    translate(translation_array) {
+        this.instance._C = translation_array;
+    }
+    worldToOpticalObject(ar) {
+        console.log("instance", this.instance);
+        const arr = [...ar, 1];
+        const result = _Matrix.matMult(this.instance._MATRIX, arr, [4, 4], [4, 1]);
+        return result;
+    }
+    opticalObjectToWorld(arr) {
+        const result = _Matrix.matMult(this.instance._INV_MATRIX, arr, [4, 4], [4, 1]);
+        const new_result = result.slice(0, 3);
+        return new_result;
+    }
+}
+class ClipSpace {
+    constructor() { }
+    ;
+    opticalObjectToClip(arr) {
+        const orig_proj = _Matrix.matMult(MODIFIED_PARAMS._PROJECTION_MAT, arr, [4, 4], [4, 1]);
+        const pers_div = _Matrix.scaMult(1 / orig_proj[3], orig_proj, true);
+        return pers_div;
+    }
+    ;
+    clipToOpticalObject(arr) {
+        const rev_pers_div = _Matrix.scaMult(arr[3], arr, true);
+        const rev_orig_proj = _Matrix.matMult(MODIFIED_PARAMS._INV_PROJECTION_MAT, rev_pers_div, [4, 4], [4, 1]);
+        return rev_orig_proj;
+    }
+    ;
+}
+class ScreenSpace {
+    constructor() { }
+    ;
+    clipToScreen(arr) {
+        if (arr[2] >= -1.1 && arr[2] <= 1.1 && arr[2] != Infinity) {
+            arr[2] = arr[2];
+            const [i, j, k, l] = _Clip.unclipCoords(arr);
+            const [x, y, z, w] = _Clip.toCanvas([i, j, k, l]);
+            return [x, y, z, w];
+        }
+        else
+            return undefined;
+    }
+    ;
+    screenToClip(arr) {
+        const [i, j, k, l] = _Clip.canvasTo(arr);
+        const [x, y, z, w] = _Clip.clipCoords([i, j, k, l]);
+        return [x, y, z, w];
+    }
+    ;
+}
+const _ScreenSpace = new ScreenSpace();
+class OpticalElement_Objects {
+    optical_element_array;
+    instance_number;
+    arrlen;
+    selected_light_instances;
+    selected_camera_instances;
+    max_camera_instance_number;
+    max_light_instance_number;
+    instance_number_to_list_map;
+    constructor() {
+        this.arrlen = 0;
+        this.instance_number = 0;
+        this.max_camera_instance_number = 0;
+        this.max_light_instance_number = 0;
+        this.optical_element_array = [];
+        this.selected_light_instances = {};
+        this.selected_camera_instances = {};
+        this.instance_number_to_list_map = {};
+        let self = this;
+        window.addEventListener("load", () => {
+            self.createNewCameraObject();
+            self.createNewLightObject();
+        });
+    }
+    createNewCameraObject() {
+        this.max_camera_instance_number = this.instance_number;
+        this.optical_element_array[this.arrlen] = new OpticalElement("camera");
+        this.instance_number_to_list_map[this.instance_number] = this.arrlen;
+        this.instance_number++;
+        this.arrlen++;
+        this.optical_element_array[0].translate(0, 0, -10);
+        this.optical_element_array[0].setLookAtPos(0, 0, 0);
+        this.optical_element_array[0].setCoordSystem();
+        this.optical_element_array[0].setConversionMatrices();
+        console.log(this.optical_element_array[0].instance);
+        this.select_camera_instance(0);
+    }
+    createNewLightObject() {
+        this.max_light_instance_number = this.instance_number;
+        this.optical_element_array[this.arrlen] = new OpticalElement("light");
+        this.instance_number_to_list_map[this.instance_number] = this.arrlen;
+        this.instance_number++;
+        this.arrlen++;
+        this.select_light_instance(1);
+    }
+    createNewMultipleCameraObjects = (num) => { if (num > 0)
+        while (num > 0) {
+            this.createNewCameraObject();
+            num--;
+        } };
+    createNewMultipleLightObjects = (num) => { if (num > 0)
+        while (num > 0) {
+            this.createNewLightObject();
+            num--;
+        } };
+    deleteOpticalObject(instance_number_input, index) {
+        this.optical_element_array.splice(index, 1);
+        delete this.instance_number_to_list_map[instance_number_input];
+        for (const key in this.instance_number_to_list_map) {
+            if (Number(key) > instance_number_input) {
+                this.instance_number_to_list_map[key] = this.instance_number_to_list_map[key] - 1;
+            }
+        }
+        if (instance_number_input in this.selected_camera_instances)
+            delete this.selected_camera_instances[instance_number_input];
+        if (instance_number_input in this.selected_light_instances)
+            delete this.selected_light_instances[instance_number_input];
+        if (Object.keys(this.selected_camera_instances).length === 0)
+            this.selected_camera_instances[0] = 0;
+        if (Object.keys(this.selected_light_instances).length === 0)
+            this.selected_light_instances[1] = 1;
+    }
+    deleteCameraObject(instance_number_input) {
+        if (instance_number_input > 1 && instance_number_input <= this.max_camera_instance_number) {
+            const index = this.instance_number_to_list_map[instance_number_input];
+            if (this.optical_element_array[index].instance.optical_type === "camera") // additional safety checks
+             {
+                this.deleteOpticalObject(instance_number_input, index);
+                this.arrlen = this.optical_element_array.length;
+            }
+        }
+    }
+    deleteLightObject(instance_number_input) {
+        if (instance_number_input > 1 && instance_number_input <= this.max_light_instance_number) {
+            const index = this.instance_number_to_list_map[instance_number_input];
+            if (this.optical_element_array[index].instance.optical_type === "light") // additional safety checks
+             {
+                this.deleteOpticalObject(instance_number_input, index);
+                this.arrlen = this.optical_element_array.length;
+            }
+        }
+    }
+    // doesn't delete the first one
+    deleteAllCameraObjects() {
+        for (const key in this.instance_number_to_list_map) {
+            const index = this.instance_number_to_list_map[key];
+            if (index > 1 && this.optical_element_array[index].instance.optical_type === "camera") {
+                this.deleteOpticalObject(Number(key), index);
+            }
+        }
+        this.arrlen = this.optical_element_array.length;
+    }
+    // doesn't delete the first one
+    deleteAllLightObjects() {
+        for (const key in this.instance_number_to_list_map) {
+            const index = this.instance_number_to_list_map[key];
+            if (index > 1 && this.optical_element_array[index].instance.optical_type === "light") {
+                this.deleteOpticalObject(Number(key), index);
+            }
+        }
+        this.arrlen = this.optical_element_array.length;
+    }
+    // doesn't delete the first two
+    deleteAllOpticalObjects() {
+        for (const key in this.instance_number_to_list_map) {
+            const index = this.instance_number_to_list_map[key];
+            if (index > 1) {
+                this.deleteOpticalObject(Number(key), index);
+            }
+        }
+        this.arrlen = this.optical_element_array.length;
+    }
+    select_camera_instance(instance_number_input) {
+        if (instance_number_input !== 1 && instance_number_input <= this.max_camera_instance_number) {
+            const selection = this.instance_number_to_list_map[instance_number_input];
+            if (this.optical_element_array[selection].instance.optical_type === "camera")
+                this.selected_camera_instances[instance_number_input] = selection;
+        }
+    }
+    deselect_camera_instance(instance_number_input) {
+        if (instance_number_input !== 1 && instance_number_input <= this.max_camera_instance_number) {
+            if (instance_number_input in this.selected_camera_instances) {
+                const selection = this.instance_number_to_list_map[instance_number_input];
+                if (this.optical_element_array[selection].instance.optical_type === "camera")
+                    delete this.selected_camera_instances[instance_number_input];
+                if (Object.keys(this.selected_camera_instances).length === 0) {
+                    this.selected_camera_instances[0] = 0;
+                    if (instance_number_input === 0)
+                        return;
+                }
+            }
+        }
+    }
+    select_light_instance(instance_number_input) {
+        if (instance_number_input !== 0 && instance_number_input <= this.max_light_instance_number) {
+            const selection = this.instance_number_to_list_map[instance_number_input];
+            if (this.optical_element_array[selection].instance.optical_type === "light")
+                this.selected_light_instances[instance_number_input] = selection;
+        }
+    }
+    deselect_light_instance(instance_number_input) {
+        if (instance_number_input !== 0 && instance_number_input <= this.max_light_instance_number) {
+            if (instance_number_input in this.selected_light_instances) {
+                const selection = this.instance_number_to_list_map[instance_number_input];
+                if (this.optical_element_array[selection].instance.optical_type === "light")
+                    delete this.selected_light_instances[instance_number_input];
+                if (Object.keys(this.selected_light_instances).length === 0) {
+                    this.selected_light_instances[1] = 1;
+                    if (instance_number_input === 1)
+                        return;
+                }
+            }
+        }
+    }
+    render(vertex, optical_type, instance_number = 0) {
+        var world_to_optical_object_space = [0, 0, 0, 0];
+        switch (optical_type) {
+            case "none": return undefined;
+            case "camera":
+                if (instance_number in this.selected_camera_instances) {
+                    world_to_optical_object_space = this.optical_element_array[this.selected_camera_instances[instance_number]].worldToOpticalObject(vertex);
+                    break;
+                }
+                else
+                    return undefined;
+            case "light":
+                if (instance_number in this.selected_light_instances) {
+                    world_to_optical_object_space = this.optical_element_array[this.selected_light_instances[instance_number]].worldToOpticalObject(vertex);
+                    break;
+                }
+                else
+                    return undefined;
+        }
+        console.log(vertex);
+        console.log(world_to_optical_object_space);
+        const optical_object_to_clip_space = _ClipSpace.opticalObjectToClip(world_to_optical_object_space);
+        console.log(optical_object_to_clip_space);
+        return _ScreenSpace.clipToScreen(optical_object_to_clip_space);
+    }
+}
+const _Miscellanous = new Miscellanous();
+const _Quartenion = new Quarternion();
+const _Matrix = new Matrix();
+const _Vector = new Vector();
+const _Linear = new Linear();
 const _PerspectiveProjection = new PerspectiveProjection();
+const _Clip = new Clip();
+const _ClipSpace = new ClipSpace();
+const _Optical_Objects = new OpticalElement_Objects();

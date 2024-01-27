@@ -34,13 +34,14 @@ const DEFAULT_PARAMS = {
     _CANVAS_OPACITY: '1',
     _CANVAS_WIDTH: 100,
     _CANVAS_HEIGHT: 100,
+    _CANVAS_BACKGROUND_COLOR: "#888",
     _LAST_CANVAS_WIDTH: 100,
     _BORDER_COLOR: '#aaa',
     _THETA: 0,
     _ANGLE_UNIT: "deg",
     _ANGLE_CONSTANT: Math.PI / 180,
     _REVERSE_ANGLE_CONSTANT: 180 / Math.PI,
-    _HANDEDNESS: "right",
+    _HANDEDNESS: "left",
     _HANDEDNESS_CONSTANT: 1,
     _X: [1, 0, 0],
     _Y: [0, 1, 0],
@@ -48,8 +49,8 @@ const DEFAULT_PARAMS = {
     _Q_VEC: [0, 0, 0],
     _Q_QUART: [0, 0, 0, 0],
     _Q_INV_QUART: [0, 0, 0, 0],
-    _NZ: -0.1,
-    _FZ: -100,
+    _NZ: 0.1,
+    _FZ: 100,
     _PROJ_ANGLE: 60,
     _ASPECT_RATIO: 1,
     _DIST: 1,
@@ -57,6 +58,7 @@ const DEFAULT_PARAMS = {
     _HALF_Y: 1,
     _PROJECTION_MAT: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     _INV_PROJECTION_MAT: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    _GRID_VERT_THETA: 15,
     _ACTIVE: "",
     _SIDE_BAR_WIDTH: 100,
 };
@@ -186,6 +188,7 @@ const basicDrawFunction = (set_last_canvas_width = true) => {
     MODIFIED_PARAMS._HALF_Y = MODIFIED_PARAMS._CANVAS_HEIGHT / 2;
     // Perspective Projection
     MODIFIED_PARAMS._ASPECT_RATIO = MODIFIED_PARAMS._CANVAS_WIDTH / MODIFIED_PARAMS._CANVAS_HEIGHT;
+    _PerspectiveProjection.setPersProjectParam();
 };
 class MeshDataStructure {
     HalfEdgeDict;
@@ -1200,15 +1203,15 @@ class BasicSettings {
         for (let child of main_nav.children) {
             const _child = document.getElementById(child.id);
             if (_child.id !== TouchMouseEventId) {
-                if (numero === 0)
+                if (numero === 3)
                     this.modifyState(child.id, _child, true);
-                numero++;
                 _child.addEventListener("mouseenter", () => { this.hoverState(child.id, _child); });
                 _child.addEventListener("mouseout", () => { this.unhoverState(child.id, _child); });
                 _child.addEventListener("click", () => { this.modifyState(child.id, _child); });
             }
             else
                 _child.addEventListener("click", () => this.toggleMouseTouchEvent());
+            numero++;
         }
     }
     toggleMouseTouchEvent() {
@@ -1294,7 +1297,6 @@ class BasicSettings {
     modifyState(value, elem, first = false) {
         if (value !== MODIFIED_PARAMS._ACTIVE) {
             MODIFIED_PARAMS._ACTIVE = value;
-            this.refreshState();
             elem.style.backgroundColor = "#4CAF50";
             if (first === false)
                 this._last_active.style.backgroundColor = "#333";
@@ -1302,7 +1304,6 @@ class BasicSettings {
             sendMessage(value);
         }
     }
-    refreshState() { }
 }
 class CreateSVG {
     svg;
@@ -1319,9 +1320,6 @@ class CreateSVG {
         _svg.setAttribute("width", width);
         _svg.setAttribute("height", height);
         container.appendChild(_svg);
-    }
-    closeSVG() {
-        this.container_.removeChild(this.svg);
     }
 }
 class CreateSVGPath {
@@ -1366,29 +1364,6 @@ class CreateSVGPath {
                 _path.setAttribute("fill", fill); }, { "passive": true });
         }
     }
-    closeSVGObject() {
-        if (this.svg_class_.svg.childElementCount < this.svg_class_.max_child_elem_count) {
-            this.svg_class_.svg.removeEventListener("mousemove", () => { if (!isTouchDevice)
-                this.path.setAttribute("stroke", this.hover_color_); });
-            this.svg_class_.svg.removeEventListener("mouseout", () => { if (!isTouchDevice)
-                this.path.setAttribute("stroke", this.stroke_); });
-            this.svg_class_.svg.removeEventListener("touchstart", () => { if (isTouchDevice)
-                this.path.setAttribute("stroke", this.hover_color_); });
-            this.svg_class_.svg.removeEventListener("touchend", () => { if (isTouchDevice)
-                this.path.setAttribute("stroke", this.stroke_); });
-            if (this.hover_fill_)
-                this.svg_class_.svg.removeEventListener("mousemove", () => { if (!isTouchDevice)
-                    this.path.setAttribute("fill", this.hover_color_); });
-            this.svg_class_.svg.removeEventListener("mouseout", () => { if (!isTouchDevice)
-                this.path.setAttribute("fill", this.fill_); });
-            if (this.hover_fill_)
-                this.svg_class_.svg.removeEventListener("touchstart", () => { if (isTouchDevice)
-                    this.path.setAttribute("fill", this.hover_color_); });
-            this.svg_class_.svg.removeEventListener("touchend", () => { if (isTouchDevice)
-                this.path.setAttribute("fill", this.fill_); });
-            this.svg_class_.svg.removeChild(this.path);
-        }
-    }
 }
 class CreateSVGLine {
     line;
@@ -1418,19 +1393,6 @@ class CreateSVGLine {
                 _line.setAttribute("stroke", hover_color); }, { "passive": true });
             svg_class.svg.addEventListener("touchend", () => { if (isTouchDevice)
                 _line.setAttribute("stroke", stroke); }, { "passive": true });
-        }
-    }
-    closeSVGObject() {
-        if (this.svg_class_.svg.childElementCount < this.svg_class_.max_child_elem_count) {
-            this.svg_class_.svg.removeEventListener("mousemove", () => { if (!isTouchDevice)
-                this.line.setAttribute("stroke", this.hover_color_); });
-            this.svg_class_.svg.removeEventListener("mouseout", () => { if (!isTouchDevice)
-                this.line.setAttribute("stroke", this.stroke_); });
-            this.svg_class_.svg.removeEventListener("touchstart", () => { if (isTouchDevice)
-                this.line.setAttribute("stroke", this.hover_color_); });
-            this.svg_class_.svg.removeEventListener("touchend", () => { if (isTouchDevice)
-                this.line.setAttribute("stroke", this.stroke_); });
-            this.svg_class_.svg.removeChild(this.line);
         }
     }
 }
@@ -1479,29 +1441,6 @@ class CreateSVGCircle {
                 _circle.setAttribute("fill", fill); }, { "passive": true });
         }
     }
-    closeSVGObject() {
-        if (this.svg_class_.svg.childElementCount < this.svg_class_.max_child_elem_count) {
-            this.svg_class_.svg.removeEventListener("mousemove", () => { if (!isTouchDevice)
-                this.circle.setAttribute("stroke", this.hover_color_); });
-            this.svg_class_.svg.removeEventListener("mouseout", () => { if (!isTouchDevice)
-                this.circle.setAttribute("stroke", this.stroke_); });
-            this.svg_class_.svg.removeEventListener("touchstart", () => { if (isTouchDevice)
-                this.circle.setAttribute("stroke", this.hover_color_); });
-            this.svg_class_.svg.removeEventListener("touchend", () => { if (isTouchDevice)
-                this.circle.setAttribute("stroke", this.stroke_); });
-            if (this.hover_fill_)
-                this.svg_class_.svg.removeEventListener("mousemove", () => { if (!isTouchDevice)
-                    this.circle.setAttribute("fill", this.hover_color_); });
-            this.svg_class_.svg.removeEventListener("mouseout", () => { if (!isTouchDevice)
-                this.circle.setAttribute("fill", this.fill_); });
-            if (this.hover_fill_)
-                this.svg_class_.svg.removeEventListener("touchstart", () => { if (isTouchDevice)
-                    this.circle.setAttribute("fill", this.hover_color_); });
-            this.svg_class_.svg.removeEventListener("touchend", () => { if (isTouchDevice)
-                this.circle.setAttribute("fill", this.fill_); });
-            this.svg_class_.svg.removeChild(this.circle);
-        }
-    }
 }
 class CreateSVGEllipse {
     ellipse;
@@ -1547,29 +1486,6 @@ class CreateSVGEllipse {
                     _ellipse.setAttribute("fill", hover_color); }, { "passive": true });
             svg_class.svg.addEventListener("touchend", () => { if (isTouchDevice)
                 _ellipse.setAttribute("fill", fill); }, { "passive": true });
-        }
-    }
-    closeSVGObject() {
-        if (this.svg_class_.svg.childElementCount < this.svg_class_.max_child_elem_count) {
-            this.svg_class_.svg.removeEventListener("mousemove", () => { if (!isTouchDevice)
-                this.ellipse.setAttribute("stroke", this.hover_color_); });
-            this.svg_class_.svg.removeEventListener("mouseout", () => { if (!isTouchDevice)
-                this.ellipse.setAttribute("stroke", this.stroke_); });
-            this.svg_class_.svg.removeEventListener("touchstart", () => { if (isTouchDevice)
-                this.ellipse.setAttribute("stroke", this.hover_color_); });
-            this.svg_class_.svg.removeEventListener("touchend", () => { if (isTouchDevice)
-                this.ellipse.setAttribute("stroke", this.stroke_); });
-            if (this.hover_fill_)
-                this.svg_class_.svg.removeEventListener("mousemove", () => { if (!isTouchDevice)
-                    this.ellipse.setAttribute("fill", this.hover_color_); });
-            this.svg_class_.svg.removeEventListener("mouseout", () => { if (!isTouchDevice)
-                this.ellipse.setAttribute("fill", this.fill_); });
-            if (this.hover_fill_)
-                this.svg_class_.svg.removeEventListener("touchstart", () => { if (isTouchDevice)
-                    this.ellipse.setAttribute("fill", this.hover_color_); });
-            this.svg_class_.svg.removeEventListener("touchend", () => { if (isTouchDevice)
-                this.ellipse.setAttribute("fill", this.fill_); });
-            this.svg_class_.svg.removeChild(this.ellipse);
         }
     }
 }
@@ -1622,6 +1538,7 @@ class DrawCanvas {
         ctx.globalAlpha = MODIFIED_PARAMS._GLOBAL_ALPHA;
         canvas.style.borderColor = MODIFIED_PARAMS._BORDER_COLOR;
         canvas.style.opacity = MODIFIED_PARAMS._CANVAS_OPACITY;
+        canvas.style.backgroundColor = MODIFIED_PARAMS._CANVAS_BACKGROUND_COLOR;
         while (svg_container.firstChild)
             svg_container.removeChild(svg_container.firstChild);
         const canvas_border_width = Number(window.getComputedStyle(canvas).borderWidth.split("px")[0]);

@@ -1,14 +1,13 @@
-class CreateObject {
+class CreateMeshObject extends CreateObject {
     width;
     height;
     depth;
-    points_list;
     mesh;
     _is_degenerate_;
     vert_st;
     shape;
     constructor(width, height, depth, start_vertex) {
-        this.points_list = [];
+        super();
         this.mesh = new MeshDataStructure();
         this.width = width;
         this.height = height;
@@ -17,9 +16,8 @@ class CreateObject {
         this.vert_st = start_vertex;
         this.shape = "Generic";
     }
-    reconstructMesh() { }
-    initMesh() { }
-    ;
+    reconstructMesh() { return this; }
+    initMesh() { return this; }
     changePoint(index, new_x, new_y, new_z) {
         if (index < this.points_list.length) {
             this.points_list[index] = new Point3D(new_x, new_y, new_z);
@@ -75,11 +73,11 @@ class CreateObject {
             this.points_list = [];
         }
     }
-    calculatePoints() { }
-    editDimensions() { }
+    calculatePoints() { return this; }
+    editDimensions() { return this; }
 }
 /* 1D Shapes */
-class CreatePoint extends CreateObject {
+class CreatePoint extends CreateMeshObject {
     point;
     constructor(x = 0, y = 0, z = 0, start_vertex = 0) {
         super(0, 0, 0, start_vertex);
@@ -107,7 +105,7 @@ class CreatePoint extends CreateObject {
         return this;
     }
 }
-class CreateLine extends CreateObject {
+class CreateLine extends CreateMeshObject {
     start;
     end;
     constructor(s_x = 0, s_y = 0, s_z = 0, e_x = 0, e_y = 0, e_z = 0, start_vertex = 0) {
@@ -140,7 +138,7 @@ class CreateLine extends CreateObject {
 }
 /* 1D Shapes */
 /* 2D Shapes */
-class CreatePolygon extends CreateObject {
+class CreatePolygon extends CreateMeshObject {
     vertex_number;
     half_edges;
     face;
@@ -229,7 +227,7 @@ class CreateCircle extends CreateEllipse {
         return this;
     }
 }
-class CreateRectangle extends CreateObject {
+class CreateRectangle extends CreateMeshObject {
     half_edges;
     face;
     increment;
@@ -279,7 +277,7 @@ class CreateRectangle extends CreateObject {
 }
 /* 2D Shapes */
 /* 3D Shapes */
-class CreatePyramidalBase extends CreateObject {
+class CreatePyramidalBase extends CreateMeshObject {
     base_class;
     choice;
     constructor(vertex_number = 3, width = 10, height = 10, depth = 10, choice = 1, start_vertex = 0) {
@@ -290,6 +288,7 @@ class CreatePyramidalBase extends CreateObject {
     reconstructMesh(vertex_number = 3, choice = 1, start_vertex = 0) {
         this.vert_st = start_vertex;
         this.refreshBase(choice, vertex_number, start_vertex);
+        return this;
     }
     initBase(choice, vertex_number, start_vertex) {
         switch (choice) {
@@ -316,11 +315,13 @@ class CreatePyramidalBase extends CreateObject {
         this.base_class.points_list[0] = new Point3D(0, this.height / 2, 0);
         this.base_class.calculatePoints();
         this.points_list = [...this.base_class.points_list];
+        return this;
     }
     editDimensions(width = this.width, height = this.height, depth = this.depth) {
         this.modifyDimensions(width, height, depth);
         this.base_class.modifyDimensions(width, height, depth);
         this.points_list = [];
+        return this;
     }
 }
 class CreatePyramid extends CreatePyramidalBase {
@@ -404,7 +405,7 @@ class CreateCone extends CreatePyramid {
         return this;
     }
 }
-class CreatePrismBases extends CreateObject {
+class CreatePrismBases extends CreateMeshObject {
     base_class_1;
     base_class_2;
     choice;
@@ -417,6 +418,7 @@ class CreatePrismBases extends CreateObject {
     reconstructMesh(vertex_number = 3, choice = 1, start_vertex = 0) {
         this.vert_st = start_vertex;
         this.refreshBase(choice, vertex_number, start_vertex);
+        return this;
     }
     initBase(choice, vertex_number, start_vertex) {
         switch (choice) {
@@ -452,12 +454,14 @@ class CreatePrismBases extends CreateObject {
         this.base_class_1.calculatePoints();
         this.base_class_2.calculatePoints();
         this.points_list = [...this.base_class_1.points_list, ...this.base_class_2.points_list];
+        return this;
     }
     editDimensions(width = this.width, height = this.height, depth = this.depth) {
         this.modifyDimensions(width, height, depth);
         this.base_class_1.modifyDimensions(width, -height, depth);
         this.base_class_2.modifyDimensions(width, height, depth);
         this.points_list = [];
+        return this;
     }
 }
 class CreatePrism extends CreatePrismBases {
@@ -528,7 +532,7 @@ class CreateCylinder extends CreatePrism {
         return this;
     }
 }
-class CreateCuboid extends CreateObject {
+class CreateCuboid extends CreateMeshObject {
     default_faces;
     default_vertex_map;
     constructor(width = 10, height = 10, depth = 10, start_vertex = 0) {
@@ -585,7 +589,7 @@ class CreateCuboid extends CreateObject {
         return this;
     }
 }
-class CreateSphere extends CreateObject {
+class CreateSphere extends CreateMeshObject {
     lat_divs;
     long_divs;
     radius;
@@ -657,7 +661,7 @@ class CreateSphere extends CreateObject {
         return this;
     }
 }
-class CreateTorus extends CreateObject {
+class CreateTorus extends CreateMeshObject {
     lat_divs;
     long_divs;
     toroidal_radius;
@@ -794,9 +798,176 @@ class CreateTorus extends CreateObject {
 }
 /* 3D Shapes */
 /* Grid Object */
-class CreateGrid extends CreateObject {
+class CreateGrid extends CreateMeshObject {
     constructor(width, depth) {
         super(width, 0, depth, 0);
     }
 }
-/* Grid Object */ 
+/* Grid Object */
+class ObjectRendering {
+    instance;
+    objects;
+    instance_number_to_list_map;
+    selected_object_instances;
+    current_object_instance;
+    constructor() {
+        this.instance = 0;
+        this.objects = [];
+        this.instance_number_to_list_map = {};
+        this.selected_object_instances = new Set();
+        this.current_object_instance = 0;
+    }
+    changeCurrentObjectInstance(value) { this.current_object_instance = value; }
+    getCurrentObjectInstance() {
+        return this.objects[this.instance_number_to_list_map[this.current_object_instance]];
+    }
+    deleteObjectHelper(instance_number_input, index) {
+        this.objects.splice(index, 1);
+        delete this.instance_number_to_list_map[instance_number_input];
+        for (const key in this.instance_number_to_list_map) {
+            if (Number(key) > instance_number_input) {
+                this.instance_number_to_list_map[key] = this.instance_number_to_list_map[key] - 1;
+            }
+        }
+        if (instance_number_input in this.selected_object_instances)
+            this.selected_object_instances.delete(instance_number_input);
+    }
+    addObjects(object) {
+        object.calculatePoints();
+        this.objects.push(object);
+        this.instance_number_to_list_map[this.instance] = this.instance;
+        this.instance++;
+    }
+    removeObject(object_instance) {
+        const index = this.instance_number_to_list_map[object_instance];
+        this.deleteObjectHelper(object_instance, index);
+    }
+    delete_all_objects() {
+        this.objects = [];
+        this.instance_number_to_list_map = {};
+    }
+    select_object(selected_instance) {
+        const selection = this.instance_number_to_list_map[selected_instance];
+        this.selected_object_instances.add(selection);
+    }
+    select_multiple_objects(selected_instances) { for (const instance of selected_instances)
+        this.select_object(instance); }
+    select_all_objects() { for (const index in this.objects) {
+        this.select_object(Number(index));
+    } ; }
+    deselect_object(selected_instance) {
+        const selection = this.instance_number_to_list_map[selected_instance];
+        this.selected_object_instances.delete(selected_instance);
+    }
+    deselect_multiple_objects(selected_instances) { for (const instance of selected_instances)
+        this.deselect_object(instance); }
+    deselect_all_objects() { this.selected_object_instances.clear(); }
+    vertexRotate(point, axis, angle) {
+        return _Quartenion.q_rot(angle, axis, point);
+    }
+    ;
+    vertexScale(point, scaling_array) {
+        return [point[0] * scaling_array[0], point[1] * scaling_array[1], point[2] * scaling_array[2]];
+    }
+    ;
+    vertexTranslate(point, translation_array) {
+        return _Matrix.matAdd(point, translation_array);
+    }
+    ;
+    rotateObject(axis, angle) {
+        const object = this.getCurrentObjectInstance();
+        if (typeof object === "undefined")
+            return;
+        object.rendered_points_list = [];
+        for (const index in object.points_list) {
+            const orig_pt = object.points_list[index];
+            const original_vector = [orig_pt.x, orig_pt.y, orig_pt.z];
+            const rotated_vector = this.vertexRotate(original_vector, axis, angle);
+            const translated_vector = this.vertexTranslate(rotated_vector, object.object_translation_array);
+            const revolved_vector = this.vertexRotate(translated_vector, object.object_revolution_axis, object.object_revolution_angle);
+            object.rendered_points_list.push(revolved_vector);
+        }
+        object.object_rotation_angle = angle;
+        object.object_rotation_axis = axis;
+    }
+    revolveObject(axis, angle) {
+        const object = this.getCurrentObjectInstance();
+        if (typeof object === "undefined")
+            return;
+        object.rendered_points_list = [];
+        for (const index in object.points_list) {
+            const orig_pt = object.points_list[index];
+            const original_vector = [orig_pt.x, orig_pt.y, orig_pt.z];
+            const rotated_vector = this.vertexRotate(original_vector, object.object_rotation_axis, object.object_rotation_angle);
+            const translated_vector = this.vertexTranslate(rotated_vector, object.object_translation_array);
+            const revolved_vector = this.vertexRotate(translated_vector, axis, angle);
+            object.rendered_points_list.push(revolved_vector);
+        }
+        object.object_revolution_angle = angle;
+        object.object_revolution_angle_backup = angle;
+        object.object_revolution_axis = axis;
+    }
+    translateObject(translation_array) {
+        const object = this.getCurrentObjectInstance();
+        if (typeof object === "undefined")
+            return;
+        object.rendered_points_list = [];
+        for (const index in object.points_list) {
+            const orig_pt = object.points_list[index];
+            const original_vector = [orig_pt.x, orig_pt.y, orig_pt.z];
+            const rotated_vector = this.vertexRotate(original_vector, object.object_rotation_axis, object.object_rotation_angle);
+            const translated_vector = this.vertexTranslate(rotated_vector, translation_array);
+            const revolved_vector = this.vertexRotate(translated_vector, object.object_revolution_axis, object.object_revolution_angle);
+            object.rendered_points_list.push(revolved_vector);
+        }
+        object.object_translation_array = translation_array;
+        object.object_translation_array_backup = translation_array;
+    }
+    renderLocal() {
+        const object = this.getCurrentObjectInstance();
+        if (typeof object === "undefined")
+            return;
+        object.object_revolution_angle_backup = object.object_revolution_angle;
+        object.object_revolution_angle = 0;
+        object.object_translation_array_backup = object.object_translation_array;
+        object.object_translation_array = [0, 0, 0];
+        this.rotateObject(object.object_rotation_axis, object.object_rotation_angle);
+    }
+    renderWorld() {
+        const object = this.getCurrentObjectInstance();
+        if (typeof object === "undefined")
+            return;
+        object.object_revolution_angle = object.object_revolution_angle_backup;
+        object.object_translation_array = object.object_translation_array_backup;
+        this.revolveObject(object.object_revolution_axis, object.object_revolution_angle);
+    }
+    renderObject() {
+        const object = this.getCurrentObjectInstance();
+        if (typeof object === "undefined")
+            return undefined;
+        const renderedObjectVertices = [];
+        for (const index in object.rendered_points_list) {
+            const vertex = object.rendered_points_list[index];
+            const rendered_vertex = _Optical_Objects.render(vertex, "camera");
+            if (typeof rendered_vertex === "undefined")
+                return undefined;
+            renderedObjectVertices.push(rendered_vertex);
+        }
+        return renderedObjectVertices;
+    }
+}
+const _ObjectRendering = new ObjectRendering();
+console.log(_ObjectRendering);
+const a_f = new CreateCuboid();
+const e_f = new CreateCuboid();
+const i_f = new CreatePyramid();
+_ObjectRendering.addObjects(a_f);
+_ObjectRendering.addObjects(e_f);
+_ObjectRendering.addObjects(i_f);
+_ObjectRendering.changeCurrentObjectInstance(1);
+console.log(_ObjectRendering.instance_number_to_list_map[1]);
+console.log(_ObjectRendering.instance_number_to_list_map);
+_ObjectRendering.translateObject([103, 622, 145]);
+_ObjectRendering.rotateObject([0, 1, 0], 45);
+console.log(_ObjectRendering.renderObject());
+// console.log(_ObjectRendering)
