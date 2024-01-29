@@ -644,7 +644,6 @@ class Linear {
 }
 
 class Quarternion {
-  private normalize: boolean;
   private theta: number;
   private q_vector: _3D_VEC_;
   private q_quarternion: _4D_VEC_;
@@ -674,7 +673,6 @@ class Quarternion {
 
   quarternion(normalized = true) {
       // quarternion
-
       const [v1,v2,v3] = this.q_vector;
       const [a,b] = [Math.cos(this.theta * 0.5),Math.sin(this.theta * 0.5)];
       this.q_quarternion = [a,v1 * b,v2 * b,v3 * b];
@@ -718,7 +716,7 @@ class Quarternion {
   }
 
   q_v_q_mult(input_vec: _3D_VEC_): _3D_VEC_ {
-      // quarternion _ vector _ inverse quarternion multiplication for point and vector reflection
+      // quarternion _ vector _ quarternion multiplication for point and vector reflection
       // with additional translating (for points) and scaling (for point and vectors) capabilities
       const output_vec: _4D_VEC_ = [0,...input_vec]
 
@@ -791,7 +789,6 @@ class Matrix {
   // }
 
   matMult(matA: number[],matB: number[],shapeA: _2D_VEC_,shapeB: _2D_VEC_): number[] {
-
       if(shapeA[1] !== shapeB[0]) return []
       else {
           const matC: number[] = []
@@ -931,7 +928,7 @@ class Matrix {
           for(let j = 0; j < shapeNum; j++) {
                 const result: number = this.getDet(this.getRestMat(matIn,shapeNum,i,j),shapeNum - 1);
                 matOut.push(result);
-          }
+           }
       }
 
       return matOut;
@@ -956,8 +953,6 @@ class Matrix {
   getCofMat(matIn: number[],shapeNum: number): number[] {
       const cofMatSgn: number[] = this.getCofSgnMat([shapeNum,shapeNum]);
       const minorMat: number[] = this.getMinorMat(matIn,shapeNum);
-
-      console.log(minorMat)
 
       const matOut: number[] = [];
       const len: number = shapeNum ** 2;
@@ -989,160 +984,161 @@ class Matrix {
 class Vector {
   constructor () {}
 
-  mag(vec: number[]): number {
-      const v_len: number = vec.length;
-      var magnitude: number = 0;
+    mag(vec: number |  number[]): number {
+    if(typeof vec === "number") return vec;
+        const v_len: number = vec.length;
+        var magnitude: number = 0;
 
-      for(let i = 0; i < v_len; i++) {
-          magnitude += vec[i] ** 2
-      }
+        for(let i = 0; i < v_len; i++) {
+            magnitude += vec[i] ** 2
+        }
 
-      return Math.sqrt(magnitude);
-  }
+        return Math.sqrt(magnitude);
+    }
 
-  normalizeVec(vec: number[]): number[] {
-      const len: number = Math.round(vec.length);
-      const magnitude: number = this.mag(vec);
-      const ret_vec: number[] = [];
+    normalizeVec(vec: number[]): number[] {
+        const len: number = Math.round(vec.length);
+        const magnitude: number = this.mag(vec);
+        const ret_vec: number[] = [];
 
-      for(let i = 0; i < len; i++) {
-          ret_vec[i] = vec[i] / magnitude;
-      }
+        for(let i = 0; i < len; i++) {
+            ret_vec[i] = vec[i] / magnitude;
+        }
 
-      return ret_vec;
-  }
+        return ret_vec;
+    }
 
-  dotProduct(vecA_or_magA: number | number[],vecB_or_magB: number | number[],angle = undefined): number {
-      // Can be:
-      //          1. two vectors without an angle (angle is undefined and vectors are 2d vectors or higher).
-      //          2. two magnitudes (magnitude of two vectors) with an angle (angle is a number).
+    dotProduct(vecA_or_magA: number | number[],vecB_or_magB: number | number[],angle : number | undefined = undefined): number {
+        // Can be:
+        //          1. two vectors without an angle (angle is undefined and vectors are 2d vectors or higher).
+        //          2. two magnitudes (magnitude of two vectors) with an angle (angle is a number).
 
-      // Use vectors if you know the components e.g [x,y] values for 2d vectors, [x,y,z] values for 3d vectors and so on.
-      // Use magnitudes and an angle if you know the magnitudes of the vectors and the angle between the two vectors.
+        // Use vectors if you know the components e.g [x,y] values for 2d vectors, [x,y,z] values for 3d vectors and so on.
+        // Use magnitudes and an angle if you know the magnitudes of the vectors and the angle between the two vectors.
 
-      if(typeof angle === "number") { // Magnitude use.
-          const toRad = MODIFIED_PARAMS._ANGLE_CONSTANT * angle;
-          return (vecA_or_magA as number) * (vecB_or_magB as number) * Math.cos(toRad);
-      }
+        if(typeof angle === "number") { // Magnitude use.
+            const toRad = MODIFIED_PARAMS._ANGLE_CONSTANT * angle;
+            return (vecA_or_magA as number) * (vecB_or_magB as number) * Math.cos(toRad);
+        }
 
-      const vec_a_len = (vecA_or_magA as number[]).length;
-      const vec_b_len = (vecB_or_magB as number[]).length;
+        const vec_a_len = (vecA_or_magA as number[]).length;
+        const vec_b_len = (vecB_or_magB as number[]).length;
 
-      //verify first that both vectors are of the same size and both are 2d or higher.
-      if(vec_a_len === vec_b_len && vec_b_len >= 2) {
-          var dot_product = 0;
+        //verify first that both vectors are of the same size and both are 2d or higher.
+        if(vec_a_len === vec_b_len && vec_b_len >= 2) {
+            var dot_product = 0;
 
-          for(let i = 0; i < vec_a_len; i++) {
-              dot_product += vecA_or_magA[i] * vecB_or_magB[i];
-          }
-          return dot_product;
-      }
+            for(let i = 0; i < vec_a_len; i++) {
+                dot_product += vecA_or_magA[i] * vecB_or_magB[i];
+            }
+            return dot_product;
+        }
 
-      return 0;
-  }
+        return 0;
+    }
 
-  getDotProductAngle(vecA: number[],vecB: number[]): number { // get the angle between two vectors.
-      const dot_product = this.dotProduct(vecA,vecB);
-      const cosAng = Math.acos(dot_product as number / (this.mag(vecA) * this.mag(vecB)));
+    getDotProductAngle(vecA: number[],vecB: number[]): number { // get the angle between two vectors.
+        const dot_product = this.dotProduct(vecA,vecB);
+        const cosAng = Math.acos(dot_product as number / (this.mag(vecA) * this.mag(vecB)));
 
-      return MODIFIED_PARAMS._REVERSE_ANGLE_CONSTANT * cosAng;
-  }
+        return MODIFIED_PARAMS._REVERSE_ANGLE_CONSTANT * cosAng;
+    }
 
-  getCrossProductByMatrix(vecs: number[][],vecs_len: number) {
-      var cross_product: number[] = [];
-      const proper_vec_len: number = vecs_len + 1; // All the vectors should be the same dimension with n + 1, where n is the number of vectors.
-      var matrix_array_top_row: number[] = [];
+    getCrossProductByMatrix(vecs: number[][],vecs_len: number) {
+        var cross_product: number[] = [];
+        const proper_vec_len: number = vecs_len + 1; // All the vectors should be the same dimension with n + 1, where n is the number of vectors.
+        var matrix_array_top_row: number[] = [];
 
-      for(let i = 0; i < proper_vec_len; i++) {
-          matrix_array_top_row[i] = 0 // Actually the number 0 is just a placeholder as we don't need any numbers here but we put 0 to make it a number array.
-      }
+        for(let i = 0; i < proper_vec_len; i++) {
+            matrix_array_top_row[i] = 0 // Actually the number 0 is just a placeholder as we don't need any numbers here but we put 0 to make it a number array.
+        }
 
-      var same_shape: number = 0; // If this variable is still equal to zero by the end of subsequent computations,
-      // it means that all the vectors are of dimenstion n + 1
-      var other_rows_array: number[] = [];
+        var same_shape: number = 0; // If this variable is still equal to zero by the end of subsequent computations,
+        // it means that all the vectors are of dimenstion n + 1
+        var other_rows_array: number[] = [];
 
-      for(let i = 0; i < vecs_len; i++) {
-          const vec_len = vecs[i].length;
-          if(vec_len !== proper_vec_len) same_shape++; // If a vector is not the same dimension with n + 1,
-          // increment the same_shape variable to capture this error.
-          else other_rows_array.push(...vecs[i]); // Else if the vector is the same dimension with n + 1, push the vector to a matrix array.
-      }
+        for(let i = 0; i < vecs_len; i++) {
+            const vec_len = vecs[i].length;
+            if(vec_len !== proper_vec_len) same_shape++; // If a vector is not the same dimension with n + 1,
+            // increment the same_shape variable to capture this error.
+            else other_rows_array.push(...vecs[i]); // Else if the vector is the same dimension with n + 1, push the vector to a matrix array.
+        }
 
-      if(same_shape === 0) { // All the vectors are the same dimension of n + 1.
-          const matrix_array = [...matrix_array_top_row,...other_rows_array];
-          const storeCofSgn = _Matrix.getCofSgnMat([proper_vec_len,1]);
+        if(same_shape === 0) { // All the vectors are the same dimension of n + 1.
+            const matrix_array = [...matrix_array_top_row,...other_rows_array];
+            const storeCofSgn = _Matrix.getCofSgnMat([proper_vec_len,1]);
 
-          for(let i = 0; i < proper_vec_len; i++) {
-              const rest_matrix_array = _Matrix.getRestMat(matrix_array,proper_vec_len,0,i);
-              cross_product[i] = storeCofSgn[i] * _Matrix.getDet(rest_matrix_array,vecs_len);
-          }
-      }
+            for(let i = 0; i < proper_vec_len; i++) {
+                const rest_matrix_array = _Matrix.getRestMat(matrix_array,proper_vec_len,0,i);
+                cross_product[i] = storeCofSgn[i] * _Matrix.getDet(rest_matrix_array,vecs_len);
+            }
+        }
 
-      return cross_product;
-  }
+        return cross_product;
+    }
 
-  crossProduct(vecs_or_mags: number[] | number[][],angle = undefined,unitVec = undefined): number | number[] {
-      var cross_product: number | number[] = [];
-      const vecs_or_mags_len = (vecs_or_mags as number[]).length;
-      // Can be:
-      //          1. two vectors without an angle (angle is undefined and vectors are 3d vectors or higher).
-      //          2. two magnitudes (magnitude of two vectors) with an angle (angle is a number).
+    crossProduct(vecs_or_mags: number[] | number[][],angle : number | undefined = undefined,unitVec : number[] | undefined = undefined): number | number[] {
+        var cross_product: number | number[] = [];
+        const vecs_or_mags_len = (vecs_or_mags as number[]).length;
+        // Can be:
+        //          1. two vectors without an angle (angle is undefined and vectors are 3d vectors or higher).
+        //          2. two magnitudes (magnitude of two vectors) with an angle (angle is a number).
 
-      // Use vectors if you know the components e.g [x,y,z] values for 3d vectors, [w,x,y,z] values for 4d vectors and so on.
-      // Use magnitudes and an angle if you know the magnitudes of the vectors and the angle between the two vectors.
-      if(typeof angle === "undefined") { // Vector use.
-          cross_product = [...this.getCrossProductByMatrix((vecs_or_mags as number[][]),vecs_or_mags_len)];
-      }
+        // Use vectors if you know the components e.g [x,y,z] values for 3d vectors, [w,x,y,z] values for 4d vectors and so on.
+        // Use magnitudes and an angle if you know the magnitudes of the vectors and the angle between the two vectors.
+        if(typeof angle === "undefined") { // Vector use.
+            cross_product = [...this.getCrossProductByMatrix((vecs_or_mags as number[][]),vecs_or_mags_len)];
+        }
 
-      if(typeof angle === "number") { // Magnitude use.
-          var magnitude = 1 // initial magnitude place holder
-          const toRad = MODIFIED_PARAMS._ANGLE_CONSTANT * angle;
+        if(typeof angle === "number") { // Magnitude use.
+            var magnitude = 1 // initial magnitude place holder
+            const toRad = MODIFIED_PARAMS._ANGLE_CONSTANT * angle;
 
-          for(let i = 0; i < vecs_or_mags_len; i++) {
-              magnitude *= (vecs_or_mags as number[])[i];
-          }
+            for(let i = 0; i < vecs_or_mags_len; i++) {
+                magnitude *= (vecs_or_mags as number[])[i];
+            }
 
-          if(typeof unitVec === "undefined") cross_product = magnitude * Math.sin(toRad);
-          else if(typeof unitVec === "object") cross_product = _Matrix.scaMult(magnitude * Math.sin(toRad),unitVec);
-      }
+            if(typeof unitVec === "undefined") cross_product = magnitude * Math.sin(toRad);
+            else if(typeof unitVec === "object") cross_product = _Matrix.scaMult(magnitude * Math.sin(toRad),unitVec);
+        }
 
-      return cross_product;
-  }
+        return cross_product;
+    }
 
-  getCrossProductAngle(vecs: number[] | number[][]): number | undefined { // get the angle between the vectors (makes sense in 3d, but feels kinda weird for higher dimensions but sorta feels like it works...???)
-      var cross_product_angle: number | undefined = undefined;
-      const vecs_len = vecs.length;
-      const proper_vec_len = vecs_len + 1; // All the vectors should be the same dimension with n + 1, where n is the number of vectors.
-      var same_shape = 0; // If this variable is still equal to zero by the end of subsequent computations,
-      // it means that all the vectors are of dimenstion n + 1
-      const cross_product_mag = this.mag(this.crossProduct(vecs) as number[]);
-      var vecs_m = 1;
+    getCrossProductAngle(vecs: number[] | number[][]): number | undefined { // get the angle between the vectors (makes sense in 3d, but feels kinda weird for higher dimensions but sorta feels like it works...???)
+        var cross_product_angle: number | undefined = undefined;
+        const vecs_len = vecs.length;
+        const proper_vec_len = vecs_len + 1; // All the vectors should be the same dimension with n + 1, where n is the number of vectors.
+        var same_shape = 0; // If this variable is still equal to zero by the end of subsequent computations,
+        // it means that all the vectors are of dimenstion n + 1
+        const cross_product_mag = this.mag(this.crossProduct(vecs));
+        var vecs_m = 1;
 
-      for(let i = 0; i < vecs_len; i++) {
-          const vec_len = (vecs[i] as number[]).length;
-          if(vec_len !== proper_vec_len) same_shape++; // If a vector is not the same dimension with n + 1,
-          // increment the same_shape variable to capture this error.
-          else vecs_m *= this.mag((vecs as number[][])[i]);
-      }
+        for(let i = 0; i < vecs_len; i++) {
+            const vec_len = (vecs[i] as number[]).length;
+            if(vec_len !== proper_vec_len) same_shape++; // If a vector is not the same dimension with n + 1,
+            // increment the same_shape variable to capture this error.
+            else vecs_m *= this.mag((vecs as number[][])[i]);
+        }
 
-      if(same_shape === 0) {
-          const sinAng = Math.asin(cross_product_mag / vecs_m);
-          const fromRad = MODIFIED_PARAMS._REVERSE_ANGLE_CONSTANT * sinAng;
-          cross_product_angle = fromRad;
-      }
+        if(same_shape === 0) {
+            const sinAng = Math.asin(cross_product_mag / vecs_m);
+            const fromRad = MODIFIED_PARAMS._REVERSE_ANGLE_CONSTANT * sinAng;
+            cross_product_angle = fromRad;
+        }
 
-      return cross_product_angle;
-  }
+        return cross_product_angle;
+    }
 
-  getCrossPUnitVec(vecs: number[]) {
-      var cross_product_unit_vec: number[] = [];
+    getCrossPUnitVec(vecs: number[][]) {
+        var cross_product_unit_vec: number[] = [];
 
-      const cross_product = this.crossProduct(vecs);
-      const cross_product_mag = this.mag((cross_product as number[]));
-      cross_product_unit_vec = _Matrix.scaMult(1 / cross_product_mag,(cross_product as number[]));
+        const cross_product = this.crossProduct(vecs);
+        const cross_product_mag = this.mag(cross_product);
+        cross_product_unit_vec = _Matrix.scaMult(1 / cross_product_mag,(cross_product as number[]));
 
-      return cross_product_unit_vec;
-  }
+        return cross_product_unit_vec;
+    }
 }
 
 class PerspectiveProjection {
@@ -1168,7 +1164,6 @@ class PerspectiveProjection {
       MODIFIED_PARAMS._DIST = 1 / (Math.tan(MODIFIED_PARAMS._PROJ_ANGLE / 2 * MODIFIED_PARAMS._ANGLE_CONSTANT));
       MODIFIED_PARAMS._PROJECTION_MAT = [MODIFIED_PARAMS._DIST / MODIFIED_PARAMS._ASPECT_RATIO,0,0,0,0,MODIFIED_PARAMS._DIST,0,0,0,0,(-MODIFIED_PARAMS._NZ - MODIFIED_PARAMS._FZ) / (MODIFIED_PARAMS._NZ - MODIFIED_PARAMS._FZ),(2 * MODIFIED_PARAMS._FZ * MODIFIED_PARAMS._NZ) / (MODIFIED_PARAMS._NZ - MODIFIED_PARAMS._FZ),0,0,1,0];
 
-      console.log("persproj")
       const inverse_res: number[] | undefined = _Matrix.getInvMat(MODIFIED_PARAMS._PROJECTION_MAT,4);
       if(typeof inverse_res === "undefined") return;
       if(inverse_res.length !== 16) return;
@@ -1228,7 +1223,6 @@ interface OPTICALELEMENT {
     _INV_MATRIX: _16D_VEC_,
     depthBuffer: Float64Array,
     frameBuffer: Uint8Array,
-    translation_array : _3D_VEC_,
 }
 
 class CreateObject {
@@ -1267,26 +1261,34 @@ class OpticalElement extends CreateObject {
         instance_number: 0,
         optical_type: "none",
         _LOOK_AT_POINT: [0,0,0],
-        _U: [0,0,0],
-        _V: [0,0,0],
-        _N: [0,0,0],
-        _C: [0,0,0],
-        _MATRIX: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1] as _16D_VEC_,
+        _U: [1,0,0],
+        _V: [0,1,0],
+        _N: [0,0,1],
+        _C: [0,0,-10],
+        _MATRIX: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1] as _16D_VEC_,
         _INV_MATRIX: [1, -0, 0, -0, -0, 1, -0, 0, 0, -0, 1, -0, -0, 0, -0, 1] as _16D_VEC_,
         depthBuffer: _Miscellanous.initDepthBuffer(),
         frameBuffer: _Miscellanous.initFrameBuffer(),
-        translation_array : [0,0,0],
     }
 
     constructor (optical_type_input: _OPTICAL_) {
         super();
+        this.points_list = [new Point3D(1,0,0),new Point3D(0,1,0), new Point3D(0,0,1)];
         this.instance.optical_type = optical_type_input;
+        this.object_rotation_axis = [0,1,0];
+        this.object_revolution_axis = [0,1,0]
+        this.object_translation_array = [0,0,0];
+        this.setCoordSystem();
+        this.setConversionMatrices();
+
+        this.translateObject([0,0,-10])
+        console.log(this)
         return this;
     }
 
     resetBuffers() {
-        //_Miscellanous.resetDepthBuffer(this.instance.depthBuffer);
-        //_Miscellanous.resetFrameBuffer(this.instance.frameBuffer);
+        _Miscellanous.resetDepthBuffer(this.instance.depthBuffer);
+        _Miscellanous.resetFrameBuffer(this.instance.frameBuffer);
     }
 
     setCoordSystem() {
@@ -1297,7 +1299,15 @@ class OpticalElement extends CreateObject {
         this.instance._U = _Vector.normalizeVec(_Vector.crossProduct([UP,this.instance._N]) as number[]) as _3D_VEC_;
         this.instance._V = _Vector.normalizeVec(_Vector.crossProduct([this.instance._N,this.instance._U]) as number[]) as _3D_VEC_;
 
-        this.points_list = _Miscellanous.vecs3DToPoints3D([this.instance._U, this.instance._V, this.instance._N]);
+        this.rendered_points_list = [this.instance._U, this.instance._V, this.instance._N];
+    }
+
+    normalizeCoordSystemVectors(){
+        this.instance._N = _Vector.normalizeVec(this.instance._N) as _3D_VEC_;
+        this.instance._U = _Vector.normalizeVec(this.instance._U) as _3D_VEC_;
+        this.instance._V = _Vector.normalizeVec(this.instance._V) as _3D_VEC_;
+
+        this.rendered_points_list = [this.instance._U, this.instance._V, this.instance._N];
     }
 
     setConversionMatrices() {
@@ -1305,103 +1315,86 @@ class OpticalElement extends CreateObject {
         this.instance._INV_MATRIX = _Matrix.getInvMat(this.instance._MATRIX,4) as _16D_VEC_;
     }
 
+    vertexRotate(point: _3D_VEC_,axis: _3D_VEC_,angle: number): _3D_VEC_ {
+        return _Quartenion.q_rot(angle,axis,point);
+    };
+
+    vertexScale(point: _3D_VEC_,scaling_array: _3D_VEC_): _3D_VEC_ {
+        return [point[0] * scaling_array[0],point[1] * scaling_array[1],point[2] * scaling_array[2]];
+    };
+
+    vertexTranslate(point: _3D_VEC_,translation_array: _3D_VEC_): _3D_VEC_ {
+        return _Vector.normalizeVec(_Matrix.matAdd(point,translation_array)) as _3D_VEC_;
+    };
+
     setLookAtPos(look_at_point: _3D_VEC_) {
         this.instance._LOOK_AT_POINT = look_at_point;
     }
 
-    // rotateObject(axis: _3D_VEC_,angle: number) {
-        
+    rotateObject(axis: _3D_VEC_,angle: number) {       
+        this.rendered_points_list = [];
 
-    //     for(const index in object.points_list) {
-    //         const orig_pt = object.points_list[index];
-    //         const original_vector: _3D_VEC_ = [orig_pt.x,orig_pt.y,orig_pt.z];
-    //         const rotated_vector = this.vertexRotate(original_vector,axis,angle);
-    //         const translated_vector = this.vertexTranslate(rotated_vector,object.object_translation_array);
-    //         const revolved_vector = this.vertexRotate(translated_vector,object.object_revolution_axis,object.object_revolution_angle);
-    //         object.rendered_points_list.push(revolved_vector);
-    //     }
-
-    //     object.object_rotation_angle = angle;
-    //     object.object_rotation_axis = axis;
-    // }
-
-    // revolveObject(axis: _3D_VEC_,angle: number) {
-    //     const object = this.getCurrentObjectInstance();
-    //     if(typeof object === "undefined") return;
-
-    //     object.rendered_points_list = [];
-
-    //     for(const index in object.points_list) {
-    //         const orig_pt = object.points_list[index];
-    //         const original_vector: _3D_VEC_ = [orig_pt.x,orig_pt.y,orig_pt.z];
-    //         const rotated_vector = this.vertexRotate(original_vector,object.object_rotation_axis,object.object_rotation_angle);
-    //         const translated_vector = this.vertexTranslate(rotated_vector,object.object_translation_array);
-    //         const revolved_vector = this.vertexRotate(translated_vector,axis,angle);
-    //         object.rendered_points_list.push(revolved_vector);
-    //     }
-
-    //     object.object_revolution_angle = angle;
-    //     object.object_revolution_angle_backup = angle;
-    //     object.object_revolution_axis = axis;
-    // }
-
-    // translateObject(translation_array: _3D_VEC_) {
-    //     const object = this.getCurrentObjectInstance();
-    //     if(typeof object === "undefined") return;
-
-    //     object.rendered_points_list = [];
-
-    //     for(const index in object.points_list) {
-    //         const orig_pt = object.points_list[index];
-    //         const original_vector: _3D_VEC_ = [orig_pt.x,orig_pt.y,orig_pt.z];
-    //         const rotated_vector = this.vertexRotate(original_vector,object.object_rotation_axis,object.object_rotation_angle);
-    //         const translated_vector = this.vertexTranslate(rotated_vector,translation_array);
-    //         const revolved_vector = this.vertexRotate(translated_vector,object.object_revolution_axis,object.object_revolution_angle);
-    //         object.rendered_points_list.push(revolved_vector);
-    //     }
-
-    //     object.object_translation_array = translation_array;
-    //     object.object_translation_array_backup = translation_array;
-    // }
-
-    rotate(plane: _PLANE_,angle: number) : void | undefined {
-        if(plane === "U-V") {
-            const _U_N = _Quartenion.q_rot(angle,this.instance._U,this.instance._N);
-            const _V_N = _Quartenion.q_rot(angle,this.instance._V,this.instance._N);
-
-            if(typeof _U_N === "number") return undefined
-            if(typeof _V_N === "number") return undefined
-            this.instance._U = _U_N as _3D_VEC_;
-            this.instance._V = _V_N as _3D_VEC_;
-
-        } else if(plane === "U-N") {
-            const _U_V = _Quartenion.q_rot(angle,this.instance._U,this.instance._V);
-            const _V_N = _Quartenion.q_rot(angle,this.instance._V,this.instance._N);
-
-            if(typeof _U_V === "number") return undefined
-            if(typeof _V_N === "number") return undefined
-            this.instance._U = _U_V as _3D_VEC_;
-            this.instance._V = _V_N as _3D_VEC_;
-
-        } else if(plane === "V-N") {
-            const _U_V = _Quartenion.q_rot(angle,this.instance._U,this.instance._V);
-            const _U_N = _Quartenion.q_rot(angle,this.instance._U,this.instance._N);
-
-            if(typeof _U_V === "number") return undefined
-            if(typeof _U_N === "number") return undefined
-            this.instance._U = _U_V as _3D_VEC_;
-            this.instance._V = _U_N as _3D_VEC_;
+        for(const index in this.points_list) {
+            const orig_pt = this.points_list[index];
+            const original_vector: _3D_VEC_ = [orig_pt.x,orig_pt.y,orig_pt.z];
+            const rotated_vector = this.vertexRotate(original_vector,axis,angle);
+            const translated_vector = this.vertexTranslate(rotated_vector,this.object_translation_array);
+            const revolved_vector = this.vertexRotate(translated_vector,this.object_revolution_axis,this.object_revolution_angle);
+            this.rendered_points_list.push(revolved_vector);
         }
 
-        this.setConversionMatrices()
+        this.object_rotation_angle = angle;
+        this.object_rotation_axis = axis;
+
+        this.instance._C = this.object_translation_array;
+        [this.instance._U,this.instance._V,this.instance._N] = this.rendered_points_list;        
+        this.normalizeCoordSystemVectors();
+        this.setConversionMatrices();
     }
 
-    translate(translation_array: _3D_VEC_) {
-        this.instance._C = translation_array;
+    revolveObject(axis: _3D_VEC_,angle: number) {
+        this.rendered_points_list = [];
+
+        for(const index in this.points_list) {
+            const orig_pt = this.points_list[index];
+            const original_vector: _3D_VEC_ = [orig_pt.x,orig_pt.y,orig_pt.z];
+            const rotated_vector = this.vertexRotate(original_vector,this.object_rotation_axis,this.object_rotation_angle);
+            const translated_vector = this.vertexTranslate(rotated_vector,this.object_translation_array);
+            const revolved_vector = this.vertexRotate(translated_vector,axis,angle);
+            this.rendered_points_list.push(revolved_vector);
+        }
+
+        this.object_revolution_angle = angle;
+        this.object_revolution_angle_backup = angle;
+        this.object_revolution_axis = axis;
+
+        this.instance._C = this.object_translation_array;
+        [this.instance._U,this.instance._V,this.instance._N] = this.rendered_points_list;        
+        this.normalizeCoordSystemVectors();
+        this.setConversionMatrices();
+    }
+
+    translateObject(translation_array: _3D_VEC_) {
+        this.rendered_points_list = [];
+
+        for(const index in this.points_list) {
+            const orig_pt = this.points_list[index];
+            const original_vector: _3D_VEC_ = [orig_pt.x,orig_pt.y,orig_pt.z];
+            const rotated_vector = this.vertexRotate(original_vector,this.object_rotation_axis,this.object_rotation_angle);
+            const translated_vector = this.vertexTranslate(rotated_vector,translation_array);
+            const revolved_vector = this.vertexRotate(translated_vector,this.object_revolution_axis,this.object_revolution_angle);
+            this.rendered_points_list.push(revolved_vector);
+        }
+
+        this.object_translation_array = translation_array;
+        this.object_translation_array_backup = translation_array;
+
+        this.instance._C = this.object_translation_array;
+        [this.instance._U,this.instance._V,this.instance._N] = this.rendered_points_list;        
+        this.setConversionMatrices();
     }
 
     worldToOpticalObject(ar: _3D_VEC_): _4D_VEC_ {
-        console.log("instance", this.instance)
         const arr: _4D_VEC_ = [...ar,1]
         const result: _4D_VEC_ = _Matrix.matMult(this.instance._MATRIX,arr,[4,4],[4,1]) as _4D_VEC_;
         return result;
@@ -1459,6 +1452,9 @@ class OpticalElement_Objects {
 
     selected_light_instances: object;
     selected_camera_instances: object;
+    
+    current_light_instance : number;
+    current_camera_instance : number;
 
     max_camera_instance_number: number;
     max_light_instance_number: number;
@@ -1471,12 +1467,17 @@ class OpticalElement_Objects {
         this.max_camera_instance_number = 0;
         this.max_light_instance_number = 0;
 
+        this.current_camera_instance = 0;
+        this.current_light_instance = 1;
+
         this.optical_element_array = [];
         this.selected_light_instances = {};
         this.selected_camera_instances = {};
+        
         this.instance_number_to_list_map = {};
 
         let self = this;
+
 
         window.addEventListener("load",()=>{
             self.createNewCameraObject();
@@ -1488,14 +1489,11 @@ class OpticalElement_Objects {
         this.max_camera_instance_number = this.instance_number;
         this.optical_element_array[this.arrlen] = new OpticalElement("camera");
         this.instance_number_to_list_map[this.instance_number] = this.arrlen;
+
+        this.current_camera_instance = this.instance_number;
         this.instance_number++;
         this.arrlen++;
 
-        this.optical_element_array[0].translate(0,0,-10);
-        this.optical_element_array[0].setLookAtPos(0,0,0);
-        this.optical_element_array[0].setCoordSystem();
-        this.optical_element_array[0].setConversionMatrices();
-        console.log(this.optical_element_array[0].instance)
         this.select_camera_instance(0);
     }
 
@@ -1503,6 +1501,8 @@ class OpticalElement_Objects {
         this.max_light_instance_number = this.instance_number;
         this.optical_element_array[this.arrlen] = new OpticalElement("light");
         this.instance_number_to_list_map[this.instance_number] = this.arrlen;
+
+        this.current_light_instance = this.instance_number;
         this.instance_number++;
         this.arrlen++;
 
@@ -1528,6 +1528,10 @@ class OpticalElement_Objects {
 
         if(Object.keys(this.selected_camera_instances).length === 0) this.selected_camera_instances[0] = 0;
         if(Object.keys(this.selected_light_instances).length === 0) this.selected_light_instances[1] = 1;
+
+        if(instance_number_input === this.current_camera_instance) this.current_camera_instance = Number(Object.keys(this.selected_camera_instances)[0]); 
+
+        if(instance_number_input === this.current_light_instance) this.current_light_instance = Number(Object.keys(this.selected_light_instances)[0]);
     }
 
     deleteCameraObject(instance_number_input: number) {

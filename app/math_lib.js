@@ -595,7 +595,6 @@ class Linear {
     }
 }
 class Quarternion {
-    normalize;
     theta;
     q_vector;
     q_quarternion;
@@ -659,7 +658,7 @@ class Quarternion {
         return this.q_mult(this.q_quarternion, this.q_mult(output_vec, this.q_inv_quarternion)).splice(1);
     }
     q_v_q_mult(input_vec) {
-        // quarternion _ vector _ inverse quarternion multiplication for point and vector reflection
+        // quarternion _ vector _ quarternion multiplication for point and vector reflection
         // with additional translating (for points) and scaling (for point and vectors) capabilities
         const output_vec = [0, ...input_vec];
         return this.q_mult(this.q_quarternion, this.q_mult(output_vec, this.q_quarternion)).splice(1);
@@ -859,7 +858,6 @@ class Matrix {
     getCofMat(matIn, shapeNum) {
         const cofMatSgn = this.getCofSgnMat([shapeNum, shapeNum]);
         const minorMat = this.getMinorMat(matIn, shapeNum);
-        console.log(minorMat);
         const matOut = [];
         const len = shapeNum ** 2;
         for (let i = 0; i < len; i++) {
@@ -882,6 +880,8 @@ class Matrix {
 class Vector {
     constructor() { }
     mag(vec) {
+        if (typeof vec === "number")
+            return vec;
         const v_len = vec.length;
         var magnitude = 0;
         for (let i = 0; i < v_len; i++) {
@@ -1025,7 +1025,6 @@ class PerspectiveProjection {
     setPersProjectParam() {
         MODIFIED_PARAMS._DIST = 1 / (Math.tan(MODIFIED_PARAMS._PROJ_ANGLE / 2 * MODIFIED_PARAMS._ANGLE_CONSTANT));
         MODIFIED_PARAMS._PROJECTION_MAT = [MODIFIED_PARAMS._DIST / MODIFIED_PARAMS._ASPECT_RATIO, 0, 0, 0, 0, MODIFIED_PARAMS._DIST, 0, 0, 0, 0, (-MODIFIED_PARAMS._NZ - MODIFIED_PARAMS._FZ) / (MODIFIED_PARAMS._NZ - MODIFIED_PARAMS._FZ), (2 * MODIFIED_PARAMS._FZ * MODIFIED_PARAMS._NZ) / (MODIFIED_PARAMS._NZ - MODIFIED_PARAMS._FZ), 0, 0, 1, 0];
-        console.log("persproj");
         const inverse_res = _Matrix.getInvMat(MODIFIED_PARAMS._PROJECTION_MAT, 4);
         if (typeof inverse_res === "undefined")
             return;
@@ -1099,24 +1098,31 @@ class OpticalElement extends CreateObject {
         instance_number: 0,
         optical_type: "none",
         _LOOK_AT_POINT: [0, 0, 0],
-        _U: [0, 0, 0],
-        _V: [0, 0, 0],
-        _N: [0, 0, 0],
-        _C: [0, 0, 0],
+        _U: [1, 0, 0],
+        _V: [0, 1, 0],
+        _N: [0, 0, 1],
+        _C: [0, 0, -10],
         _MATRIX: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         _INV_MATRIX: [1, -0, 0, -0, -0, 1, -0, 0, 0, -0, 1, -0, -0, 0, -0, 1],
         depthBuffer: _Miscellanous.initDepthBuffer(),
         frameBuffer: _Miscellanous.initFrameBuffer(),
-        translation_array: [0, 0, 0],
     };
     constructor(optical_type_input) {
         super();
+        this.points_list = [new Point3D(1, 0, 0), new Point3D(0, 1, 0), new Point3D(0, 0, 1)];
         this.instance.optical_type = optical_type_input;
+        this.object_rotation_axis = [0, 1, 0];
+        this.object_revolution_axis = [0, 1, 0];
+        this.object_translation_array = [0, 0, 0];
+        this.setCoordSystem();
+        this.setConversionMatrices();
+        this.translateObject([0, 0, -10]);
+        console.log(this);
         return this;
     }
     resetBuffers() {
-        //_Miscellanous.resetDepthBuffer(this.instance.depthBuffer);
-        //_Miscellanous.resetFrameBuffer(this.instance.frameBuffer);
+        _Miscellanous.resetDepthBuffer(this.instance.depthBuffer);
+        _Miscellanous.resetFrameBuffer(this.instance.frameBuffer);
     }
     setCoordSystem() {
         const DIFF = _Matrix.matAdd(this.instance._LOOK_AT_POINT, this.instance._C, true);
@@ -1124,96 +1130,85 @@ class OpticalElement extends CreateObject {
         this.instance._N = _Vector.normalizeVec(DIFF);
         this.instance._U = _Vector.normalizeVec(_Vector.crossProduct([UP, this.instance._N]));
         this.instance._V = _Vector.normalizeVec(_Vector.crossProduct([this.instance._N, this.instance._U]));
-        this.points_list = _Miscellanous.vecs3DToPoints3D([this.instance._U, this.instance._V, this.instance._N]);
+        this.rendered_points_list = [this.instance._U, this.instance._V, this.instance._N];
+    }
+    normalizeCoordSystemVectors() {
+        this.instance._N = _Vector.normalizeVec(this.instance._N);
+        this.instance._U = _Vector.normalizeVec(this.instance._U);
+        this.instance._V = _Vector.normalizeVec(this.instance._V);
+        this.rendered_points_list = [this.instance._U, this.instance._V, this.instance._N];
     }
     setConversionMatrices() {
         this.instance._MATRIX = [...this.instance._U, this.instance._C[0], ...this.instance._V, this.instance._C[1], ...this.instance._N, this.instance._C[2], ...[0, 0, 0, 1]];
         this.instance._INV_MATRIX = _Matrix.getInvMat(this.instance._MATRIX, 4);
     }
+    vertexRotate(point, axis, angle) {
+        return _Quartenion.q_rot(angle, axis, point);
+    }
+    ;
+    vertexScale(point, scaling_array) {
+        return [point[0] * scaling_array[0], point[1] * scaling_array[1], point[2] * scaling_array[2]];
+    }
+    ;
+    vertexTranslate(point, translation_array) {
+        return _Vector.normalizeVec(_Matrix.matAdd(point, translation_array));
+    }
+    ;
     setLookAtPos(look_at_point) {
         this.instance._LOOK_AT_POINT = look_at_point;
     }
-    // rotateObject(axis: _3D_VEC_,angle: number) {
-    //     for(const index in object.points_list) {
-    //         const orig_pt = object.points_list[index];
-    //         const original_vector: _3D_VEC_ = [orig_pt.x,orig_pt.y,orig_pt.z];
-    //         const rotated_vector = this.vertexRotate(original_vector,axis,angle);
-    //         const translated_vector = this.vertexTranslate(rotated_vector,object.object_translation_array);
-    //         const revolved_vector = this.vertexRotate(translated_vector,object.object_revolution_axis,object.object_revolution_angle);
-    //         object.rendered_points_list.push(revolved_vector);
-    //     }
-    //     object.object_rotation_angle = angle;
-    //     object.object_rotation_axis = axis;
-    // }
-    // revolveObject(axis: _3D_VEC_,angle: number) {
-    //     const object = this.getCurrentObjectInstance();
-    //     if(typeof object === "undefined") return;
-    //     object.rendered_points_list = [];
-    //     for(const index in object.points_list) {
-    //         const orig_pt = object.points_list[index];
-    //         const original_vector: _3D_VEC_ = [orig_pt.x,orig_pt.y,orig_pt.z];
-    //         const rotated_vector = this.vertexRotate(original_vector,object.object_rotation_axis,object.object_rotation_angle);
-    //         const translated_vector = this.vertexTranslate(rotated_vector,object.object_translation_array);
-    //         const revolved_vector = this.vertexRotate(translated_vector,axis,angle);
-    //         object.rendered_points_list.push(revolved_vector);
-    //     }
-    //     object.object_revolution_angle = angle;
-    //     object.object_revolution_angle_backup = angle;
-    //     object.object_revolution_axis = axis;
-    // }
-    // translateObject(translation_array: _3D_VEC_) {
-    //     const object = this.getCurrentObjectInstance();
-    //     if(typeof object === "undefined") return;
-    //     object.rendered_points_list = [];
-    //     for(const index in object.points_list) {
-    //         const orig_pt = object.points_list[index];
-    //         const original_vector: _3D_VEC_ = [orig_pt.x,orig_pt.y,orig_pt.z];
-    //         const rotated_vector = this.vertexRotate(original_vector,object.object_rotation_axis,object.object_rotation_angle);
-    //         const translated_vector = this.vertexTranslate(rotated_vector,translation_array);
-    //         const revolved_vector = this.vertexRotate(translated_vector,object.object_revolution_axis,object.object_revolution_angle);
-    //         object.rendered_points_list.push(revolved_vector);
-    //     }
-    //     object.object_translation_array = translation_array;
-    //     object.object_translation_array_backup = translation_array;
-    // }
-    rotate(plane, angle) {
-        if (plane === "U-V") {
-            const _U_N = _Quartenion.q_rot(angle, this.instance._U, this.instance._N);
-            const _V_N = _Quartenion.q_rot(angle, this.instance._V, this.instance._N);
-            if (typeof _U_N === "number")
-                return undefined;
-            if (typeof _V_N === "number")
-                return undefined;
-            this.instance._U = _U_N;
-            this.instance._V = _V_N;
+    rotateObject(axis, angle) {
+        this.rendered_points_list = [];
+        for (const index in this.points_list) {
+            const orig_pt = this.points_list[index];
+            const original_vector = [orig_pt.x, orig_pt.y, orig_pt.z];
+            const rotated_vector = this.vertexRotate(original_vector, axis, angle);
+            const translated_vector = this.vertexTranslate(rotated_vector, this.object_translation_array);
+            const revolved_vector = this.vertexRotate(translated_vector, this.object_revolution_axis, this.object_revolution_angle);
+            this.rendered_points_list.push(revolved_vector);
         }
-        else if (plane === "U-N") {
-            const _U_V = _Quartenion.q_rot(angle, this.instance._U, this.instance._V);
-            const _V_N = _Quartenion.q_rot(angle, this.instance._V, this.instance._N);
-            if (typeof _U_V === "number")
-                return undefined;
-            if (typeof _V_N === "number")
-                return undefined;
-            this.instance._U = _U_V;
-            this.instance._V = _V_N;
-        }
-        else if (plane === "V-N") {
-            const _U_V = _Quartenion.q_rot(angle, this.instance._U, this.instance._V);
-            const _U_N = _Quartenion.q_rot(angle, this.instance._U, this.instance._N);
-            if (typeof _U_V === "number")
-                return undefined;
-            if (typeof _U_N === "number")
-                return undefined;
-            this.instance._U = _U_V;
-            this.instance._V = _U_N;
-        }
+        this.object_rotation_angle = angle;
+        this.object_rotation_axis = axis;
+        this.instance._C = this.object_translation_array;
+        [this.instance._U, this.instance._V, this.instance._N] = this.rendered_points_list;
+        this.normalizeCoordSystemVectors();
         this.setConversionMatrices();
     }
-    translate(translation_array) {
-        this.instance._C = translation_array;
+    revolveObject(axis, angle) {
+        this.rendered_points_list = [];
+        for (const index in this.points_list) {
+            const orig_pt = this.points_list[index];
+            const original_vector = [orig_pt.x, orig_pt.y, orig_pt.z];
+            const rotated_vector = this.vertexRotate(original_vector, this.object_rotation_axis, this.object_rotation_angle);
+            const translated_vector = this.vertexTranslate(rotated_vector, this.object_translation_array);
+            const revolved_vector = this.vertexRotate(translated_vector, axis, angle);
+            this.rendered_points_list.push(revolved_vector);
+        }
+        this.object_revolution_angle = angle;
+        this.object_revolution_angle_backup = angle;
+        this.object_revolution_axis = axis;
+        this.instance._C = this.object_translation_array;
+        [this.instance._U, this.instance._V, this.instance._N] = this.rendered_points_list;
+        this.normalizeCoordSystemVectors();
+        this.setConversionMatrices();
+    }
+    translateObject(translation_array) {
+        this.rendered_points_list = [];
+        for (const index in this.points_list) {
+            const orig_pt = this.points_list[index];
+            const original_vector = [orig_pt.x, orig_pt.y, orig_pt.z];
+            const rotated_vector = this.vertexRotate(original_vector, this.object_rotation_axis, this.object_rotation_angle);
+            const translated_vector = this.vertexTranslate(rotated_vector, translation_array);
+            const revolved_vector = this.vertexRotate(translated_vector, this.object_revolution_axis, this.object_revolution_angle);
+            this.rendered_points_list.push(revolved_vector);
+        }
+        this.object_translation_array = translation_array;
+        this.object_translation_array_backup = translation_array;
+        this.instance._C = this.object_translation_array;
+        [this.instance._U, this.instance._V, this.instance._N] = this.rendered_points_list;
+        this.setConversionMatrices();
     }
     worldToOpticalObject(ar) {
-        console.log("instance", this.instance);
         const arr = [...ar, 1];
         const result = _Matrix.matMult(this.instance._MATRIX, arr, [4, 4], [4, 1]);
         return result;
@@ -1268,6 +1263,8 @@ class OpticalElement_Objects {
     arrlen;
     selected_light_instances;
     selected_camera_instances;
+    current_light_instance;
+    current_camera_instance;
     max_camera_instance_number;
     max_light_instance_number;
     instance_number_to_list_map;
@@ -1276,6 +1273,8 @@ class OpticalElement_Objects {
         this.instance_number = 0;
         this.max_camera_instance_number = 0;
         this.max_light_instance_number = 0;
+        this.current_camera_instance = 0;
+        this.current_light_instance = 1;
         this.optical_element_array = [];
         this.selected_light_instances = {};
         this.selected_camera_instances = {};
@@ -1290,19 +1289,16 @@ class OpticalElement_Objects {
         this.max_camera_instance_number = this.instance_number;
         this.optical_element_array[this.arrlen] = new OpticalElement("camera");
         this.instance_number_to_list_map[this.instance_number] = this.arrlen;
+        this.current_camera_instance = this.instance_number;
         this.instance_number++;
         this.arrlen++;
-        this.optical_element_array[0].translate(0, 0, -10);
-        this.optical_element_array[0].setLookAtPos(0, 0, 0);
-        this.optical_element_array[0].setCoordSystem();
-        this.optical_element_array[0].setConversionMatrices();
-        console.log(this.optical_element_array[0].instance);
         this.select_camera_instance(0);
     }
     createNewLightObject() {
         this.max_light_instance_number = this.instance_number;
         this.optical_element_array[this.arrlen] = new OpticalElement("light");
         this.instance_number_to_list_map[this.instance_number] = this.arrlen;
+        this.current_light_instance = this.instance_number;
         this.instance_number++;
         this.arrlen++;
         this.select_light_instance(1);
@@ -1333,6 +1329,10 @@ class OpticalElement_Objects {
             this.selected_camera_instances[0] = 0;
         if (Object.keys(this.selected_light_instances).length === 0)
             this.selected_light_instances[1] = 1;
+        if (instance_number_input === this.current_camera_instance)
+            this.current_camera_instance = Number(Object.keys(this.selected_camera_instances)[0]);
+        if (instance_number_input === this.current_light_instance)
+            this.current_light_instance = Number(Object.keys(this.selected_light_instances)[0]);
     }
     deleteCameraObject(instance_number_input) {
         if (instance_number_input > 1 && instance_number_input <= this.max_camera_instance_number) {

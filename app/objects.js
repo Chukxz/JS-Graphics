@@ -969,5 +969,5 @@ console.log(_ObjectRendering.instance_number_to_list_map[1]);
 console.log(_ObjectRendering.instance_number_to_list_map);
 _ObjectRendering.translateObject([103, 622, 145]);
 _ObjectRendering.rotateObject([0, 1, 0], 45);
-console.log(_ObjectRendering.renderObject());
+// console.log(_ObjectRendering.renderObject())
 // console.log(_ObjectRendering)
