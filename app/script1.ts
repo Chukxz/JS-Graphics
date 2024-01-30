@@ -1,2 +1,0 @@
-window.parent.postMessage("hello")
-
