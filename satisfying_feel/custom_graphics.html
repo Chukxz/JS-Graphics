@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS Graphics</title>
+    <link rel="stylesheet" href="custom_graphics.css">
+
+</head>
+
+<body>
+
+    <ul class="nav" id="main_nav">
+        <li class="nav" id="Editing">Editing</li>
+        <li class="nav" id="Animation">Animation</li>
+        <li class="nav" id="Sculpting">Sculpting</li>
+        <li class="nav" id="Rendering">Rendering</li>
+    </ul>
+
+    <div class="drop" id="main_drop">
+        <span>&ThickSpace;&LeftAngleBracket;</span>
+        <div class="drop-content" id="main_drop_c">
+            <form>
+                Rotate X:<br/>
+                <input id="rotx" type="number" value=0><br/> Rotate Y:<br/>
+                <input id="roty" type="number" value="0"><br/> Rotate Z:<br/>
+                <input id="rotz" type="number" value="0"><br/> Translate X:<br/>
+                <input id="transx" type="number" value="0"><br/> Translate Y:<br/>
+                <input id="transy" type="number" value="0"><br/> Translate Z:<br/>
+                <input id="transz" type=" number" value="0"> <br/>ScaleX :<br/>
+                <input id="scalex" type="number" value="1"> <br/>ScaleY :<br/>
+                <input id="scaley" type="number" value="1"> <br/>ScaleZ :<br/>
+                <input id="scalez" type="number" value="1"> <br/>Angle :<br/>
+                <input id="angle" type="number" value="45"><br/> Near Z:<br/>
+                <input id="nearz" type="number" value="1"><br/> Far Z:<br/>
+                <input id="farz" type="number" value="10"><br/>
+            </form>
+        </div>
+    </div>
+
+    <canvas></canvas>
+
+    <!--Animation-->
+    <div id="animation" style="display : none;">
+        <div class="inline-div anim_input" id="anim1">
+            <label for="animation_number">Animation Number : <span id="anim1_value">Null</span></label>
+            <input type="range" min="0" max="100" value="0" id="animation_number">
+            <label for="animation_number" id="after_anim1">Null</label>
+        </div>
+        <div class="inline-div anim_input" id="anim2">
+            <label for="animation_speed">Animation Speed : <span id="anim2_value">500</span> ms/frame</label>
+            <input type="range" min="1" max="1000" value="500" id="animation_speed">
+        </div>
+        <button id="anim_info">Animation Status: <span id="status">Null</span></button>
+    </div>
+
+    <div class="dropdown" id="vertexinfo cdv" style="display: none;">
+        <button class="cdv_elem" id="c_1">Convex Hull</button>
+        <button class="cdv_elem" id="c_2">Delaunay</button>
+        <button class="cdv_elem" id="c_3">Voronoi</button>
+    </div>
+
+    <div id="info" style="display: none;">
+        <div id="hovered">
+            <p id="hoveredColor">null</p>
+            <div class="dropdown" id="vertexinfo">
+                <button class="dropbtn">Vertex Info</button>
+                <div class="dropdown-content two">
+                    <p>X:<span id="x">null</span></p>
+                    <p>Y:<span id="x">null</span></p>
+                    <p>Z:<span id="x">null</span></p>
+                </div>
+            </div>
+            <p id="hoveredPixel">null</p>
+        </div>
+        <div id="selected">
+            <p id="selectedColor">null</p>
+            <p id="selectedPixel">null</p>
+        </div>
+    </div>
+
+    <script src="custom_graphics.js"></script>
+</body>
+
+</html>
