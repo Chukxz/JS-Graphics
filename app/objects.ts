@@ -1,3 +1,31 @@
+class CreateObject extends Vector {
+    object_rotation_angle: number;
+    object_revolution_angle: number;
+    object_translation_array: _3D_VEC_;
+    object_rotation_axis: _3D_VEC_;
+    object_revolution_axis: _3D_VEC_;
+    rendered_points_list: _3D_VEC_[];
+    object_revolution_angle_backup: number;
+    object_translation_array_backup: _3D_VEC_;
+    object_scaling_array : _3D_VEC_;
+    points_list: Point3D[];
+    object_state : string;
+
+    constructor () {
+        super();
+        this.object_rotation_angle = 0;
+        this.object_revolution_angle = 0;
+        this.object_translation_array = [0,0,0];
+        this.object_rotation_axis = [0,0,0];
+        this.object_revolution_axis = [0,0,0];
+        this.rendered_points_list = [];
+        this.object_revolution_angle_backup = 0;
+        this.object_translation_array_backup = [0,0,0];
+        this.object_scaling_array = [1,1,1];
+        this.points_list = [];
+        this.object_state = "local";
+    }
+}
 class CreateMeshObject extends CreateObject {
     width: number;
     height: number;
@@ -393,7 +421,7 @@ class CreatePyramid extends CreatePyramidalBase {
 
         for(let i = 0; i < base_vertex_number; i++) {
             const proposed_half_edge = `${0}-${this.half_edges[i]}`;
-            const permutations = _Miscellanous.getPermutationsArr(proposed_half_edge.split("-").map(value => Number(value)),3);
+            const permutations = new Miscellanous().getPermutationsArr(proposed_half_edge.split("-").map(value => Number(value)),3);
             this.initMeshHelper(permutations);
         }
 
@@ -967,50 +995,53 @@ class ObjectRendering {
 
     deselect_all_objects() { this.selected_object_instances.clear(); }
 
-    vertexRotate(point: _3D_VEC_,axis: _3D_VEC_,angle: number): _3D_VEC_ {
-        return _Quartenion.q_rot(angle,axis,point);
+    vertexRotate(object : CreateMeshObject,point: _3D_VEC_,axis: _3D_VEC_,angle: number): _3D_VEC_ {
+        return object.q_rot(angle,axis,point);
     };
 
     vertexScale(point: _3D_VEC_,scaling_array: _3D_VEC_): _3D_VEC_ {
         return [point[0] * scaling_array[0],point[1] * scaling_array[1],point[2] * scaling_array[2]];
     };
 
-    vertexTranslate(point: _3D_VEC_,translation_array: _3D_VEC_): _3D_VEC_ {
-        return _Matrix.matAdd(point,translation_array) as _3D_VEC_;
+    vertexTranslate(object : CreateMeshObject,point: _3D_VEC_,translation_array: _3D_VEC_): _3D_VEC_ {
+        return object.matAdd(point,translation_array) as _3D_VEC_;
     };
 
-    rotateObject(axis: _3D_VEC_,angle: number) {
+    rotateObject(axis: _3D_VEC_,angle: number, incremental = false) {
         const object = this.getCurrentObjectInstance();
         if(typeof object === "undefined") return;
-
+        if(incremental === true) angle = object.object_rotation_angle + angle;
         object.rendered_points_list = [];
 
         for(const index in object.points_list) {
             const orig_pt = object.points_list[index];
             const original_vector: _3D_VEC_ = [orig_pt.x,orig_pt.y,orig_pt.z];
-            const rotated_vector = this.vertexRotate(original_vector,axis,angle);
-            const translated_vector = this.vertexTranslate(rotated_vector,object.object_translation_array);
-            const revolved_vector = this.vertexRotate(translated_vector,object.object_revolution_axis,object.object_revolution_angle);
-            object.rendered_points_list.push(revolved_vector);
+            const rotated_vector = this.vertexRotate(object,original_vector,axis,angle);
+            const translated_vector = this.vertexTranslate(object,rotated_vector,object.object_translation_array);
+            const revolved_vector = this.vertexRotate(object,translated_vector,object.object_revolution_axis,object.object_revolution_angle);
+            const final_vector = this.vertexScale(revolved_vector, object.object_scaling_array);
+            object.rendered_points_list.push(final_vector);
         }
 
         object.object_rotation_angle = angle;
         object.object_rotation_axis = axis;
     }
 
-    revolveObject(axis: _3D_VEC_,angle: number) {
+    revolveObject(axis: _3D_VEC_,angle: number, incremental = false) {
         const object = this.getCurrentObjectInstance();
         if(typeof object === "undefined") return;
-
+        if(object.object_state === "local") return;
+        if(incremental === true) angle = object.object_revolution_angle + angle;
         object.rendered_points_list = [];
 
         for(const index in object.points_list) {
             const orig_pt = object.points_list[index];
             const original_vector: _3D_VEC_ = [orig_pt.x,orig_pt.y,orig_pt.z];
-            const rotated_vector = this.vertexRotate(original_vector,object.object_rotation_axis,object.object_rotation_angle);
-            const translated_vector = this.vertexTranslate(rotated_vector,object.object_translation_array);
-            const revolved_vector = this.vertexRotate(translated_vector,axis,angle);
-            object.rendered_points_list.push(revolved_vector);
+            const rotated_vector = this.vertexRotate(object,original_vector,object.object_rotation_axis,object.object_rotation_angle);
+            const translated_vector = this.vertexTranslate(object,rotated_vector,object.object_translation_array);
+            const revolved_vector = this.vertexRotate(object,translated_vector,axis,angle);
+            const final_vector = this.vertexScale(revolved_vector, object.object_scaling_array);
+            object.rendered_points_list.push(final_vector);
         }
 
         object.object_revolution_angle = angle;
@@ -1018,56 +1049,86 @@ class ObjectRendering {
         object.object_revolution_axis = axis;
     }
 
-    translateObject(translation_array: _3D_VEC_) {
+    translateObject(translation_array: _3D_VEC_, incremental = false) {
         const object = this.getCurrentObjectInstance();
         if(typeof object === "undefined") return;
-
+        if(object.object_state === "local") return;
+        if(incremental === true) translation_array = object.matAdd(object.object_translation_array, translation_array) as _3D_VEC_;
         object.rendered_points_list = [];
 
         for(const index in object.points_list) {
             const orig_pt = object.points_list[index];
             const original_vector: _3D_VEC_ = [orig_pt.x,orig_pt.y,orig_pt.z];
-            const rotated_vector = this.vertexRotate(original_vector,object.object_rotation_axis,object.object_rotation_angle);
-            const translated_vector = this.vertexTranslate(rotated_vector,translation_array);
-            const revolved_vector = this.vertexRotate(translated_vector,object.object_revolution_axis,object.object_revolution_angle);
-            object.rendered_points_list.push(revolved_vector);
+            const rotated_vector = this.vertexRotate(object, original_vector,object.object_rotation_axis,object.object_rotation_angle);
+            const translated_vector = this.vertexTranslate(object, rotated_vector,translation_array);
+            const revolved_vector = this.vertexRotate(object, translated_vector,object.object_revolution_axis,object.object_revolution_angle);
+            const final_vector = this.vertexScale(revolved_vector, object.object_scaling_array);
+            object.rendered_points_list.push(final_vector);
         }
 
         object.object_translation_array = translation_array;
         object.object_translation_array_backup = translation_array;
     }
 
+    scaleObject(scaling_array : _3D_VEC_, incremental = false){
+        const object = this.getCurrentObjectInstance();
+        if(typeof object === "undefined") return;
+        if(incremental === true) scaling_array = object.matAdd(object.object_scaling_array, scaling_array) as _3D_VEC_;
+        object.rendered_points_list = [];
+
+        for(const index in object.points_list) {
+            const orig_pt = object.points_list[index];
+            const original_vector: _3D_VEC_ = [orig_pt.x,orig_pt.y,orig_pt.z];
+            const rotated_vector = this.vertexRotate(object,original_vector,object.object_rotation_axis,object.object_rotation_angle);
+            const translated_vector = this.vertexTranslate(object,rotated_vector,object.object_translation_array);
+            const revolved_vector = this.vertexRotate(object,translated_vector,object.object_revolution_axis,object.object_revolution_angle);
+            const final_vector = this.vertexScale(revolved_vector, object.object_scaling_array);
+            object.rendered_points_list.push(final_vector);
+        }
+
+        object.object_scaling_array = scaling_array;
+    }
+
+    rotateObject_incremental(axis : _3D_VEC_, angle : number){
+    }
+
     renderLocal() {
         const object = this.getCurrentObjectInstance();
         if(typeof object === "undefined") return;
 
+        object.object_state = "local";
         object.object_revolution_angle_backup = object.object_revolution_angle;
         object.object_revolution_angle = 0;
         object.object_translation_array_backup = object.object_translation_array;
         object.object_translation_array = [0,0,0];
         this.rotateObject(object.object_rotation_axis,object.object_rotation_angle);
-
     }
 
     renderWorld() {
         const object = this.getCurrentObjectInstance();
         if(typeof object === "undefined") return;
 
+        object.object_state = "world";
         object.object_revolution_angle = object.object_revolution_angle_backup;
         object.object_translation_array = object.object_translation_array_backup;
         this.revolveObject(object.object_revolution_axis,object.object_revolution_angle);
     }
 
+    configureObjectSpace(space : "local" | "world"){
+        if(space === "local") this.renderLocal();
+        if(space === "world") this.renderWorld();
+    }
+
     renderObject() {
         const object = this.getCurrentObjectInstance();
-        if(typeof object === "undefined") return undefined;
+        if(typeof object === "undefined") return;
 
         const renderedObjectVertices: _4D_VEC_[] = [];
 
         for(const index in object.rendered_points_list) {
             const vertex = object.rendered_points_list[index];
-            const rendered_vertex = _Optical_Objects.render(vertex,"camera");
-            if(typeof rendered_vertex === "undefined") return undefined;
+            const rendered_vertex = MODIFIED_PARAMS._OPTICAL_ELEMS.render(vertex,"camera");
+            if(typeof rendered_vertex === "undefined") return;
             renderedObjectVertices.push(rendered_vertex);
         }
 
@@ -1097,7 +1158,7 @@ console.log(_ObjectRendering.instance_number_to_list_map)
 
 _ObjectRendering.translateObject([103,622,145])
 _ObjectRendering.rotateObject([0,1,0],45);
-// console.log(_ObjectRendering.renderObject())
+console.log(_ObjectRendering.renderObject())
 
-// console.log(_ObjectRendering)
+console.log(_ObjectRendering)
 

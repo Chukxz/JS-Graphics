@@ -170,7 +170,8 @@ interface _BASIC_PARAMS_ {
     _GRID_VERT_THETA : number,
     _ACTIVE: string,
     _SIDE_BAR_WIDTH: number,
-    _PersProj : PerspectiveProjection;
+    _PERS_PROJ : PerspectiveProjection,
+    _OPTICAL_ELEMS : OpticalElement_Objects
 }
 
 const DEFAULT_PARAMS: _BASIC_PARAMS_ =
@@ -206,7 +207,8 @@ const DEFAULT_PARAMS: _BASIC_PARAMS_ =
     _GRID_VERT_THETA : 15,
     _ACTIVE: "",
     _SIDE_BAR_WIDTH: 100,
-    _PersProj : new PerspectiveProjection()
+    _PERS_PROJ : new PerspectiveProjection(),
+    _OPTICAL_ELEMS : new OpticalElement_Objects()
 }
 
 const MODIFIED_PARAMS: _BASIC_PARAMS_ = JSON.parse(JSON.stringify(DEFAULT_PARAMS));
@@ -389,7 +391,7 @@ const basicDrawFunction = (set_last_canvas_width = true) => {
 
     // Perspective Projection
     MODIFIED_PARAMS._ASPECT_RATIO = MODIFIED_PARAMS._CANVAS_WIDTH / MODIFIED_PARAMS._CANVAS_HEIGHT;
-    MODIFIED_PARAMS._PersProj.setPersProjectParam();
+    MODIFIED_PARAMS._PERS_PROJ.setPersProjectParam();
 }
 
 class MeshDataStructure {

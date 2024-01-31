@@ -1,6 +1,6 @@
 (function () {
 
-    type _GETQUART_  = {ang : number, axis : _3D_VEC_; quart : _4D_VEC_; inv_quart : _4D_VEC_};
+    type _GETQUART_ = { ang: number,axis: _3D_VEC_; quart: _4D_VEC_; inv_quart: _4D_VEC_ };
     /*
         type _CONNECTIVITY_ = {
             faces: string[];
@@ -1949,17 +1949,17 @@
             const [v1,v2,v3] = this.q_vector;
             const [a,b] = [Math.cos(this.theta * 0.5),Math.sin(this.theta * 0.5)];
             const [w,x,y,z] = [a,v1 * b,v2 * b,v3 * b];
+            this.q_quarternion = [w,x,y,z];
             const inv_mag = Math.pow(w ** 2 + x ** 2 + y ** 2 + z ** 2,-0.5);
-            this.q_quarternion = [w * inv_mag,x * inv_mag,y * inv_mag,z * inv_mag];
         };
 
         inv_quartenion() {
             // inverse quarternion           
             const [v1,v2,v3] = this.q_vector;
-            const [a,b] = [Math.cos(this.theta * 0.5),Math.sin(this.theta * 0.5)];           
+            const [a,b] = [Math.cos(this.theta * 0.5),Math.sin(this.theta * 0.5)];
             const [w,x,y,z] = [a,-v1 * b,-v2 * b,-v3 * b];
+            this.q_inv_quarternion = [w,x,y,z];
             const inv_mag = Math.pow(w ** 2 + x ** 2 + y ** 2 + z ** 2,-0.5);
-            this.q_inv_quarternion = [w * inv_mag,x * inv_mag,y * inv_mag,z * inv_mag];
         };
 
         q_mult(quart_A: _4D_VEC_,quart_B: _4D_VEC_): _4D_VEC_ {
@@ -2419,8 +2419,8 @@
 
     const diff = _Matrix.matAdd(T,C,true);
 
-    const prevN = _Vector.normalizeVec([0,0,-1]);
-    const newN = _Vector.normalizeVec([ 0.5773502691896257, -0.5773502691896257, 0.5773502691896257 ])
+    const prevN = _Vector.normalizeVec([0,0,1]);
+    const newN = _Vector.normalizeVec(diff)
 
     console.log(_Vector.getDotProductAngle(prevN,newN))
     console.log(_Vector.getDotProductAngle(newN,prevN))
@@ -2429,37 +2429,65 @@
 
     console.log(_Vector.crossProduct([prevN,newN]))
 
-    console.log("prevN mag : ",_Vector.mag(prevN), "newN mag : ", _Vector.mag(newN))
+    console.log("prevN mag : ",_Vector.mag(prevN),"newN mag : ",_Vector.mag(newN))
 
     const ang = _Vector.getDotProductAngle(prevN,newN);
 
     const crossP = _Vector.crossProduct([prevN,newN]);
 
-    function getQuart(start : _3D_VEC_, end : _3D_VEC_) : _GETQUART_ {
+    function getQuart(start: _3D_VEC_,end: _3D_VEC_): Quarternion {
         const vector = new Vector();
         const quarternion = new Quarternion();
 
-        const angle =  vector.getDotProductAngle(start, end);
-        const cross_product = vector.crossProduct([start, end]) as _3D_VEC_;
+        const angle = vector.getDotProductAngle(start,end);
+        const cross_product = vector.crossProduct([start,end]) as _3D_VEC_;
         quarternion.theta = MODIFIED_PARAMS._ANGLE_CONSTANT * angle;
         quarternion.vector(cross_product);
         quarternion.quarternion();
         quarternion.inv_quartenion();
 
-        const retObject : _GETQUART_ = {
-            ang : angle,
-            axis : quarternion.q_vector,
-            quart : quarternion.q_quarternion,
-            inv_quart : quarternion.q_inv_quarternion,
-        }
-
-        return retObject;
+        return quarternion;
     }
 
-    console.log(getQuart(prevN as _3D_VEC_, newN as _3D_VEC_))
+    console.log(getQuart(prevN as _3D_VEC_,newN as _3D_VEC_));
 
-    const q = _Quarternion.q_rot(ang, crossP as _3D_VEC_, prevN as _3D_VEC_);
-    console.log("\nquart_vector : ",_Quarternion.q_vector, "\nquart : ",_Quarternion.q_quarternion, "\ninv_quart : ", _Quarternion.q_inv_quarternion);
-    console.log("\nprevN : ",prevN, "\nnewN : ",newN, "\nresult ", q, "\nang : ", ang,"\nquart_ang : ", _Quarternion.theta*MODIFIED_PARAMS._REVERSE_ANGLE_CONSTANT, "\ncrossP : ", crossP)
+    const q = _Quarternion.q_rot(ang,crossP as _3D_VEC_,prevN as _3D_VEC_);
+    console.log("\nquart_vector : ",_Quarternion.q_vector,"\nquart : ",_Quarternion.q_quarternion,"\ninv_quart : ",_Quarternion.q_inv_quarternion);
+    console.log("\nprevN : ",prevN,"\nnewN : ",newN,"\nresult ",q,"\nang : ",ang,"\nquart_ang : ",_Quarternion.theta * MODIFIED_PARAMS._REVERSE_ANGLE_CONSTANT,"\ncrossP : ",crossP)
 
+    const qu = getQuart(prevN as _3D_VEC_, newN as _3D_VEC_);
+    console.log("new U : ",qu.q_v_invq_mult(U as _3D_VEC_));
+    console.log("new V : ",qu.q_v_invq_mult(V as _3D_VEC_));
+    console.log("new N : ",qu.q_v_invq_mult(N as _3D_VEC_));
+
+    console.log(_Matrix.matAdd(T,diff,true))
+    console.log(C)
+
+
+    // const center = [0,0,-10];
+    // const new_center = _Quarternion.q_rot(180, [0,1,0], center as _3D_VEC_);
+
+    // console.log(_Quarternion.q_rot(180, [0,1,0], center as _3D_VEC_))
+
+    // const new_diff = _Matrix.matAdd([0,0,0], new_center, true);
+
+    // console.log(new_diff)
+
+    // const nN = _Vector.normalizeVec(new_diff)
+
+    // console.log(nN)
+
+//     console.log(_Quarternion.q_rot(180, [0,1,0], [0,0,1]))
+
+const diff_ = _Matrix.matAdd([0,0,-3], [0,0,-15],true)
+
+    console.log(diff_)
+
+    const n_diff_ = _Quarternion.q_rot(180, [0,1,0], diff_ as _3D_VEC_)
+
+console.log(n_diff_)
+
+const n_c_ = _Matrix.matAdd([0,0,-3],n_diff_,true)
+
+console.log(n_c_)
 })()

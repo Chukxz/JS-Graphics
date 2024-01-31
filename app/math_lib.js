@@ -1054,30 +1054,7 @@ class Clip {
         return array;
     }
 }
-class CreateObject extends Vector {
-    object_rotation_angle;
-    object_revolution_angle;
-    object_translation_array;
-    object_rotation_axis;
-    object_revolution_axis;
-    rendered_points_list;
-    object_revolution_angle_backup;
-    object_translation_array_backup;
-    points_list;
-    constructor() {
-        super();
-        this.object_rotation_angle = 0;
-        this.object_revolution_angle = 0;
-        this.object_translation_array = [0, 0, 0];
-        this.object_rotation_axis = [0, 0, 0];
-        this.object_revolution_axis = [0, 0, 0];
-        this.rendered_points_list = [];
-        this.object_revolution_angle_backup = 0;
-        this.object_translation_array_backup = [0, 0, 0];
-        this.points_list = [];
-    }
-}
-class OpticalElement extends CreateObject {
+class OpticalElement extends Vector {
     // Default
     // _CAM_MATRIX : [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
     // _INV_CAM_MATRIX : [1, -0, 0, -0, -0, 1, -0, 0, 0, -0, 1, -0, -0, 0, -0, 1],
@@ -1090,7 +1067,7 @@ class OpticalElement extends CreateObject {
         _U: [1, 0, 0],
         _V: [0, 1, 0],
         _N: [0, 0, 1],
-        _C: [0, 0, -10],
+        _C: [0, 0, 0],
         _MATRIX: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         _INV_MATRIX: [1, -0, 0, -0, -0, 1, -0, 0, 0, -0, 1, -0, -0, 0, -0, 1],
         depthBuffer: new Miscellanous().initDepthBuffer(),
@@ -1098,14 +1075,9 @@ class OpticalElement extends CreateObject {
     };
     constructor(optical_type_input) {
         super();
-        this.points_list = [new Point3D(1, 0, 0), new Point3D(0, 1, 0), new Point3D(0, 0, 1)];
         this.instance.optical_type = optical_type_input;
-        this.object_rotation_axis = [0, 1, 0];
-        this.object_revolution_axis = [0, 1, 0];
-        this.object_translation_array = [0, 0, 0];
-        this.setCoordSystem();
         this.setConversionMatrices();
-        this.translateObject([0, 0, -10]);
+        this.translateObject_incremental([10, 10, -10]);
         console.log(this);
         return this;
     }
@@ -1113,89 +1085,59 @@ class OpticalElement extends CreateObject {
         new Miscellanous().resetDepthBuffer(this.instance.depthBuffer);
         new Miscellanous().resetFrameBuffer(this.instance.frameBuffer);
     }
-    setCoordSystem() {
-        const DIFF = this.matAdd(this.instance._LOOK_AT_POINT, this.instance._C, true);
-        const UP = [0, 1, 0];
-        this.instance._N = this.normalizeVec(DIFF);
-        this.instance._U = this.normalizeVec(this.crossProduct([UP, this.instance._N]));
-        this.instance._V = this.normalizeVec(this.crossProduct([this.instance._N, this.instance._U]));
-        this.rendered_points_list = [this.instance._U, this.instance._V, this.instance._N];
-    }
-    normalizeCoordSystemVectors() {
-        this.instance._N = this.normalizeVec(this.instance._N);
-        this.instance._U = this.normalizeVec(this.instance._U);
-        this.instance._V = this.normalizeVec(this.instance._V);
-        this.rendered_points_list = [this.instance._U, this.instance._V, this.instance._N];
-    }
     setConversionMatrices() {
         this.instance._MATRIX = [...this.instance._U, this.instance._C[0], ...this.instance._V, this.instance._C[1], ...this.instance._N, this.instance._C[2], ...[0, 0, 0, 1]];
         this.instance._INV_MATRIX = this.getInvMat(this.instance._MATRIX, 4);
     }
-    vertexRotate(point, axis, angle) {
-        return this.q_rot(angle, axis, point);
+    getQuartenions(start, end) {
+        const angle = this.getDotProductAngle(start, end);
+        const cross_product = this.crossProduct([start, end]);
+        this.theta = MODIFIED_PARAMS._ANGLE_CONSTANT * angle;
+        this.vector(cross_product);
+        this.quarternion();
+        this.inv_quartenion();
     }
-    ;
-    vertexScale(point, scaling_array) {
-        return [point[0] * scaling_array[0], point[1] * scaling_array[1], point[2] * scaling_array[2]];
+    applyQuartenions() {
+        this.instance._U = this.q_v_invq_mult(this.instance._U);
+        this.instance._V = this.q_v_invq_mult(this.instance._V);
+        this.instance._N = this.q_v_invq_mult(this.instance._N);
     }
-    ;
-    vertexTranslate(point, translation_array) {
-        return this.normalizeVec(this.matAdd(point, translation_array));
+    translateHelper() {
+        const DIFF = this.matAdd(this.instance._LOOK_AT_POINT, this.instance._C, true);
+        const NORMAL = this.normalizeVec(DIFF);
+        this.getQuartenions(this.instance._N, NORMAL);
+        this.applyQuartenions();
+        this.setConversionMatrices();
     }
-    ;
-    setLookAtPos(look_at_point) {
+    setLookAtPos_nonIncremental(look_at_point) {
         this.instance._LOOK_AT_POINT = look_at_point;
+        this.translateHelper();
     }
-    rotateObject(axis, angle) {
-        this.rendered_points_list = [];
-        for (const index in this.points_list) {
-            const orig_pt = this.points_list[index];
-            const original_vector = [orig_pt.x, orig_pt.y, orig_pt.z];
-            const rotated_vector = this.vertexRotate(original_vector, axis, angle);
-            const translated_vector = this.vertexTranslate(rotated_vector, this.object_translation_array);
-            const revolved_vector = this.vertexRotate(translated_vector, this.object_revolution_axis, this.object_revolution_angle);
-            this.rendered_points_list.push(revolved_vector);
-        }
-        this.object_rotation_angle = angle;
-        this.object_rotation_axis = axis;
-        this.instance._C = this.object_translation_array;
-        [this.instance._U, this.instance._V, this.instance._N] = this.rendered_points_list;
-        this.normalizeCoordSystemVectors();
+    setCameraPos_nonIncremental(translation_array) {
+        this.instance._C = translation_array;
+        this.translateHelper();
+    }
+    rotateObject_incremental(axis, angle) {
+        const DIFF = this.matAdd(this.instance._LOOK_AT_POINT, this.instance._C, true);
+        const NEW_DIFF = this.q_rot(angle, axis, DIFF);
+        this.instance._LOOK_AT_POINT = this.matAdd(this.instance._C, NEW_DIFF);
+        this.instance._U = this.q_rot(angle, axis, this.instance._U);
+        this.instance._V = this.q_rot(angle, axis, this.instance._V);
+        this.instance._N = this.q_rot(angle, axis, this.instance._N);
         this.setConversionMatrices();
     }
-    revolveObject(axis, angle) {
-        this.rendered_points_list = [];
-        for (const index in this.points_list) {
-            const orig_pt = this.points_list[index];
-            const original_vector = [orig_pt.x, orig_pt.y, orig_pt.z];
-            const rotated_vector = this.vertexRotate(original_vector, this.object_rotation_axis, this.object_rotation_angle);
-            const translated_vector = this.vertexTranslate(rotated_vector, this.object_translation_array);
-            const revolved_vector = this.vertexRotate(translated_vector, axis, angle);
-            this.rendered_points_list.push(revolved_vector);
-        }
-        this.object_revolution_angle = angle;
-        this.object_revolution_angle_backup = angle;
-        this.object_revolution_axis = axis;
-        this.instance._C = this.object_translation_array;
-        [this.instance._U, this.instance._V, this.instance._N] = this.rendered_points_list;
-        this.normalizeCoordSystemVectors();
+    revolveObject_incremental(axis, angle) {
+        const DIFF = this.matAdd(this.instance._LOOK_AT_POINT, this.instance._C, true);
+        const NEW_DIFF = this.q_rot(angle, axis, DIFF);
+        this.instance._C = this.matAdd(this.instance._LOOK_AT_POINT, NEW_DIFF, true);
+        this.instance._U = this.q_rot(angle, axis, this.instance._U);
+        this.instance._V = this.q_rot(angle, axis, this.instance._V);
+        this.instance._N = this.q_rot(angle, axis, this.instance._N);
         this.setConversionMatrices();
     }
-    translateObject(translation_array) {
-        this.rendered_points_list = [];
-        for (const index in this.points_list) {
-            const orig_pt = this.points_list[index];
-            const original_vector = [orig_pt.x, orig_pt.y, orig_pt.z];
-            const rotated_vector = this.vertexRotate(original_vector, this.object_rotation_axis, this.object_rotation_angle);
-            const translated_vector = this.vertexTranslate(rotated_vector, translation_array);
-            const revolved_vector = this.vertexRotate(translated_vector, this.object_revolution_axis, this.object_revolution_angle);
-            this.rendered_points_list.push(revolved_vector);
-        }
-        this.object_translation_array = translation_array;
-        this.object_translation_array_backup = translation_array;
-        this.instance._C = this.object_translation_array;
-        [this.instance._U, this.instance._V, this.instance._N] = this.rendered_points_list;
-        this.setConversionMatrices();
+    translateObject_incremental(translation_array) {
+        this.instance._C = this.matAdd(this.instance._C, translation_array);
+        this.translateHelper();
     }
     worldToOpticalObject(ar) {
         const arr = [...ar, 1];
@@ -1247,7 +1189,6 @@ class ScreenSpace {
     }
     ;
 }
-const _ScreenSpace = new ScreenSpace();
 class OpticalElement_Objects {
     optical_element_array;
     instance_number;
@@ -1375,6 +1316,24 @@ class OpticalElement_Objects {
         }
         this.arrlen = this.optical_element_array.length;
     }
+    deleteAllSelectedCameraObjects() {
+        for (const key in this.selected_camera_instances) {
+            const index = this.selected_camera_instances[key];
+            if (index > 1 && this.optical_element_array[index].instance.optical_type === "camera") {
+                this.deleteOpticalObject(Number(key), index);
+                this.arrlen = this.optical_element_array.length;
+            }
+        }
+    }
+    deleteAllSelectedLightObjects() {
+        for (const key in this.selected_light_instances) {
+            const index = this.selected_light_instances[key];
+            if (index > 1 && this.optical_element_array[index].instance.optical_type === "light") {
+                this.deleteOpticalObject(Number(key), index);
+                this.arrlen = this.optical_element_array.length;
+            }
+        }
+    }
     select_camera_instance(instance_number_input) {
         if (instance_number_input !== 1 && instance_number_input <= this.max_camera_instance_number) {
             const selection = this.instance_number_to_list_map[instance_number_input];
@@ -1417,20 +1376,22 @@ class OpticalElement_Objects {
             }
         }
     }
-    render(vertex, optical_type, instance_number = 0) {
+    render(vertex, optical_type, light_rendering_mode = "singular") {
         var world_to_optical_object_space = [0, 0, 0, 0];
         switch (optical_type) {
             case "none": return undefined;
             case "camera":
-                if (instance_number in this.selected_camera_instances) {
-                    world_to_optical_object_space = this.optical_element_array[this.selected_camera_instances[instance_number]].worldToOpticalObject(vertex);
+                world_to_optical_object_space = this.optical_element_array[this.selected_camera_instances[this.current_camera_instance]].worldToOpticalObject(vertex);
+                break;
+            case "light":
+                if (light_rendering_mode === "singular") {
+                    // world_to_optical_object_space = this.optical_element_array[this.selected_light_instances[this.current_light_instance]].worldToOpticalObject(vertex); 
                     break;
                 }
-                else
-                    return undefined;
-            case "light":
-                if (instance_number in this.selected_light_instances) {
-                    world_to_optical_object_space = this.optical_element_array[this.selected_light_instances[instance_number]].worldToOpticalObject(vertex);
+                else if (light_rendering_mode === "multi") {
+                    // for(const selected_light_instance in this.selected_light_instances){
+                    //     world_to_optical_object_space = this.optical_element_array[this.selected_light_instances[selected_light_instance]].worldToOpticalObject(vertex); 
+                    // }
                     break;
                 }
                 else
@@ -1440,17 +1401,7 @@ class OpticalElement_Objects {
         console.log(world_to_optical_object_space);
         const optical_object_to_clip_space = new ClipSpace().opticalObjectToClip(world_to_optical_object_space);
         console.log(optical_object_to_clip_space);
-        return _ScreenSpace.clipToScreen(optical_object_to_clip_space);
+        console.log(new ScreenSpace().clipToScreen(optical_object_to_clip_space));
+        return new ScreenSpace().clipToScreen(optical_object_to_clip_space);
     }
 }
-window.addEventListener("load", () => {
-    // const _Miscellanous = new Miscellanous();
-    // const _Quartenion = new Quarternion();
-    // const _Matrix = new Matrix();
-    // const _Vector = new Vector();
-    // const _Linear = new Linear();
-    // const _PerspectiveProjection = new PerspectiveProjection();
-    // const _Clip = new Clip()
-    // const _ClipSpace = new ClipSpace();
-    // const _Optical_Objects = new OpticalElement_Objects();
-});
