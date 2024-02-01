@@ -170,8 +170,6 @@ interface _BASIC_PARAMS_ {
     _GRID_VERT_THETA : number,
     _ACTIVE: string,
     _SIDE_BAR_WIDTH: number,
-    _PERS_PROJ : PerspectiveProjection,
-    _OPTICAL_ELEMS : OpticalElement_Objects
 }
 
 const DEFAULT_PARAMS: _BASIC_PARAMS_ =
@@ -207,11 +205,12 @@ const DEFAULT_PARAMS: _BASIC_PARAMS_ =
     _GRID_VERT_THETA : 15,
     _ACTIVE: "",
     _SIDE_BAR_WIDTH: 100,
-    _PERS_PROJ : new PerspectiveProjection(),
-    _OPTICAL_ELEMS : new OpticalElement_Objects()
 }
 
 const MODIFIED_PARAMS: _BASIC_PARAMS_ = JSON.parse(JSON.stringify(DEFAULT_PARAMS));
+
+const _PERS_PROJ : PerspectiveProjection =  new PerspectiveProjection();
+const _OPTICAL_ELEMS : OpticalElement_Objects =  new OpticalElement_Objects();
 
 //const catmull_clark_subdivision_worker = new Worker("catmull_clark_worker.js");
 
@@ -391,7 +390,7 @@ const basicDrawFunction = (set_last_canvas_width = true) => {
 
     // Perspective Projection
     MODIFIED_PARAMS._ASPECT_RATIO = MODIFIED_PARAMS._CANVAS_WIDTH / MODIFIED_PARAMS._CANVAS_HEIGHT;
-    MODIFIED_PARAMS._PERS_PROJ.setPersProjectParam();
+    _PERS_PROJ.setPersProjectParam();
 }
 
 class MeshDataStructure {
@@ -1850,7 +1849,6 @@ class CreateSVGLineDrag extends CreateSVGLine {
     }
 }
 
-
 class DrawCanvas {
     protected static drawCount = 0;
     constructor () {
@@ -1896,10 +1894,4 @@ class DrawCanvas {
 
         DrawCanvas.drawCount++;
     }
-}
-
-window.onload = function () {
-    const _BasicSettings = new BasicSettings();
-    _BasicSettings.setGlobalAlpha(0.6);
-    const _DrawCanvas = new DrawCanvas();
 }

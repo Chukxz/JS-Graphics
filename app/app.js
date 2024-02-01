@@ -61,10 +61,10 @@ const DEFAULT_PARAMS = {
     _GRID_VERT_THETA: 15,
     _ACTIVE: "",
     _SIDE_BAR_WIDTH: 100,
-    _PERS_PROJ: new PerspectiveProjection(),
-    _OPTICAL_ELEMS: new OpticalElement_Objects()
 };
 const MODIFIED_PARAMS = JSON.parse(JSON.stringify(DEFAULT_PARAMS));
+const _PERS_PROJ = new PerspectiveProjection();
+const _OPTICAL_ELEMS = new OpticalElement_Objects();
 //const catmull_clark_subdivision_worker = new Worker("catmull_clark_worker.js");
 const worker_script = `
     onmessage = (e) => {
@@ -190,7 +190,7 @@ const basicDrawFunction = (set_last_canvas_width = true) => {
     MODIFIED_PARAMS._HALF_Y = MODIFIED_PARAMS._CANVAS_HEIGHT / 2;
     // Perspective Projection
     MODIFIED_PARAMS._ASPECT_RATIO = MODIFIED_PARAMS._CANVAS_WIDTH / MODIFIED_PARAMS._CANVAS_HEIGHT;
-    MODIFIED_PARAMS._PERS_PROJ.setPersProjectParam();
+    _PERS_PROJ.setPersProjectParam();
 };
 class MeshDataStructure {
     HalfEdgeDict;
@@ -1552,8 +1552,3 @@ class DrawCanvas {
         DrawCanvas.drawCount++;
     }
 }
-window.onload = function () {
-    const _BasicSettings = new BasicSettings();
-    _BasicSettings.setGlobalAlpha(0.6);
-    const _DrawCanvas = new DrawCanvas();
-};

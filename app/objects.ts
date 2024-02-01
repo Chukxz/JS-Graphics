@@ -16,8 +16,8 @@ class CreateObject extends Vector {
         this.object_rotation_angle = 0;
         this.object_revolution_angle = 0;
         this.object_translation_array = [0,0,0];
-        this.object_rotation_axis = [0,0,0];
-        this.object_revolution_axis = [0,0,0];
+        this.object_rotation_axis = [0,1,0];
+        this.object_revolution_axis = [0,1,0];
         this.rendered_points_list = [];
         this.object_revolution_angle_backup = 0;
         this.object_translation_array_backup = [0,0,0];
@@ -1127,7 +1127,7 @@ class ObjectRendering {
 
         for(const index in object.rendered_points_list) {
             const vertex = object.rendered_points_list[index];
-            const rendered_vertex = MODIFIED_PARAMS._OPTICAL_ELEMS.render(vertex,"camera");
+            const rendered_vertex = _OPTICAL_ELEMS.render(vertex,"camera");
             if(typeof rendered_vertex === "undefined") return;
             renderedObjectVertices.push(rendered_vertex);
         }
@@ -1135,30 +1135,4 @@ class ObjectRendering {
         return renderedObjectVertices;
     }
 }
-
-const _ObjectRendering = new ObjectRendering();
-
-
-console.log(_ObjectRendering)
-
-const a_f = new CreateCuboid();
-const e_f = new CreateCuboid();
-const i_f = new CreatePyramid();
-
-_ObjectRendering.addObjects(a_f);
-_ObjectRendering.addObjects(e_f);
-_ObjectRendering.addObjects(i_f)
-
-_ObjectRendering.changeCurrentObjectInstance(1);
-
-
-console.log(_ObjectRendering.instance_number_to_list_map[1])
-
-console.log(_ObjectRendering.instance_number_to_list_map)
-
-_ObjectRendering.translateObject([103,622,145])
-_ObjectRendering.rotateObject([0,1,0],45);
-console.log(_ObjectRendering.renderObject())
-
-console.log(_ObjectRendering)
 

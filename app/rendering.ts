@@ -4,37 +4,7 @@ function render() {
   while(main_menu.firstChild) main_menu.removeChild(main_menu.firstChild);
   console.log(MODIFIED_PARAMS._NZ,MODIFIED_PARAMS._FZ,MODIFIED_PARAMS._PROJ_ANGLE,MODIFIED_PARAMS._CANVAS_WIDTH)
 
-
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 function gridRender(){
   const a = MODIFIED_PARAMS._CANVAS_WIDTH;
@@ -69,13 +39,13 @@ function renderGrid(points_list : Point3D[]) {
     const a = points_list[point];
     const b = points_list[Number(point+1)%points_list.length];
 
-    const s_t_c_a = _ScreenSpace.screenToClip([a.x,a.y,a.z,1]);
-    const o_t_c_a = _ClipSpace.opticalObjectToClip(s_t_c_a);
-    const c_t_s_a = _ScreenSpace.clipToScreen(o_t_c_a);
+    const s_t_c_a = new ScreenSpace().screenToClip([a.x,a.y,a.z,1]);
+    const o_t_c_a = new ClipSpace().opticalObjectToClip(s_t_c_a);
+    const c_t_s_a = new ScreenSpace().clipToScreen(o_t_c_a);
 
-    const s_t_c_b = _ScreenSpace.screenToClip([b.x,b.y,b.z,1]);
-    const o_t_c_b = _ClipSpace.opticalObjectToClip(s_t_c_b);
-    const c_t_s_b = _ScreenSpace.clipToScreen(o_t_c_b);
+    const s_t_c_b = new ScreenSpace().screenToClip([b.x,b.y,b.z,1]);
+    const o_t_c_b = new ClipSpace().opticalObjectToClip(s_t_c_b);
+    const c_t_s_b = new ScreenSpace().clipToScreen(o_t_c_b);
 
     if(typeof c_t_s_a === "undefined" || typeof c_t_s_b === "undefined") continue;
 
@@ -84,7 +54,7 @@ function renderGrid(points_list : Point3D[]) {
     console.log("stca : ", s_t_c_b, " stcb : ", s_t_c_b)
     console.log("ctsa : ", c_t_s_a, " ctsb : ", c_t_s_b)
 
-    const [c_t_s_a_2D, c_t_s_b_2D] = _Miscellanous.vecs4DToPoints2D([c_t_s_a,c_t_s_b]);
+    const [c_t_s_a_2D, c_t_s_b_2D] = new Miscellanous().vecs4DToPoints2D([c_t_s_a,c_t_s_b]);
     //drawPoint(c_t_s_a_2D)
 
     drawLine(c_t_s_a_2D,c_t_s_b_2D);
