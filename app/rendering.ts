@@ -34,32 +34,32 @@ function gridRender(){
   //const points = [p_1,p_2,p_3,p_4];
 }
 
-function renderGrid(points_list : Point3D[]) {
-  for(let point in points_list){
-    const a = points_list[point];
-    const b = points_list[Number(point+1)%points_list.length];
+// function renderGrid(points_list : Point3D[]) {
+//   for(let point in points_list){
+//     const a = points_list[point];
+//     const b = points_list[Number(point+1)%points_list.length];
 
-    const s_t_c_a = new ScreenSpace().screenToClip([a.x,a.y,a.z,1]);
-    const o_t_c_a = new ClipSpace().opticalObjectToClip(s_t_c_a);
-    const c_t_s_a = new ScreenSpace().clipToScreen(o_t_c_a);
+//     const s_t_c_a = new ScreenSpace().screenToClip([a.x,a.y,a.z,1]);
+//     const o_t_c_a = new ClipSpace().opticalObjectToClip(s_t_c_a);
+//     const c_t_s_a = new ScreenSpace().clipToScreen(o_t_c_a);
 
-    const s_t_c_b = new ScreenSpace().screenToClip([b.x,b.y,b.z,1]);
-    const o_t_c_b = new ClipSpace().opticalObjectToClip(s_t_c_b);
-    const c_t_s_b = new ScreenSpace().clipToScreen(o_t_c_b);
+//     const s_t_c_b = new ScreenSpace().screenToClip([b.x,b.y,b.z,1]);
+//     const o_t_c_b = new ClipSpace().opticalObjectToClip(s_t_c_b);
+//     const c_t_s_b = new ScreenSpace().clipToScreen(o_t_c_b);
 
-    if(typeof c_t_s_a === "undefined" || typeof c_t_s_b === "undefined") continue;
+//     if(typeof c_t_s_a === "undefined" || typeof c_t_s_b === "undefined") continue;
 
-    console.log(MODIFIED_PARAMS._ASPECT_RATIO,MODIFIED_PARAMS._CANVAS_WIDTH,MODIFIED_PARAMS._CANVAS_HEIGHT);
-    console.log("Point A : ", a, " Point B : ", b)
-    console.log("stca : ", s_t_c_b, " stcb : ", s_t_c_b)
-    console.log("ctsa : ", c_t_s_a, " ctsb : ", c_t_s_b)
+//     console.log(MODIFIED_PARAMS._ASPECT_RATIO,MODIFIED_PARAMS._CANVAS_WIDTH,MODIFIED_PARAMS._CANVAS_HEIGHT);
+//     console.log("Point A : ", a, " Point B : ", b)
+//     console.log("stca : ", s_t_c_b, " stcb : ", s_t_c_b)
+//     console.log("ctsa : ", c_t_s_a, " ctsb : ", c_t_s_b)
 
-    const [c_t_s_a_2D, c_t_s_b_2D] = new Miscellanous().vecs4DToPoints2D([c_t_s_a,c_t_s_b]);
-    //drawPoint(c_t_s_a_2D)
+//     const [c_t_s_a_2D, c_t_s_b_2D] = new Miscellanous().vecs4DToPoints2D([c_t_s_a,c_t_s_b]);
+//     //drawPoint(c_t_s_a_2D)
 
-    drawLine(c_t_s_a_2D,c_t_s_b_2D);
-  }
-}
+//     drawLine(c_t_s_a_2D,c_t_s_b_2D);
+//   }
+// }
 
 function drawPoint(point: Point2D, _strokeStyle = "black", _lineWidth = 2) {
   ctx.beginPath();
@@ -67,6 +67,17 @@ function drawPoint(point: Point2D, _strokeStyle = "black", _lineWidth = 2) {
   ctx.strokeStyle = _strokeStyle;
 
   ctx.arc(point.x,point.y,3,0,2*Math.PI);
+
+  ctx.closePath();
+  ctx.stroke();
+}
+
+function drawVertex(vertex : _4D_VEC_, _strokeStyle = "black", _lineWidth = 2) {
+  ctx.beginPath();
+  ctx.lineWidth = _lineWidth;
+  ctx.strokeStyle = _strokeStyle;
+
+  ctx.arc(vertex[0],vertex[1],3,0,2*Math.PI);
 
   ctx.closePath();
   ctx.stroke();
@@ -82,4 +93,13 @@ function drawLine(a: Point2D,b: Point2D,_strokeStyle = "black", _lineWidth = 2) 
 
   ctx.closePath();
   ctx.stroke();
+}
+
+function drawObject(object : _CAM_RENDERED_OBJ_ | undefined){
+  if(typeof object === "undefined") return;
+  for(const vertex in object.vertices){
+    const vertexes = object.vertices[vertex];
+    if(typeof vertexes === "undefined") continue;
+    drawVertex(vertexes);
+  }
 }

@@ -130,6 +130,12 @@ type _CONNECTIVITY_ = {
     edges: string[];
 }
 
+type _HALFEDGEDICT_ = { [halfedge: string]: _HALFEDGE_ };
+
+type _OBJ_VERT_ = { [index:string] : _4D_VEC_ | undefined };
+
+type _CAM_RENDERED_OBJ_ = { object : CreateMeshObject, vertices : _OBJ_VERT_ };
+
 interface IMPL_DRAG {
     changeAcc: (acc: number) => void,
     start: (element: GlobalEventHandlers,call_func: (deltaX: number,deltaY: number) => void) => void,
@@ -195,7 +201,7 @@ const DEFAULT_PARAMS: _BASIC_PARAMS_ =
     _Q_INV_QUART: [0,0,0,0],
     _NZ: 0.1,
     _FZ: 100,
-    _PROJ_ANGLE: 60,
+    _PROJ_ANGLE: 90,
     _ASPECT_RATIO: 1,
     _DIST: 1,
     _HALF_X: 1,
@@ -394,7 +400,7 @@ const basicDrawFunction = (set_last_canvas_width = true) => {
 }
 
 class MeshDataStructure {
-    HalfEdgeDict: { [halfedge: string]: _HALFEDGE_ };
+    HalfEdgeDict: _HALFEDGEDICT_;
     face_tmp: number[];
     faces: Set<string>;
     sorted_faces: string[];
@@ -407,7 +413,7 @@ class MeshDataStructure {
     vertex_no: number;
     vertex_indexes: Set<number>;
     multiplier = 10;
-    deleted_halfedges_dict: { [halfedge: string]: _HALFEDGE_ };
+    deleted_halfedges_dict: _HALFEDGEDICT_;
     face_indexes_set: Set<number>;
     max_face_index: number;
     face_index_map: Map<number,string>;

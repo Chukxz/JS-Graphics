@@ -926,7 +926,7 @@ class CreateGrid extends CreateMeshObject {
 /* Grid Object */
 
 
-class ObjectRendering {
+class ObjectRendering extends Miscellanous {
     instance: number;
     objects: CreateMeshObject[];
     instance_number_to_list_map: {}
@@ -934,6 +934,7 @@ class ObjectRendering {
     current_object_instance: number;
 
     constructor () {
+        super();
         this.instance = 0;
         this.objects = [];
         this.instance_number_to_list_map = {};
@@ -1119,20 +1120,18 @@ class ObjectRendering {
         if(space === "world") this.renderWorld();
     }
 
-    renderObject() {
+    renderObject() : _CAM_RENDERED_OBJ_  | undefined {
         const object = this.getCurrentObjectInstance();
-        if(typeof object === "undefined") return;
+        if(typeof object === "undefined") return undefined;
 
-        const renderedObjectVertices: _4D_VEC_[] = [];
-
+        const renderedObjectVertices : _OBJ_VERT_ = {};
         for(const index in object.rendered_points_list) {
             const vertex = object.rendered_points_list[index];
             const rendered_vertex = _OPTICAL_ELEMS.render(vertex,"camera");
-            if(typeof rendered_vertex === "undefined") return;
-            renderedObjectVertices.push(rendered_vertex);
+            renderedObjectVertices[index] = rendered_vertex;
         }
 
-        return renderedObjectVertices;
+        return {object : object, vertices : renderedObjectVertices};
     }
 }
 

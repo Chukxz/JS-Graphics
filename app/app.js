@@ -51,7 +51,7 @@ const DEFAULT_PARAMS = {
     _Q_INV_QUART: [0, 0, 0, 0],
     _NZ: 0.1,
     _FZ: 100,
-    _PROJ_ANGLE: 60,
+    _PROJ_ANGLE: 90,
     _ASPECT_RATIO: 1,
     _DIST: 1,
     _HALF_X: 1,

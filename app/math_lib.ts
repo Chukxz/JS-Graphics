@@ -653,19 +653,20 @@ class Vector extends Matrix {
         var magnitude: number = 0;
 
         for(let i = 0; i < v_len; i++) {
-            magnitude += vec[i] ** 2
+            magnitude += vec[i] ** 2;
         }
 
         return Math.sqrt(magnitude);
     }
 
     normalizeVec(vec: number[]): number[] {
-        const len: number = Math.round(vec.length);
+        const len: number = vec.length;
         const magnitude: number = this.mag(vec);
         const ret_vec: number[] = [];
 
         for(let i = 0; i < len; i++) {
-            ret_vec[i] = vec[i] / magnitude;
+            if(magnitude === 0) ret_vec[i] = 0;
+            else ret_vec[i] = vec[i] / magnitude;
         }
 
         return ret_vec;
@@ -1200,6 +1201,7 @@ class Clip {
         const array: _4D_VEC_ = [...arr];
         array[0] *= MODIFIED_PARAMS._HALF_X;
         array[1] *= MODIFIED_PARAMS._HALF_Y;
+        console.log(array,"unclipped");
         return array;
     }
 
@@ -1214,6 +1216,7 @@ class Clip {
         const array: _4D_VEC_ = [...arr];
         array[0] += MODIFIED_PARAMS._HALF_X;
         array[1] += MODIFIED_PARAMS._HALF_Y;
+        console.log(array,"canvas");
         return array;
     }
 }
@@ -1259,12 +1262,15 @@ class OpticalElement extends Vector {
         this.instance.optical_type = optical_type_input;
         this.setConversionMatrices();
 
-        this.setCameraPos_nonIncremental([100,100,100]);
-        this.setLookAtPos_nonIncremental([200,200,200])
-
-        // this.translateObject_incremental([10,10,-10])
-        // this.rotateObject_incremental(this.q_vector, 180)
+        this.setCameraPos_nonIncremental([50,50,-50])
         return this;
+    }
+
+    isInBetween(a : _3D_VEC_, b : _3D_VEC_, c : _3D_VEC_){
+        const dist_ac = Math.abs(a[2] - c[2]);
+        const dist_ab = Math.abs(a[2] - b[2]);
+        const dist_bc = Math.abs(b[2] - c[2]);
+        return dist_ac >= dist_ab && dist_ac >= dist_bc;
     }
 
     resetBuffers() {
@@ -1274,31 +1280,49 @@ class OpticalElement extends Vector {
 
 
     setConversionMatrices() {
-        this.instance._MATRIX = [...this.instance._U,this.instance._C[0],...this.instance._V,this.instance._C[1],...this.instance._N,this.instance._C[2],...[0,0,0,1]] as _16D_VEC_;
+        this.instance._MATRIX = [...this.instance._U,-this.instance._C[0],...this.instance._V,-this.instance._C[1],...this.instance._N,-this.instance._C[2],...[0,0,0,1]] as _16D_VEC_;
         this.instance._INV_MATRIX = this.getInvMat(this.instance._MATRIX,4) as _16D_VEC_;
     }
 
-    getQuartenions(start: _3D_VEC_,end: _3D_VEC_) {
-        const angle = this.getDotProductAngle(start,end);
-        const cross_product = this.crossProduct([start,end]) as _3D_VEC_;
-        this.theta = MODIFIED_PARAMS._ANGLE_CONSTANT * angle;
-        this.vector(cross_product);
-        this.quarternion();
-        this.inv_quartenion();
+    getQuartenions(start: _3D_VEC_,end: _3D_VEC_) : boolean {
+        const angle = this.getDotProductAngle(end,start);
+        if(!Number.isFinite(angle)) return false;
+
+        const check = Math.abs(angle/90) % 1;
+        if (check > 0.05 && check < 0.95) {
+            const cross_product = this.crossProduct([end,start]) as _3D_VEC_;
+            this.theta = MODIFIED_PARAMS._ANGLE_CONSTANT * angle;
+            this.vector(cross_product);
+            this.quarternion();
+            this.inv_quartenion();
+
+            return true;
+        }
+
+        return false;
     }
 
-    applyQuartenions(){
-        this.instance._U = this.q_v_invq_mult(this.instance._U);
-        this.instance._V = this.q_v_invq_mult(this.instance._V);
-        this.instance._N = this.q_v_invq_mult(this.instance._N);
+    applyQuartenions(got_quart : boolean, normal : _3D_VEC_){
+        if (got_quart){
+            this.instance._U = this.q_v_invq_mult(this.instance._U);
+            this.instance._V = this.q_v_invq_mult(this.instance._V);
+            this.instance._N = this.q_v_invq_mult(this.instance._N);
+        }
+
+        else{
+            this.instance._N = normal;
+            this.instance._U = this.normalizeVec(this.crossProduct([this.instance._V,this.instance._N]) as number[]) as _3D_VEC_;
+            this.instance._V = this.normalizeVec(this.crossProduct([this.instance._N,this.instance._U]) as number[]) as _3D_VEC_;
+        }
     }
 
     translateHelper(){
         const DIFF: _3D_VEC_ = this.matAdd(this.instance._LOOK_AT_POINT,this.instance._C,true) as _3D_VEC_;
+        if(this.mag(DIFF) === 0) DIFF[2] = 1;
         const NORMAL : _3D_VEC_ = this.normalizeVec(DIFF) as _3D_VEC_;
 
-        this.getQuartenions(this.instance._N, NORMAL);
-        this.applyQuartenions();
+        const got_quarternions = this.getQuartenions(this.instance._N, NORMAL);
+        this.applyQuartenions(got_quarternions,NORMAL);
         this.setConversionMatrices();
     }
 
@@ -1312,7 +1336,8 @@ class OpticalElement extends Vector {
         this.translateHelper();
     }
 
-    rotateObject_incremental(axis: _3D_VEC_,angle: number) {       
+    rotateObject_incremental(axis: _3D_VEC_,input_angle: number) {     
+        const angle = -input_angle;  
         const DIFF: _3D_VEC_ = this.matAdd(this.instance._LOOK_AT_POINT,this.instance._C,true) as _3D_VEC_;
         const NEW_DIFF : _3D_VEC_ = this.q_rot(angle, axis, DIFF);
         this.instance._LOOK_AT_POINT = this.matAdd(this.instance._C,NEW_DIFF) as _3D_VEC_;
@@ -1323,7 +1348,8 @@ class OpticalElement extends Vector {
         this.setConversionMatrices();
     }
 
-    revolveObject_incremental(axis: _3D_VEC_,angle: number) {
+    revolveObject_incremental(axis: _3D_VEC_,input_angle: number) {
+        const angle = -input_angle;
         const DIFF: _3D_VEC_ = this.matAdd(this.instance._LOOK_AT_POINT,this.instance._C,true) as _3D_VEC_;
         const NEW_DIFF : _3D_VEC_ = this.q_rot(angle, axis, DIFF);
         this.instance._C = this.matAdd(this.instance._LOOK_AT_POINT,NEW_DIFF,true) as _3D_VEC_;
@@ -1339,13 +1365,14 @@ class OpticalElement extends Vector {
         this.translateHelper();
     }
 
-    clipToOpticalObject(arr: _4D_VEC_): _4D_VEC_ {
-        return this.matMult(this.instance._MATRIX,arr,[4,4],[4,1]) as _4D_VEC_;
+    clipToOpticalObject(arr: _4D_VEC_): _4D_VEC_ | undefined {
+        const result : _4D_VEC_ =  this.matMult(this.instance._MATRIX,arr,[4,4],[4,1]) as _4D_VEC_;
+        // if (result[2] < 0) return undefined; // behind the camera
+        return result;
     }
 
     opticalObjectToClip(arr: _4D_VEC_): _4D_VEC_ {
         return this.matMult(this.instance._INV_MATRIX,arr,[4,4],[4,1]) as _4D_VEC_;
- 
     }
 }
 
@@ -1368,12 +1395,15 @@ class ClipSpace{
     }
 }
 
-class PerspectiveSpace extends Matrix{
+class NDCSspace extends Matrix{
     constructor () {super();};
 
-    opticalObjectToPerspective(arr : _4D_VEC_) : _4D_VEC_ | undefined{
+    opticalObjectToPerspective(arr : _4D_VEC_ | undefined) : _4D_VEC_ | undefined{
+        if(typeof arr === "undefined") return undefined;
         const orig_proj: _4D_VEC_ = this.matMult(MODIFIED_PARAMS._PROJECTION_MAT,arr,[4,4],[4,1]) as _4D_VEC_;
         const pers_div: _4D_VEC_ = this.scaMult(1 / orig_proj[3],orig_proj,true) as _4D_VEC_;
+        console.log(orig_proj,"original proj", pers_div,"perspective div")
+
         
         if (pers_div[2] >= -1.1 && pers_div[2] <= 1.1 && pers_div[2] != Infinity) { //Culling
             return pers_div;
@@ -1612,7 +1642,7 @@ class OpticalElement_Objects {
     render(vertex: _3D_VEC_,optical_type: _OPTICAL_, light_rendering_mode : "singular" | "multi" = "singular"): _4D_VEC_ | undefined {
         const clipped_coords : _4D_VEC_ = new ClipSpace().worldToClip(vertex);
 
-        var clip_to_optical_object_space: _4D_VEC_ = [0,0,0,0];
+        var clip_to_optical_object_space: _4D_VEC_ | undefined = undefined;
         switch(optical_type) {
             case "none": return undefined;
             case "camera":
@@ -1632,13 +1662,24 @@ class OpticalElement_Objects {
             else return undefined;
         }
 
+        const camera = this.optical_element_array[this.selected_camera_instances[this.current_camera_instance]].instance._C;
+        const lookat = this.optical_element_array[this.selected_camera_instances[this.current_camera_instance]].instance._LOOK_AT_POINT;
+
         console.log(vertex,"vertex")
+        console.log(" camera lookat point", this.optical_element_array[0].isInBetween(camera, lookat, vertex))
+        console.log(" camera point lookat", this.optical_element_array[0].isInBetween(camera, vertex, lookat))
+        console.log(" lookat camera point", this.optical_element_array[0].isInBetween(lookat, camera, vertex))
+
+        const isBehindCamera = this.optical_element_array[this.selected_camera_instances[this.current_camera_instance]].isInBetween(lookat, camera, vertex);
+        if (isBehindCamera) {console.log("vertex is behind camera"); return undefined;}
+
+        console.log("vertex is not behind camera");
+
         console.log(clipped_coords,"clipped vertex")
         console.log(clip_to_optical_object_space,"camera")
-        const pers_div : _4D_VEC_ | undefined = new PerspectiveSpace().opticalObjectToPerspective(clip_to_optical_object_space);
+        const pers_div : _4D_VEC_ | undefined = new NDCSspace().opticalObjectToPerspective(clip_to_optical_object_space);
         console.log(pers_div,"perspective projection space")
         console.log(new ScreenSpace().perspectiveToScreen(pers_div),"screen space");
         return new ScreenSpace().perspectiveToScreen(pers_div);
     }
 }
-

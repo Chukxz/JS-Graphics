@@ -11,6 +11,8 @@ window.addEventListener("load", ()=>{
 
   console.log(_OPTICAL_ELEMS.optical_element_array[0])
 
+  //_OPTICAL_ELEMS.optical_element_array[0].setLookAtPos_nonIncremental([0,0,0]);
+
   const _ObjectRendering = new ObjectRendering();
 
     console.log(_ObjectRendering)
@@ -30,7 +32,10 @@ window.addEventListener("load", ()=>{
     _ObjectRendering.renderWorld()
     // _ObjectRendering.translateObject([103,124,145])
     // _ObjectRendering.rotateObject([0,1,0],45);
-    console.log(_ObjectRendering.renderObject())
 
-    console.log(_ObjectRendering)
+    const rendered_object = _ObjectRendering.renderObject();
+    console.log(rendered_object);
+    console.log(_ObjectRendering);
+
+    drawObject(rendered_object);
 })
