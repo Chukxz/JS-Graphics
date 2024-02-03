@@ -70,8 +70,6 @@ type _OBJ_STATE_ = "local" | "object" | "world";
 
 type _HANDEDNESS_ = "left" | "right";
 
-type _OPTICAL_ = "light" | "camera" | "none";
-
 type _HALFEDGE_ = {
     vertices: _2D_VEC_;
     face_vertices: number[];
@@ -136,7 +134,7 @@ type _OBJ_VERT_ = { [index:string] : _4D_VEC_ | undefined };
 
 type _CAM_RENDERED_OBJ_ = { object : CreateMeshObject, vertices : _OBJ_VERT_ };
 
-interface IMPL_DRAG {
+interface IMPL_DRAG_ {
     changeAcc: (acc: number) => void,
     start: (element: GlobalEventHandlers,call_func: (deltaX: number,deltaY: number) => void) => void,
     acceleration: number,
@@ -204,8 +202,8 @@ const DEFAULT_PARAMS: _BASIC_PARAMS_ =
     _PROJ_ANGLE: 90,
     _ASPECT_RATIO: 1,
     _DIST: 1,
-    _HALF_X: 1,
-    _HALF_Y: 1,
+    _HALF_X: 50,
+    _HALF_Y: 50,
     _PROJECTION_MAT: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
     _INV_PROJECTION_MAT: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
     _GRID_VERT_THETA : 15,
@@ -216,7 +214,7 @@ const DEFAULT_PARAMS: _BASIC_PARAMS_ =
 const MODIFIED_PARAMS: _BASIC_PARAMS_ = JSON.parse(JSON.stringify(DEFAULT_PARAMS));
 
 const _PERS_PROJ : PerspectiveProjection =  new PerspectiveProjection();
-const _OPTICAL_ELEMS : OpticalElement_Objects =  new OpticalElement_Objects();
+const _CAMERA : CameraObjects = new CameraObjects();
 
 //const catmull_clark_subdivision_worker = new Worker("catmull_clark_worker.js");
 
@@ -262,7 +260,7 @@ class SpawnWorker {
     }
 }
 
-const implementDrag: IMPL_DRAG =
+const implementDrag: IMPL_DRAG_ =
     (function () {
         var pos1 = 0,
             pos2 = 0,
@@ -280,7 +278,7 @@ const implementDrag: IMPL_DRAG =
             // of the object 'retObject' and set the return value of the local function
             // to 'retObject'
 
-            retObject: IMPL_DRAG = {
+            retObject: IMPL_DRAG_ = {
                 changeAcc: changeAcceleration,
                 start: drag,
                 acceleration: getAcceleration(),
@@ -1825,7 +1823,7 @@ class CreateSVGEllipse {
 }
 
 class CreateSVGLineDrag extends CreateSVGLine {
-    implement_drag: IMPL_DRAG;
+    implement_drag: IMPL_DRAG_;
 
     constructor (svg_class: CreateSVG,x1: string,y1: string,x2: string,y2: string,stroke: string,strokeWidth: string,hover_color: string) {
         super(svg_class,x1,y1,x2,y2,stroke,strokeWidth,hover_color);

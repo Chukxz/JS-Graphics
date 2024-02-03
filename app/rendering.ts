@@ -61,26 +61,30 @@ function gridRender(){
 //   }
 // }
 
-function drawPoint(point: Point2D, _strokeStyle = "black", _lineWidth = 2) {
+function drawPoint(point: Point2D, _strokeStyle = "black", _lineWidth = 1, _fillStyle = "black") {
   ctx.beginPath();
   ctx.lineWidth = _lineWidth;
   ctx.strokeStyle = _strokeStyle;
 
   ctx.arc(point.x,point.y,3,0,2*Math.PI);
+  ctx.fillStyle = _fillStyle;
 
-  ctx.closePath();
   ctx.stroke();
+  ctx.fill();
+  ctx.closePath();
 }
 
-function drawVertex(vertex : _4D_VEC_, _strokeStyle = "black", _lineWidth = 2) {
+function drawVertex(vertex : _4D_VEC_, _strokeStyle = "black", _lineWidth = 1, _fillStyle = "black") {
   ctx.beginPath();
   ctx.lineWidth = _lineWidth;
   ctx.strokeStyle = _strokeStyle;
 
   ctx.arc(vertex[0],vertex[1],3,0,2*Math.PI);
+  ctx.fillStyle = _fillStyle;
 
-  ctx.closePath();
   ctx.stroke();
+  ctx.fill();
+  ctx.closePath();
 }
 
 function drawLine(a: Point2D,b: Point2D,_strokeStyle = "black", _lineWidth = 2) {
@@ -91,8 +95,8 @@ function drawLine(a: Point2D,b: Point2D,_strokeStyle = "black", _lineWidth = 2) 
   ctx.moveTo(a.x,a.y);
   ctx.lineTo(b.x,b.y);
 
-  ctx.closePath();
   ctx.stroke();
+  ctx.closePath();
 }
 
 function drawObject(object : _CAM_RENDERED_OBJ_ | undefined){

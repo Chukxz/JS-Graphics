@@ -54,8 +54,8 @@ const DEFAULT_PARAMS = {
     _PROJ_ANGLE: 90,
     _ASPECT_RATIO: 1,
     _DIST: 1,
-    _HALF_X: 1,
-    _HALF_Y: 1,
+    _HALF_X: 50,
+    _HALF_Y: 50,
     _PROJECTION_MAT: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     _INV_PROJECTION_MAT: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     _GRID_VERT_THETA: 15,
@@ -64,7 +64,7 @@ const DEFAULT_PARAMS = {
 };
 const MODIFIED_PARAMS = JSON.parse(JSON.stringify(DEFAULT_PARAMS));
 const _PERS_PROJ = new PerspectiveProjection();
-const _OPTICAL_ELEMS = new OpticalElement_Objects();
+const _CAMERA = new CameraObjects();
 //const catmull_clark_subdivision_worker = new Worker("catmull_clark_worker.js");
 const worker_script = `
     onmessage = (e) => {

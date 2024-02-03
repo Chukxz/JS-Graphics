@@ -9,9 +9,9 @@ window.addEventListener("load", ()=>{
 
   console.log(MODIFIED_PARAMS)
 
-  console.log(_OPTICAL_ELEMS.optical_element_array[0])
+  console.log(_CAMERA.camera_objects_array[0])
 
-  //_OPTICAL_ELEMS.optical_element_array[0].setLookAtPos_nonIncremental([0,0,0]);
+  //_CAMERA.camera_objects_array[0].setLookAtPos_nonIncremental([0,0,0]);
 
   const _ObjectRendering = new ObjectRendering();
 

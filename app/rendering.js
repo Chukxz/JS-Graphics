@@ -48,21 +48,25 @@ function gridRender() {
 //     drawLine(c_t_s_a_2D,c_t_s_b_2D);
 //   }
 // }
-function drawPoint(point, _strokeStyle = "black", _lineWidth = 2) {
+function drawPoint(point, _strokeStyle = "black", _lineWidth = 1, _fillStyle = "black") {
     ctx.beginPath();
     ctx.lineWidth = _lineWidth;
     ctx.strokeStyle = _strokeStyle;
     ctx.arc(point.x, point.y, 3, 0, 2 * Math.PI);
-    ctx.closePath();
+    ctx.fillStyle = _fillStyle;
     ctx.stroke();
+    ctx.fill();
+    ctx.closePath();
 }
-function drawVertex(vertex, _strokeStyle = "black", _lineWidth = 2) {
+function drawVertex(vertex, _strokeStyle = "black", _lineWidth = 1, _fillStyle = "black") {
     ctx.beginPath();
     ctx.lineWidth = _lineWidth;
     ctx.strokeStyle = _strokeStyle;
     ctx.arc(vertex[0], vertex[1], 3, 0, 2 * Math.PI);
-    ctx.closePath();
+    ctx.fillStyle = _fillStyle;
     ctx.stroke();
+    ctx.fill();
+    ctx.closePath();
 }
 function drawLine(a, b, _strokeStyle = "black", _lineWidth = 2) {
     ctx.beginPath();
@@ -70,8 +74,8 @@ function drawLine(a, b, _strokeStyle = "black", _lineWidth = 2) {
     ctx.strokeStyle = _strokeStyle;
     ctx.moveTo(a.x, a.y);
     ctx.lineTo(b.x, b.y);
-    ctx.closePath();
     ctx.stroke();
+    ctx.closePath();
 }
 function drawObject(object) {
     if (typeof object === "undefined")

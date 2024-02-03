@@ -1017,7 +1017,7 @@ class ObjectRendering extends Miscellanous {
         const renderedObjectVertices = {};
         for (const index in object.rendered_points_list) {
             const vertex = object.rendered_points_list[index];
-            const rendered_vertex = _OPTICAL_ELEMS.render(vertex, "camera");
+            const rendered_vertex = _CAMERA.render(vertex);
             renderedObjectVertices[index] = rendered_vertex;
         }
         return { object: object, vertices: renderedObjectVertices };
