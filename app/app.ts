@@ -31,8 +31,12 @@ const c_2 = document.getElementById("c_2") as HTMLButtonElement;
 const c_3 = document.getElementById("c_3") as HTMLButtonElement;
 const c_elems = document.getElementsByClassName("cdv_elem") as HTMLCollectionOf<HTMLButtonElement>;
 
+const elem_col = "#333";
+const elem_hover_col = "#111";
+const elem_active_col = "#4CAF50";
+
 const svg_vert_bar_color = "#aaa";
-const svg_objects_color = "#333";
+const svg_objects_color = elem_col;
 const svg_hover_color = "#ccc";
 const svg_objects_strokeWidth = "2";
 
@@ -199,7 +203,7 @@ const DEFAULT_PARAMS: _BASIC_PARAMS_ =
     _Q_INV_QUART: [0,0,0,0],
     _NZ: 0.1,
     _FZ: 100,
-    _PROJ_ANGLE: 90,
+    _PROJ_ANGLE: 10,
     _ASPECT_RATIO: 1,
     _DIST: 1,
     _HALF_X: 50,
@@ -218,28 +222,28 @@ const _CAMERA : CameraObjects = new CameraObjects();
 
 //const catmull_clark_subdivision_worker = new Worker("catmull_clark_worker.js");
 
-const worker_script =
-    `
-    onmessage = (e) => {
-        console.log(e.data)
+// const worker_script =
+//     `
+//     onmessage = (e) => {
+//         console.log(e.data)
       
-        postMessage("goodluck");
-      };
-    `
+//         postMessage("goodluck");
+//       };
+//     `
 
-const blob = new Blob([worker_script],{ type: 'application/javascript' });
+// const blob = new Blob([worker_script],{ type: 'application/javascript' });
 
-const blobURL = URL.createObjectURL(blob);
+// const blobURL = URL.createObjectURL(blob);
 
-const chunkify = new Worker(blobURL);
+// const chunkify = new Worker(blobURL);
 
-chunkify.postMessage("hello");
+// chunkify.postMessage("hello");
 
-chunkify.onmessage = (e) => {
-    console.log(e.data);
-}
+// chunkify.onmessage = (e) => {
+//     console.log(e.data);
+// }
 
-URL.revokeObjectURL(blobURL);
+// URL.revokeObjectURL(blobURL);
 
 class SpawnWorker {
     is_active: boolean;
@@ -1552,17 +1556,17 @@ class BasicSettings {
     toggleMouseTouchEvent() {
         if(isTouchDeviceToggleable) {
             const elem = document.getElementById(TouchMouseEventId) as HTMLLIElement;
-            elem.style.backgroundColor = "#4CAF50";
+            elem.style.backgroundColor = elem_active_col;
             if(isTouchDevice === true) {
                 isTouchDevice = false;
                 setTimeout((() => {
-                    elem.style.backgroundColor = "#333";
+                    elem.style.backgroundColor = elem_col;
                 }),500);
             }
             else {
                 isTouchDevice = true;
                 setTimeout((() => {
-                    elem.style.backgroundColor = "#333";
+                    elem.style.backgroundColor = elem_col;
                 }),500);
             }
             this.displayMouseTouchEvent();
@@ -1624,21 +1628,21 @@ class BasicSettings {
 
     unhoverState(value: string,elem: HTMLLIElement) {
         if(value !== MODIFIED_PARAMS._ACTIVE) {
-            elem.style.backgroundColor = "#333";
+            elem.style.backgroundColor = elem_col;
         }
     }
 
     hoverState(value: string,elem: HTMLLIElement) {
         if(value !== MODIFIED_PARAMS._ACTIVE) {
-            elem.style.backgroundColor = "#111";
+            elem.style.backgroundColor = elem_hover_col;
         }
     }
 
     modifyState(value: string,elem: HTMLLIElement,first = false) {
         if(value !== MODIFIED_PARAMS._ACTIVE) {
             MODIFIED_PARAMS._ACTIVE = value;
-            elem.style.backgroundColor = "#4CAF50";
-            if(first === false) this._last_active.style.backgroundColor = "#333";
+            elem.style.backgroundColor = elem_active_col;
+            if(first === false) this._last_active.style.backgroundColor = elem_col;
             this._last_active = elem;
             sendMessage(value);
         }

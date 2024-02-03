@@ -7,7 +7,8 @@ type _VERT_TOOLTIP_HELPER_ = { before: number; after: number };
 function edit() {
   while(main_menu.firstChild) main_menu.removeChild(main_menu.firstChild);
   const objs = document.createElement("p");
-  objs.textContent = "Create Objects";
+  objs.textContent = "Mesh Objects";
+  objs.style.paddingLeft = "10px";
   main_menu.appendChild(objs);
 
   const object_div_1d = document.createElement("div");
@@ -46,10 +47,10 @@ function edit() {
 class SVG_Indicator {
   svg_class: CreateSVG;
   tooltip_class: CreateToolTip;
-  svg_container : HTMLElement;
-  tooltip_container : HTMLElement;
+  svg_container : HTMLDivElement;
+  tooltip_container : HTMLDivElement;
 
-  constructor (container: HTMLElement,max_child_elem_count: number,tooltip_text = "Generic") {
+  constructor (container: HTMLDivElement,max_child_elem_count: number,tooltip_text = "Generic") {
     const sub_container = document.createElement("div");
     sub_container.style.margin = "10px";
     container.appendChild(sub_container);
@@ -64,14 +65,14 @@ class SVG_Indicator {
 
 /* 1D Shapes */
 class CreatePoint_SVG_Indicator extends SVG_Indicator {
-  constructor (container: HTMLElement) {
+  constructor (container: HTMLDivElement) {
     super(container,1,"Point");
     new CreateSVGCircle(this.svg_class,"10","10","2",svg_objects_color,svg_objects_strokeWidth,svg_hover_color,svg_objects_color);
   }
 }
 
 class CreateLine_SVG_Indicator extends SVG_Indicator {
-  constructor (container: HTMLElement) {
+  constructor (container: HTMLDivElement) {
     super(container,1,"Line");
     new CreateSVGLine(this.svg_class,"1","19","19","1",svg_objects_color,svg_objects_strokeWidth,svg_hover_color);
   }
@@ -81,7 +82,7 @@ class CreateLine_SVG_Indicator extends SVG_Indicator {
 
 /* 2D Shapes */
 class CreatePolygon_SVG_Indicator extends SVG_Indicator {
-  constructor (container: HTMLElement) {
+  constructor (container: HTMLDivElement) {
     super(container,3,"Polygon");
     new CreateSVGLine(this.svg_class,"1","19","10","1",svg_objects_color,svg_objects_strokeWidth,svg_hover_color);
     new CreateSVGLine(this.svg_class,"10","1","19","19",svg_objects_color,svg_objects_strokeWidth,svg_hover_color);
@@ -90,21 +91,21 @@ class CreatePolygon_SVG_Indicator extends SVG_Indicator {
 }
 
 class CreateEllipse_SVG_Indicator extends SVG_Indicator {
-  constructor (container: HTMLElement) {
+  constructor (container: HTMLDivElement) {
     super(container,1,"Ellipse");
     new CreateSVGEllipse(this.svg_class,"10","10","9","5",svg_objects_color,svg_objects_strokeWidth,svg_hover_color,genBackgroundColor,false);
   }
 }
 
 class CreateCircle_SVG_Indicator extends SVG_Indicator {
-  constructor (container: HTMLElement) {
+  constructor (container: HTMLDivElement) {
     super(container,1,"Circle");
     new CreateSVGCircle(this.svg_class,"10","10","9",svg_objects_color,svg_objects_strokeWidth,svg_hover_color,genBackgroundColor,false);
   }
 }
 
 class CreateRectangle_SVG_Indicator extends SVG_Indicator {
-  constructor (container: HTMLElement) {
+  constructor (container: HTMLDivElement) {
     super(container,4,"Rectangle");
     new CreateSVGLine(this.svg_class,"1","1","19","1",svg_objects_color,svg_objects_strokeWidth,svg_hover_color);
     new CreateSVGLine(this.svg_class,"1","19","19","19",svg_objects_color,svg_objects_strokeWidth,svg_hover_color);
@@ -116,7 +117,7 @@ class CreateRectangle_SVG_Indicator extends SVG_Indicator {
 
 /* 3D Shapes */
 class Pyramid_SVG_Indicator extends SVG_Indicator {
-  constructor (container: HTMLElement) {
+  constructor (container: HTMLDivElement) {
     super(container,6,"Pyramid");
     new CreateSVGLine(this.svg_class,"1","12","10","1",svg_objects_color,svg_objects_strokeWidth,svg_hover_color);
     new CreateSVGLine(this.svg_class,"10","1","19","12",svg_objects_color,svg_objects_strokeWidth,svg_hover_color);
@@ -129,7 +130,7 @@ class Pyramid_SVG_Indicator extends SVG_Indicator {
 }
 
 class Cone_SVG_Indicator extends SVG_Indicator {
-  constructor (container: HTMLElement) {
+  constructor (container: HTMLDivElement) {
     super(container,3,"Cone");
     new CreateSVGLine(this.svg_class,"1","16","10","1",svg_objects_color,svg_objects_strokeWidth,svg_hover_color);
     new CreateSVGLine(this.svg_class,"10","1","19","16",svg_objects_color,svg_objects_strokeWidth,svg_hover_color);
@@ -138,7 +139,7 @@ class Cone_SVG_Indicator extends SVG_Indicator {
 }
 
 class Prism_SVG_Indicator extends SVG_Indicator {
-  constructor (container: HTMLElement) {
+  constructor (container: HTMLDivElement) {
     super(container,9,"Prism");
     new CreateSVGLine(this.svg_class,"3","1","10","8",svg_objects_color,svg_objects_strokeWidth,svg_hover_color);
     new CreateSVGLine(this.svg_class,"10","8","17","1",svg_objects_color,svg_objects_strokeWidth,svg_hover_color);
@@ -155,7 +156,7 @@ class Prism_SVG_Indicator extends SVG_Indicator {
 }
 
 class Cylinder_SVG_Indicator extends SVG_Indicator {
-  constructor (container: HTMLElement) {
+  constructor (container: HTMLDivElement) {
     super(container,4,"Cylinder");
     new CreateSVGEllipse(this.svg_class,"10","4","7","3",svg_objects_color,svg_objects_strokeWidth,svg_hover_color,genBackgroundColor,false);
     new CreateSVGEllipse(this.svg_class,"10","16","7","3",svg_objects_color,svg_objects_strokeWidth,svg_hover_color,genBackgroundColor,false);
@@ -166,7 +167,7 @@ class Cylinder_SVG_Indicator extends SVG_Indicator {
 }
 
 class Cuboid_SVG_Indicator extends SVG_Indicator {
-  constructor (container: HTMLElement) {
+  constructor (container: HTMLDivElement) {
     super(container,12,"Cuboid");
     new CreateSVGLine(this.svg_class,"1","1","12","1",svg_objects_color,svg_objects_strokeWidth,svg_hover_color);
     new CreateSVGLine(this.svg_class,"7","7","19","7",svg_objects_color,svg_objects_strokeWidth,svg_hover_color);
@@ -186,7 +187,7 @@ class Cuboid_SVG_Indicator extends SVG_Indicator {
 }
 
 class Sphere_SVG_Indicator extends SVG_Indicator {
-  constructor (container: HTMLElement) {
+  constructor (container: HTMLDivElement) {
     super(container,5,"Sphere");
     new CreateSVGCircle(this.svg_class,"10","10","9",svg_objects_color,svg_objects_strokeWidth,svg_hover_color,genBackgroundColor,false);
     new CreateSVGEllipse(this.svg_class, "10","10","3","9",svg_objects_color,svg_objects_strokeWidth,svg_hover_color,genBackgroundColor,false);
@@ -198,7 +199,7 @@ class Sphere_SVG_Indicator extends SVG_Indicator {
 }
 
 class Torus_SVG_Indicator extends SVG_Indicator {
-  constructor (container: HTMLElement) {
+  constructor (container: HTMLDivElement) {
     super(container,10,"Torus");
     new CreateSVGEllipse(this.svg_class, "10","4","7","2",svg_objects_color,svg_objects_strokeWidth,svg_hover_color,genBackgroundColor,false);
     new CreateSVGEllipse(this.svg_class, "10","16","7","2",svg_objects_color,svg_objects_strokeWidth,svg_hover_color,genBackgroundColor,false);
@@ -224,7 +225,7 @@ class CreateToolTip {
   width: number;
   tooltip_text_elem_orientation = "default";
   default_positioning: { top: string,bottom: string,left: string,right: string,marginLeft: string };
-  constructor (tooltip_container: HTMLElement,tooltip: HTMLElement,tooltip_text: string,vert_padding = 5,width: number) {
+  constructor (tooltip_container: HTMLDivElement,tooltip: HTMLElement,tooltip_text: string,vert_padding = 5,width: number) {
     this.tooltip_container_elem = tooltip_container;
 
     tooltip.style.position = "relative";

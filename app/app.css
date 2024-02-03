@@ -117,8 +117,7 @@ canvas {
 .menu {
     z-index: 2;
     overflow-x: hidden;
-    overflow-y: scroll;
-    padding-left: 10px;
+    overflow-y: auto;
 }
 
 

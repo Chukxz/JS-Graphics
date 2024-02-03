@@ -379,44 +379,6 @@ class Quarternion {
 }
 class Matrix extends Quarternion {
     constructor() { super(); }
-    // // Pitch
-    // rotX(ang : number) : _16D_VEC_ {
-    //     const angle = MODIFIED_PARAMS._ANGLE_CONSTANT*ang;
-    //     return [1, 0, 0, 0, 0, Math.cos(angle), -Math.sin(angle) * MODIFIED_PARAMS._HANDEDNESS_CONSTANT, 0, 0, Math.sin(angle) * MODIFIED_PARAMS._HANDEDNESS_CONSTANT, Math.cos(angle), 0, 0, 0, 0, 1];
-    // }
-    // // Yaw
-    // rotY(ang : number) : _16D_VEC_ {
-    //     const angle = MODIFIED_PARAMS._ANGLE_CONSTANT*ang;
-    //     return [Math.cos(angle), 0, Math.sin(angle) * MODIFIED_PARAMS._HANDEDNESS_CONSTANT, 0, 0, 1, 0, 0, -Math.sin(angle) * MODIFIED_PARAMS._HANDEDNESS_CONSTANT, 0, Math.cos(angle), 0, 0, 0, 0, 1];
-    // }
-    // //Roll
-    // rotZ(ang : number) : _16D_VEC_ {
-    //     const angle = MODIFIED_PARAMS._ANGLE_CONSTANT*ang;
-    //     return [Math.cos(angle), -Math.sin(angle) * MODIFIED_PARAMS._HANDEDNESS_CONSTANT, 0, 0, Math.sin(angle) * MODIFIED_PARAMS._HANDEDNESS_CONSTANT, Math.cos(angle), 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
-    // }
-    // rot3d(x : number, y : number, z : number) : _16D_VEC_ {
-    //     return this.matMult(this.rotZ(z), this.matMult(this.rotY(y), this.rotX(x), [4, 4], [4, 4]), [4, 4], [4, 4]) as _16D_VEC_;
-    // };
-    // transl3d(x : number, y : number, z : number) : _16D_VEC_ {
-    //     return [1, 0, 0, x, 0, 1, 0, y, 0, 0, 1, z, 0, 0, 0, 1];
-    // }
-    // scale3dim(x : number, y : number, z : number) : _16D_VEC_ {
-    //     return [x, 0, 0, 0, 0, y, 0, 0, 0, 0, z, 0, 0, 0, 0, 1];
-    // }
-    // setObjTransfMat(Sx, Sy, Sz, Rx, Ry, Rz, Tx, Ty, Tz) {
-    //     // None of the scale parameters should equal zero as that would make the determinant of the matrix
-    //     // equal to zero, thereby making it impossible to get the inverse of the matrix (Zero Division Error)
-    //     if (Sx === 0) {
-    //         Sx += 0.01;
-    //     }
-    //     if (Sy === 0) {
-    //         Sy += 0.01;
-    //     }
-    //     if (Sz === 0) {
-    //         Sz += 0.01;
-    //     }
-    //     this.objTransfMat = this.matMult(this.transl3d(Tx, Ty, Tz), this.matMult(this.rot3d(Rx, Ry, Rz), this.scale3dim(Sx, Sy, Sz), [4, 4], [4, 4]), [4, 4], [4, 4]);
-    // }
     matMult(matA, matB, shapeA, shapeB) {
         if (shapeA[1] !== shapeB[0])
             return [];
@@ -1043,37 +1005,32 @@ class Clip {
     revHomoVec(arr) {
         return [...arr].splice(0, 3);
     }
-    clipCoords(arr) {
+    camToNDC(arr) {
         const array = [...arr];
         array[0] /= MODIFIED_PARAMS._HALF_X;
         array[1] /= MODIFIED_PARAMS._HALF_Y;
         return array;
     }
-    unclipCoords(arr) {
+    NDCToCam(arr) {
         const array = [...arr];
         array[0] *= MODIFIED_PARAMS._HALF_X;
         array[1] *= MODIFIED_PARAMS._HALF_Y;
         return array;
     }
-    canvasTo(arr) {
+    NDCToCanvas(arr) {
         const array = [...arr];
-        array[0] -= MODIFIED_PARAMS._HALF_X;
-        array[1] -= MODIFIED_PARAMS._HALF_Y;
+        array[0] = (array[0] * MODIFIED_PARAMS._HALF_X) + MODIFIED_PARAMS._HALF_X;
+        array[1] = (array[1] * -MODIFIED_PARAMS._HALF_Y) + MODIFIED_PARAMS._HALF_Y;
         return array;
     }
-    toCanvas(arr) {
+    canvasToNDC(arr) {
         const array = [...arr];
-        array[0] += MODIFIED_PARAMS._HALF_X;
-        array[1] += MODIFIED_PARAMS._HALF_Y;
+        array[0] = (array[0] - MODIFIED_PARAMS._HALF_X) / MODIFIED_PARAMS._HALF_X;
+        array[1] = (array[1] - MODIFIED_PARAMS._HALF_X) / -MODIFIED_PARAMS._HALF_Y;
         return array;
     }
 }
 class CameraObject extends Vector {
-    // Default
-    // _CAM_MATRIX : [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
-    // _INV_CAM_MATRIX : [1, -0, 0, -0, -0, 1, -0, 0, 0, -0, 1, -0, -0, 0, -0, 1],
-    // actpos = [0,0,1],
-    // usedpos = [0,0,-1]
     instance = {
         instance_number: 0,
         _LOOK_AT_POINT: [0, 0, 0],
@@ -1089,7 +1046,7 @@ class CameraObject extends Vector {
     constructor() {
         super();
         this.setConversionMatrices();
-        this.setCameraPos_nonIncremental([0, 0, -8]);
+        this.setCameraPos_nonIncremental([0, 0, -20]);
         return this;
     }
     isInBetween(a, b, c) {
@@ -1159,7 +1116,7 @@ class CameraObject extends Vector {
         this.instance._C = translation_array;
         this.translateHelper();
     }
-    rotateObject_incremental(axis, angle) {
+    rotateCamera_incremental(axis, angle) {
         const DIFF = this.matAdd(this.instance._LOOK_AT_POINT, this.instance._C, true);
         const NEW_DIFF = this.q_rot(angle, axis, DIFF);
         this.instance._LOOK_AT_POINT = this.matAdd(this.instance._C, NEW_DIFF);
@@ -1168,7 +1125,7 @@ class CameraObject extends Vector {
         this.instance._N = this.q_rot(angle, axis, this.instance._N);
         this.setConversionMatrices();
     }
-    revolveObject_incremental(axis, angle) {
+    revolveCamera_incremental(axis, angle) {
         const DIFF = this.matAdd(this.instance._LOOK_AT_POINT, this.instance._C, true);
         const NEW_DIFF = this.q_rot(angle, axis, DIFF);
         this.instance._C = this.matAdd(this.instance._LOOK_AT_POINT, NEW_DIFF, true);
@@ -1181,12 +1138,12 @@ class CameraObject extends Vector {
         this.instance._C = this.matAdd(this.instance._C, translation_array);
         this.translateHelper();
     }
-    worldToOpticalObject(arr) {
+    worldToCamera(arr) {
         const toHomoVec = new Clip().homoVec(arr);
         const camSpace = this.matMult(this.instance._MATRIX, toHomoVec, [4, 4], [4, 1]);
         return camSpace;
     }
-    opticalObjectToWorld(arr) {
+    cameraToWorld(arr) {
         const camSpace = this.matMult(this.instance._INV_MATRIX, arr, [4, 4], [4, 1]);
         const fromHomoVec = new Clip().revHomoVec(camSpace);
         return fromHomoVec;
@@ -1200,7 +1157,7 @@ class NDCSspace extends Matrix {
             return undefined;
         const orig_proj = this.matMult(MODIFIED_PARAMS._PROJECTION_MAT, arr, [4, 4], [4, 1]);
         const pers_div = this.scaMult(1 / orig_proj[3], orig_proj, true);
-        if (pers_div[2] >= -1.1 && pers_div[2] <= 1.1 && pers_div[2] != Infinity) { //Culling
+        if (pers_div[2] >= -1.0 && pers_div[2] <= 1.0 && pers_div[2] != Infinity) { //Culling
             return pers_div;
         }
         else
@@ -1210,22 +1167,6 @@ class NDCSspace extends Matrix {
         const rev_pers_div = this.scaMult(arr[3], arr, true);
         const rev_orig_proj = this.matMult(MODIFIED_PARAMS._INV_PROJECTION_MAT, rev_pers_div, [4, 4], [4, 1]);
         return rev_orig_proj;
-    }
-}
-class ScreenSpace extends Clip {
-    constructor() {
-        super();
-    }
-    ;
-    fromScreen(vertex) {
-        const fromScreen = this.canvasTo(vertex);
-        const clippedCoords = this.clipCoords(fromScreen);
-        return clippedCoords;
-    }
-    toScreen(vertex) {
-        const unclippedCoords = this.unclipCoords(vertex);
-        const toScreen = this.toCanvas(unclippedCoords);
-        return toScreen;
     }
 }
 class CameraObjects extends Clip {
@@ -1246,6 +1187,10 @@ class CameraObjects extends Clip {
         this.selected_camera_instances = {};
         this.instance_number_to_list_map = {};
         this.createNewCameraObject();
+    }
+    changeCurrentInstanceNumber(instance_number) {
+        if (instance_number in this.instance_number_to_list_map)
+            this.current_camera_instance = instance_number;
     }
     createNewCameraObject() {
         this.max_camera_instance_number = this.instance_number;
@@ -1271,31 +1216,30 @@ class CameraObjects extends Clip {
         }
         if (instance_number_input in this.selected_camera_instances)
             delete this.selected_camera_instances[instance_number_input];
-        if (Object.keys(this.selected_camera_instances).length === 0)
-            this.selected_camera_instances[0] = 0;
         if (instance_number_input === this.current_camera_instance)
             this.current_camera_instance = Number(Object.keys(this.selected_camera_instances)[0]);
+        if (Object.keys(this.selected_camera_instances).length === 0) {
+            const first_instance = Object.keys(this.instance_number_to_list_map)[0];
+            const first_index = Number(this.instance_number_to_list_map[first_instance]);
+            this.selected_camera_instances[first_instance] = first_index;
+            this.current_camera_instance = Number(first_instance);
+        }
     }
+    // won't delete if there is only one camera object left
     deleteCameraObject(instance_number_input) {
-        if (instance_number_input > 0 && instance_number_input <= this.max_camera_instance_number) {
+        if (this.arrlen === 1)
+            return;
+        if (instance_number_input <= this.max_camera_instance_number) {
             const index = this.instance_number_to_list_map[instance_number_input];
             this.deleteCameraObjectHelper(instance_number_input, index);
             this.arrlen = this.camera_objects_array.length;
         }
     }
-    // doesn't delete the first one
+    // doesn't delete the first camera object
     deleteAllCameraObjects() {
         for (const key in this.instance_number_to_list_map) {
             const index = this.instance_number_to_list_map[key];
-            this.deleteCameraObjectHelper(Number(key), index);
-        }
-        this.arrlen = this.camera_objects_array.length;
-    }
-    // doesn't delete the first one
-    deleteAllOpticalObjects() {
-        for (const key in this.instance_number_to_list_map) {
-            const index = this.instance_number_to_list_map[key];
-            if (index > 1) {
+            if (index > 0) {
                 this.deleteCameraObjectHelper(Number(key), index);
             }
         }
@@ -1317,19 +1261,13 @@ class CameraObjects extends Clip {
     deselect_camera_instance(instance_number_input) {
         if (instance_number_input <= this.max_camera_instance_number) {
             if (instance_number_input in this.selected_camera_instances) {
-                const selection = this.instance_number_to_list_map[instance_number_input];
                 delete this.selected_camera_instances[instance_number_input];
-                if (Object.keys(this.selected_camera_instances).length === 0) {
-                    this.selected_camera_instances[0] = 0;
-                    if (instance_number_input === 0)
-                        return;
-                }
             }
         }
     }
     render(vertex) {
-        const camera = this.camera_objects_array[this.selected_camera_instances[this.current_camera_instance]].instance._C;
-        const lookat = this.camera_objects_array[this.selected_camera_instances[this.current_camera_instance]].instance._LOOK_AT_POINT;
+        const camera = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]].instance._C;
+        const lookat = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]].instance._LOOK_AT_POINT;
         console.log(vertex, "vertex");
         console.log("camera lookat point", this.camera_objects_array[0].isInBetween(camera, lookat, vertex));
         console.log("camera point lookat", this.camera_objects_array[0].isInBetween(camera, vertex, lookat));
@@ -1340,17 +1278,16 @@ class CameraObjects extends Clip {
             return undefined;
         }
         console.log("vertex is not behind camera");
-        const world_to_camera_space = this.camera_objects_array[this.selected_camera_instances[this.current_camera_instance]].worldToOpticalObject(vertex);
+        const world_to_camera_space = this.camera_objects_array[this.selected_camera_instances[this.current_camera_instance]].worldToCamera(vertex);
         console.log(world_to_camera_space, "camera");
-        const _ScreenSpace = new ScreenSpace();
-        const camera_to_normalized_space = _ScreenSpace.fromScreen(world_to_camera_space);
-        console.log(camera_to_normalized_space, "normalized coordinates");
-        const pers_div = new NDCSspace().toPerspective(camera_to_normalized_space);
+        const camera_to_ndc_space = this.camToNDC(world_to_camera_space);
+        console.log(camera_to_ndc_space, "camera to ndc");
+        const pers_div = new NDCSspace().toPerspective(camera_to_ndc_space);
         console.log(pers_div, "perspective projection space");
         if (typeof pers_div === "undefined")
             return undefined;
-        const pers_div_to_screen_space = _ScreenSpace.toScreen(pers_div);
-        console.log(pers_div_to_screen_space, "screen space");
-        return pers_div_to_screen_space;
+        const pers_div_to_canvas = this.NDCToCanvas(pers_div);
+        console.log(pers_div_to_canvas, "canvas");
+        return pers_div_to_canvas;
     }
 }

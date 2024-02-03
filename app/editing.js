@@ -5,7 +5,8 @@ function edit() {
     while (main_menu.firstChild)
         main_menu.removeChild(main_menu.firstChild);
     const objs = document.createElement("p");
-    objs.textContent = "Create Objects";
+    objs.textContent = "Mesh Objects";
+    objs.style.paddingLeft = "10px";
     main_menu.appendChild(objs);
     const object_div_1d = document.createElement("div");
     object_div_1d.style.zIndex = "inherit";

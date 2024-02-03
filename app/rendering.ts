@@ -2,9 +2,59 @@ window.parent.addEventListener("message",(e) => { if(e.data === "Rendering") ren
 
 function render() {
   while(main_menu.firstChild) main_menu.removeChild(main_menu.firstChild);
-  console.log(MODIFIED_PARAMS._NZ,MODIFIED_PARAMS._FZ,MODIFIED_PARAMS._PROJ_ANGLE,MODIFIED_PARAMS._CANVAS_WIDTH)
+    const objs = document.createElement("p");
+    objs.textContent = "Camera Objects";
+    objs.style.paddingLeft = "10px";
+    main_menu.appendChild(objs);
 
+    const camera_div = document.createElement("div");
+    camera_div.style.zIndex = "inherit";
+    camera_div.style.width = "inherit";
+    main_menu.appendChild(camera_div);
+
+    new CameraIndicator(camera_div);
 }
+
+class CameraIndicator{
+  camera_objects : CameraObject[];
+
+  constructor (container: HTMLDivElement) {
+    this.showCameras(container);
+  }
+
+  showCamera(sub_container : HTMLDivElement, camera : CameraObject){
+    const cam = document.createElement("p");
+    cam.textContent = `Camera   ${camera.instance.instance_number}`;
+    cam.style.backgroundColor = elem_hover_col;
+    cam.style.color = "#fff";
+    cam.style.width = `${Number(window.getComputedStyle(main_menu).width.split("px")[0]) - 50}px`;
+    cam.style.padding = "5px";
+    cam.style.borderRadius = "8px";
+    cam.style.cursor = "pointer";
+    cam.style.overflowX = "clip"
+    sub_container.appendChild(cam);
+
+    window.addEventListener("resize", ()=>{
+      cam.style.width = `${Number(window.getComputedStyle(main_menu).width.split("px")[0]) - 50}px`;
+    })
+  }
+
+  showCameras(container: HTMLDivElement){
+    while(container.firstChild) container.removeChild(container.firstChild);
+    this.camera_objects = _CAMERA.camera_objects_array;
+    const sub_container = document.createElement("div");
+    sub_container.style.margin = "10px";
+    container.appendChild(sub_container);
+
+    console.log(this.camera_objects)
+
+    for(const camera_object of this.camera_objects){
+      this.showCamera(sub_container, camera_object);
+    }
+    //this.svg_class.svg.addEventListener("click", (()=>console.log(tooltip_text)))
+  }
+}
+
 
 function gridRender(){
   const a = MODIFIED_PARAMS._CANVAS_WIDTH;
@@ -87,7 +137,7 @@ function drawVertex(vertex : _4D_VEC_, _strokeStyle = "black", _lineWidth = 1, _
   ctx.closePath();
 }
 
-function drawLine(a: Point2D,b: Point2D,_strokeStyle = "black", _lineWidth = 2) {
+function lineDraw(a: Point2D,b: Point2D,_strokeStyle = "black", _lineWidth = 2) {
   ctx.beginPath();
   ctx.lineWidth = _lineWidth;
   ctx.strokeStyle = _strokeStyle;
@@ -99,11 +149,34 @@ function drawLine(a: Point2D,b: Point2D,_strokeStyle = "black", _lineWidth = 2) 
   ctx.closePath();
 }
 
+function drawLine(a: _4D_VEC_ | undefined,b: _4D_VEC_ | undefined,_strokeStyle = "black", _lineWidth = 2) {
+  if(typeof a === "undefined" || typeof b === "undefined") return;
+  ctx.beginPath();
+  ctx.lineWidth = _lineWidth;
+  ctx.strokeStyle = _strokeStyle;
+
+  ctx.moveTo(a[0],a[1]);
+  ctx.lineTo(b[0],b[1]);
+
+  ctx.stroke();
+  ctx.closePath();
+}
+
 function drawObject(object : _CAM_RENDERED_OBJ_ | undefined){
   if(typeof object === "undefined") return;
   for(const vertex in object.vertices){
     const vertexes = object.vertices[vertex];
     if(typeof vertexes === "undefined") continue;
     drawVertex(vertexes);
+  }
+  const half_edges = structuredClone(object.object.mesh.HalfEdgeDict)
+  for(const half_edge in half_edges){
+    const twin = half_edges[half_edge].twin;
+    if(half_edges[twin]) delete half_edges[twin];
+  }
+
+  for(const edge in half_edges){
+    const [a,b] = edge.split("-").map((value)=>object.vertices[value]);
+    drawLine(a,b)
   }
 }
