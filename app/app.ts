@@ -40,9 +40,20 @@ const svg_objects_color = elem_col;
 const svg_hover_color = "#ccc";
 const svg_objects_strokeWidth = "2";
 
+var nav_height = 0;
+var main_menu_width = 0;
+var main_menu_height = 0;
+
 var isTouchDevice = "ontouchstart" in window;
 var isTouchDeviceToggleable = true;
 const TouchMouseEventId = "Clicking";
+
+var sub_menu : HTMLDivElement | undefined = undefined;
+
+var create_main_menu_divider = false;
+let svg_main_menu_divider: CreateSVG | undefined = undefined;
+let svg_main_menu_divider_line_drag: CreateSVGLineDrag | undefined = undefined;
+let svg_main_menu_divider_top = -100;
 
 const sendMessage = (function_name: string) => window.parent.postMessage(function_name);
 
@@ -134,9 +145,11 @@ type _CONNECTIVITY_ = {
 
 type _HALFEDGEDICT_ = { [halfedge: string]: _HALFEDGE_ };
 
-type _OBJ_VERT_ = { [index:string] : _4D_VEC_ | undefined };
+type _OBJ_VERT_ = { [index: string]: _4D_VEC_ | undefined };
 
-type _CAM_RENDERED_OBJ_ = { object : CreateMeshObject, vertices : _OBJ_VERT_ };
+type _CAM_RENDERED_OBJ_ = { object: CreateMeshObject,vertices: _OBJ_VERT_ };
+
+type _TOOLTIP_POSITION_ = "top" | "bottom" | "left" | "right";
 
 interface IMPL_DRAG_ {
     changeAcc: (acc: number) => void,
@@ -150,7 +163,7 @@ interface _BASIC_PARAMS_ {
     _GLOBAL_ALPHA: number,
     _CANVAS_OPACITY: string,
     _CANVAS_WIDTH: number,
-    _CANVAS_BACKGROUND_COLOR:string,
+    _CANVAS_BACKGROUND_COLOR: string,
     _LAST_CANVAS_WIDTH: number,
     _CANVAS_HEIGHT: number,
     _BORDER_COLOR: string,
@@ -175,7 +188,7 @@ interface _BASIC_PARAMS_ {
     _HALF_Y: number,
     _PROJECTION_MAT: _16D_VEC_,
     _INV_PROJECTION_MAT: _16D_VEC_,
-    _GRID_VERT_THETA : number,
+    _GRID_VERT_THETA: number,
     _ACTIVE: string,
     _SIDE_BAR_WIDTH: number,
 }
@@ -210,15 +223,15 @@ const DEFAULT_PARAMS: _BASIC_PARAMS_ =
     _HALF_Y: 50,
     _PROJECTION_MAT: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
     _INV_PROJECTION_MAT: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    _GRID_VERT_THETA : 15,
+    _GRID_VERT_THETA: 15,
     _ACTIVE: "",
     _SIDE_BAR_WIDTH: 100,
 }
 
 const MODIFIED_PARAMS: _BASIC_PARAMS_ = JSON.parse(JSON.stringify(DEFAULT_PARAMS));
 
-const _PERS_PROJ : PerspectiveProjection =  new PerspectiveProjection();
-const _CAMERA : CameraObjects = new CameraObjects();
+const _PERS_PROJ: PerspectiveProjection = new PerspectiveProjection();
+const _CAMERA: CameraObjects = new CameraObjects();
 
 //const catmull_clark_subdivision_worker = new Worker("catmull_clark_worker.js");
 
@@ -226,7 +239,7 @@ const _CAMERA : CameraObjects = new CameraObjects();
 //     `
 //     onmessage = (e) => {
 //         console.log(e.data)
-      
+
 //         postMessage("goodluck");
 //       };
 //     `
@@ -264,124 +277,141 @@ class SpawnWorker {
     }
 }
 
-const implementDrag: IMPL_DRAG_ =
-    (function () {
-        var pos1 = 0,
-            pos2 = 0,
-            pos3 = 0,
-            pos4 = 0,
-            prev = 0,
-            now = Date.now(),
-            dt = now - prev + 1,
-            dX = 0,
-            dY = 0,
-            acc = 1,
-            call_function = (deltaX: number,deltaY: number) => {},
+const implementDrag = function () {
+    var pos1 = 0,
+        pos2 = 0,
+        pos3 = 0,
+        pos4 = 0,
+        prev = 0,
+        now = Date.now(),
+        dt = now - prev + 1,
+        dX = 0,
+        dY = 0,
+        acc = 1,
+        call_function = (deltaX: number,deltaY: number) => {},
 
-            // We invoke the local functions (changeSens and startDrag) as methods
-            // of the object 'retObject' and set the return value of the local function
-            // to 'retObject'
+        // We invoke the local functions (changeSens and startDrag) as methods
+        // of the object 'retObject' and set the return value of the local function
+        // to 'retObject'
 
-            retObject: IMPL_DRAG_ = {
-                changeAcc: changeAcceleration,
-                start: drag,
-                acceleration: getAcceleration(),
-                deltaX: dX,
-                deltaY: dY,
-            };
+        retObject: IMPL_DRAG_ = {
+            changeAcc: changeAcceleration,
+            start: drag,
+            acceleration: getAcceleration(),
+            deltaX: dX,
+            deltaY: dY,
+        };
 
-        function changeAcceleration(acceleration: number) {
-            acc = acceleration;
-        }
+    function changeAcceleration(acceleration: number) {
+        acc = acceleration;
+    }
 
-        function getAcceleration(): number {
-            return acc;
-        }
+    function getAcceleration(): number {
+        return acc;
+    }
 
-        function drag(element: GlobalEventHandlers,call_func: (deltaX: number,deltaY: number) => void) {
-            startDrag(element);
-            startDragMobile(element);
-            call_function = call_func;
-        }
+    function drag(element: GlobalEventHandlers,call_func: (deltaX: number,deltaY: number) => void) {
+        startDrag(element);
+        startDragMobile(element);
+        call_function = call_func;
+    }
 
-        function startDrag(element: GlobalEventHandlers) {
-            element.onmousedown = dragMouseDown;
-        }
+    function startDrag(element: GlobalEventHandlers) {
+        element.onmousedown = dragMouseDown;
+    }
 
-        function startDragMobile(element: GlobalEventHandlers) {
-            element.addEventListener('touchstart',dragTouchstart,{ 'passive': true });
-        }
+    function startDragMobile(element: GlobalEventHandlers) {
+        element.addEventListener('touchstart',dragTouchstart,{ 'passive': true });
+    }
 
-        function dragMouseDown(e: MouseEvent) {
-            e = e || undefined;
-            e.preventDefault();
+    function dragMouseDown(e: MouseEvent) {
+        e = e || undefined;
+        e.preventDefault();
 
-            pos3 = e.clientX;
-            pos4 = e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
 
-            document.onmouseup = dragMouseup;
-            document.onmousemove = dragMousemove;
-        }
+        document.onmouseup = dragMouseup;
+        document.onmousemove = dragMousemove;
+    }
 
-        function dragTouchstart(e: TouchEvent) {
-            e = e || undefined;
+    function dragTouchstart(e: TouchEvent) {
+        e = e || undefined;
 
-            pos3 = e.touches[0].clientX;
-            pos4 = e.touches[0].clientY;
+        pos3 = e.touches[0].clientX;
+        pos4 = e.touches[0].clientY;
 
-            document.addEventListener('touchend',dragTouchend,{ 'passive': true });
-            document.addEventListener('touchmove',dragTouchmove,{ 'passive': true });
-        }
+        document.addEventListener('touchend',dragTouchend,{ 'passive': true });
+        document.addEventListener('touchmove',dragTouchmove,{ 'passive': true });
+    }
 
-        function dragMousemove(e: MouseEvent) {
-            e = e || undefined;
-            e.preventDefault();
+    function dragMousemove(e: MouseEvent) {
+        e = e || undefined;
+        e.preventDefault();
 
-            pos1 = e.clientX - pos3;
-            pos2 = e.clientY - pos4;
-            pos3 = e.clientX;
-            pos4 = e.clientY;
+        pos1 = e.clientX - pos3;
+        pos2 = e.clientY - pos4;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
 
-            dX = pos1 / dt * acc;
-            dY = pos2 / dt * acc;
+        dX = pos1 / dt * acc;
+        dY = pos2 / dt * acc;
 
-            prev = now;
-            now = Date.now();
-            dt = now - prev + 1;
+        prev = now;
+        now = Date.now();
+        dt = now - prev + 1;
 
-            call_function(dX,dY);
-        }
+        call_function(dX,dY);
+    }
 
-        function dragTouchmove(e: TouchEvent) {
-            e = e || undefined;
+    function dragTouchmove(e: TouchEvent) {
+        e = e || undefined;
 
-            pos1 = e.touches[0].clientX - pos3;
-            pos2 = e.touches[0].clientY - pos4;
-            pos3 = e.touches[0].clientX;
-            pos4 = e.touches[0].clientY;
+        pos1 = e.touches[0].clientX - pos3;
+        pos2 = e.touches[0].clientY - pos4;
+        pos3 = e.touches[0].clientX;
+        pos4 = e.touches[0].clientY;
 
-            dX = pos1 / dt * acc;
-            dY = pos2 / dt * acc;
+        dX = pos1 / dt * acc;
+        dY = pos2 / dt * acc;
 
-            prev = now;
-            now = Date.now();
-            dt = now - prev + 1;
+        prev = now;
+        now = Date.now();
+        dt = now - prev + 1;
 
-            call_function(dX,dY);
-        }
+        call_function(dX,dY);
+    }
 
-        function dragMouseup() {
-            document.onmouseup = null;
-            document.onmousemove = null;
-        }
+    function dragMouseup() {
+        document.onmouseup = null;
+        document.onmousemove = null;
+    }
 
-        function dragTouchend() {
-            document.addEventListener('touchend',() => null,{ 'passive': true });
-            document.addEventListener('touchmove',() => null,{ 'passive': true });
-        }
+    function dragTouchend() {
+        document.addEventListener('touchend',() => null,{ 'passive': true });
+        document.addEventListener('touchmove',() => null,{ 'passive': true });
+    }
 
-        return retObject;
-    })()
+    return retObject;
+};
+
+const main_menu_divider_drag_function = (deltaX: number,deltaY: number) => {
+    if(typeof svg_main_menu_divider === "undefined") return;
+    if(typeof svg_main_menu_divider_line_drag === "undefined") return;
+    svg_main_menu_divider.svg.style.position = "absolute";
+
+    const main_menu_height = Number(window.getComputedStyle(main_menu).height.split("px")[0]);
+    const _top = Number(window.getComputedStyle(svg_main_menu_divider.svg).top.split("px")[0]);
+    const max_val = Math.max(100,_top + deltaY);
+    const min_val = Math.min(main_menu_height - 100, max_val);
+
+    svg_main_menu_divider.svg.style.top = `${min_val}px`;
+    svg_main_menu_divider_top = min_val;
+
+    if(typeof sub_menu === "undefined") return;
+    sub_menu.style.top = `${svg_main_menu_divider_top+8}px`;
+    sub_menu.style.height = `${main_menu_height - svg_main_menu_divider_top - 20}px`;
+}
 
 const basicDrawFunction = (set_last_canvas_width = true) => {
     canvas.width = MODIFIED_PARAMS._CANVAS_WIDTH;
@@ -399,6 +429,40 @@ const basicDrawFunction = (set_last_canvas_width = true) => {
     // Perspective Projection
     MODIFIED_PARAMS._ASPECT_RATIO = MODIFIED_PARAMS._CANVAS_WIDTH / MODIFIED_PARAMS._CANVAS_HEIGHT;
     _PERS_PROJ.setPersProjectParam();
+
+    const main_menu_computed_style : CSSStyleDeclaration = window.getComputedStyle(main_menu);
+    main_menu_width = Number(main_menu_computed_style.width.split("px")[0]);
+    main_menu_height = Number(main_menu_computed_style.height.split("px")[0]);
+    const main_menu_border_width = Number(main_menu_computed_style.borderWidth.split("px")[0]);
+
+    root.style.setProperty("--camera-paragraph-width",`${main_menu_width - 50}px`);
+    root.style.setProperty("--custom-menu-header-width",`${main_menu_width - 100}px`);
+    root.style.setProperty("--custom-sub-menu-width",`${main_menu_width - 2*main_menu_border_width}px`);
+
+    const c_m_h_with_cross_hairs = document.getElementsByClassName("with_cross_hairs") as HTMLCollectionOf<HTMLElement>;
+    for(const elem of c_m_h_with_cross_hairs) {
+        if(main_menu_width < 120) elem.style.visibility = "hidden";
+        else elem.style.visibility = "visible";
+    }
+
+    if(create_main_menu_divider === true) {
+        svg_main_menu_divider = new CreateSVG(main_menu,`${main_menu_width - 2*main_menu_border_width}`,"10");
+        create_main_menu_divider = false;
+    }
+
+    if(typeof svg_main_menu_divider === "undefined") return;
+    svg_main_menu_divider.remove();
+    svg_main_menu_divider.init(main_menu,`${main_menu_width - 2*main_menu_border_width}`,"10");
+    svg_main_menu_divider.svg.style.position = "absolute";
+    svg_main_menu_divider_line_drag = new CreateSVGLineDrag(svg_main_menu_divider,"0","0",`${main_menu_width - 2*main_menu_border_width}`,`0`,svg_vert_bar_color,"14",svg_hover_color);
+    svg_main_menu_divider_line_drag.dragFunction(main_menu_divider_drag_function);
+    svg_main_menu_divider_line_drag.changeAcceleration(15);
+    if(svg_main_menu_divider_top < 0) svg_main_menu_divider_top = main_menu_height + svg_main_menu_divider_top;
+    svg_main_menu_divider.svg.style.top = `${svg_main_menu_divider_top}px`;
+
+    if(typeof sub_menu === "undefined") return;
+    sub_menu.style.top = `${svg_main_menu_divider_top+8}px`;
+    sub_menu.style.height = `${main_menu_height - svg_main_menu_divider_top - 20}px`;
 }
 
 class MeshDataStructure {
@@ -1590,12 +1654,13 @@ class BasicSettings {
     setCanvas(): void {
         // Canvas and sidebar
 
-        MODIFIED_PARAMS._SIDE_BAR_WIDTH = window.innerWidth / 3.5;
+        nav_height = Number(window.getComputedStyle(main_nav).height.split("px")[0]);
 
+        MODIFIED_PARAMS._SIDE_BAR_WIDTH = window.innerWidth / 3.5;
         var width = window.innerWidth - MODIFIED_PARAMS._SIDE_BAR_WIDTH - 15;
 
         MODIFIED_PARAMS._CANVAS_WIDTH = width;
-        MODIFIED_PARAMS._CANVAS_HEIGHT = window.innerHeight - 100;
+        MODIFIED_PARAMS._CANVAS_HEIGHT = window.innerHeight - 50 - nav_height;
     }
 
     resetCanvasToDefault() {
@@ -1653,9 +1718,13 @@ class CreateSVG {
     svg: SVGSVGElement;
     svg_ns: string;
     max_child_elem_count: number;
-    container_ : HTMLElement;
+    container_: HTMLElement;
 
     constructor (container: HTMLElement,width: string,height: string,max_child_element_count = 1) {
+        this.init(container,width,height,max_child_element_count);
+    }
+
+    init(container: HTMLElement,width: string,height: string,max_child_element_count = 1) {
         const svgNS = "http://www.w3.org/2000/svg";
         const _svg = document.createElementNS(svgNS,"svg");
         this.svg = _svg;
@@ -1668,16 +1737,20 @@ class CreateSVG {
 
         container.appendChild(_svg);
     }
+
+    remove() {
+        this.container_.removeChild(this.svg);
+    }
 }
 
 class CreateSVGPath {
     path: Element;
     path_ns: string;
-    svg_class_ : CreateSVG;
-    stroke_ : string
-    hover_color_ : string;
-    fill_ : string;
-    hover_fill_ : boolean;
+    svg_class_: CreateSVG;
+    stroke_: string
+    hover_color_: string;
+    fill_: string;
+    hover_fill_: boolean;
 
     constructor (svg_class: CreateSVG,d: string,stroke: string,strokeWidth: string,hover_color: string,fill = "none",hover_fill = false) {
         const _path = document.createElementNS(svg_class.svg_ns,"path");
@@ -1712,9 +1785,9 @@ class CreateSVGPath {
 class CreateSVGLine {
     line: Element;
     line_ns: string;
-    svg_class_ : CreateSVG;
-    stroke_ : string
-    hover_color_ : string;
+    svg_class_: CreateSVG;
+    stroke_: string
+    hover_color_: string;
 
     constructor (svg_class: CreateSVG,x1: string,y1: string,x2: string,y2: string,stroke: string,strokeWidth: string,hover_color: string) {
         const _line = document.createElementNS(svg_class.svg_ns,"line");
@@ -1744,11 +1817,11 @@ class CreateSVGLine {
 class CreateSVGCircle {
     circle: Element;
     circle_ns: string;
-    svg_class_ : CreateSVG;
-    stroke_ : string
-    hover_color_ : string;
-    fill_ : string;
-    hover_fill_ : boolean;
+    svg_class_: CreateSVG;
+    stroke_: string
+    hover_color_: string;
+    fill_: string;
+    hover_fill_: boolean;
 
     constructor (svg_class: CreateSVG,cx: string,cy: string,r: string,stroke: string,strokeWidth: string,hover_color: string,fill: string,hover_fill = true) {
         const _circle = document.createElementNS(svg_class.svg_ns,"circle");
@@ -1758,7 +1831,7 @@ class CreateSVGCircle {
         this.stroke_ = stroke;
         this.hover_color_ = hover_color;
         this.fill_ = fill;
-        this.hover_fill_  = hover_fill;
+        this.hover_fill_ = hover_fill;
 
         _circle.setAttribute("cx",cx);
         _circle.setAttribute("cy",cy);
@@ -1786,11 +1859,11 @@ class CreateSVGCircle {
 class CreateSVGEllipse {
     ellipse: Element;
     ellipse_ns: string;
-    svg_class_ : CreateSVG;
-    stroke_ : string
-    hover_color_ : string;
-    fill_ : string;
-    hover_fill_ : boolean;
+    svg_class_: CreateSVG;
+    stroke_: string
+    hover_color_: string;
+    fill_: string;
+    hover_fill_: boolean;
 
     constructor (svg_class: CreateSVG,cx: string,cy: string,rx: string,ry: string,stroke: string,strokeWidth: string,hover_color: string,fill: string,hover_fill = true) {
         const _ellipse = document.createElementNS(svg_class.svg_ns,"ellipse");
@@ -1800,7 +1873,7 @@ class CreateSVGEllipse {
         this.stroke_ = stroke;
         this.hover_color_ = hover_color;
         this.fill_ = fill;
-        this.hover_fill_  = hover_fill;
+        this.hover_fill_ = hover_fill;
 
         _ellipse.setAttribute("cx",cx);
         _ellipse.setAttribute("cy",cy);
@@ -1831,29 +1904,30 @@ class CreateSVGLineDrag extends CreateSVGLine {
 
     constructor (svg_class: CreateSVG,x1: string,y1: string,x2: string,y2: string,stroke: string,strokeWidth: string,hover_color: string) {
         super(svg_class,x1,y1,x2,y2,stroke,strokeWidth,hover_color);
-
-        this.implement_drag = implementDrag;
-
-        if(svg_class.max_child_elem_count === 1) {
-            this.implement_drag.start(svg_class.svg,this.dragFunction);
-            this.changeAcceleration(10);
-        }
     }
 
-    dragFunction(deltaX: number,deltaY: number) {
-        MODIFIED_PARAMS._CANVAS_WIDTH += deltaX;
-        MODIFIED_PARAMS._SIDE_BAR_WIDTH -= deltaX;
+    dragFunction(func: (deltaX: number,deltaY: number) => void) {
+        this.implement_drag = implementDrag();
 
-        if(MODIFIED_PARAMS._CANVAS_WIDTH > DEFAULT_PARAMS._CANVAS_WIDTH && MODIFIED_PARAMS._SIDE_BAR_WIDTH > DEFAULT_PARAMS._SIDE_BAR_WIDTH) basicDrawFunction();
-
-        else {
-            MODIFIED_PARAMS._CANVAS_WIDTH -= deltaX;
-            MODIFIED_PARAMS._SIDE_BAR_WIDTH += deltaX;
+        if(this.svg_class_.max_child_elem_count === 1) {
+            this.implement_drag.start(this.svg_class_.svg,func);
         }
     }
 
     changeAcceleration(acceleration: number) {
         this.implement_drag.changeAcc(acceleration);
+    }
+}
+
+class CreateSubMenu{
+    submenu : HTMLDivElement;
+    constructor(){
+        this.submenu = document.createElement("div");
+        this.submenu.id = "custom_sub_menu";
+        this.submenu.style.position = "absolute";
+        this.submenu.style.backgroundColor = elem_hover_col;
+        this.submenu.style.zIndex = `${Number(window.getComputedStyle(main_menu).zIndex)+100}`;
+        main_menu.appendChild(this.submenu);
     }
 }
 
@@ -1871,7 +1945,8 @@ class DrawCanvas {
             MODIFIED_PARAMS._SIDE_BAR_WIDTH = process_modify ? window.innerWidth - 15 - MODIFIED_PARAMS._CANVAS_WIDTH : DEFAULT_PARAMS._SIDE_BAR_WIDTH;
             MODIFIED_PARAMS._CANVAS_WIDTH = process_modify ? MODIFIED_PARAMS._CANVAS_WIDTH : Math.max(DEFAULT_PARAMS._CANVAS_WIDTH,window.innerWidth - MODIFIED_PARAMS._SIDE_BAR_WIDTH - 15);
 
-            MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(window.innerHeight - 100);
+            nav_height = Number(window.getComputedStyle(main_nav).height.split("px")[0]);
+            MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(window.innerHeight - 50 - nav_height);
 
             this.drawCanvas(false);
         })
@@ -1892,14 +1967,30 @@ class DrawCanvas {
 
         while(svg_container.firstChild) svg_container.removeChild(svg_container.firstChild);
         const canvas_border_width = Number(window.getComputedStyle(canvas).borderWidth.split("px")[0]);
-        const svg_child = new CreateSVG(svg_container,"10",`${MODIFIED_PARAMS._CANVAS_HEIGHT + 2 * canvas_border_width}`);
-        new CreateSVGLineDrag(svg_child,"0","0","0",`${MODIFIED_PARAMS._CANVAS_HEIGHT + 2 * canvas_border_width}`,svg_vert_bar_color,"14",svg_hover_color);
 
-        main_menu.style.height = `${MODIFIED_PARAMS._CANVAS_HEIGHT + 2 * canvas_border_width}px`;
+        const main_menu_height = MODIFIED_PARAMS._CANVAS_HEIGHT + 2 * canvas_border_width;
+        main_menu.style.height = `${main_menu_height}px`;
         main_nav.style.width = `${window.innerWidth - 15}px`;
+
+        const svg_canvas_main_menu = new CreateSVG(svg_container,"10",`${main_menu_height}`);
+        const svg_canvas_main_menu_line_drag = new CreateSVGLineDrag(svg_canvas_main_menu,"0","0","0",`${main_menu_height}`,svg_vert_bar_color,"14",svg_hover_color);
+        svg_canvas_main_menu_line_drag.dragFunction(this.canvas_main_menu_drag_function);
+        svg_canvas_main_menu_line_drag.changeAcceleration(10);
 
         basicDrawFunction(set_last_canvas_width);
 
         DrawCanvas.drawCount++;
+    }
+
+    canvas_main_menu_drag_function(deltaX: number,deltaY: number) {
+        MODIFIED_PARAMS._CANVAS_WIDTH += deltaX;
+        MODIFIED_PARAMS._SIDE_BAR_WIDTH -= deltaX;
+
+        if(MODIFIED_PARAMS._CANVAS_WIDTH > DEFAULT_PARAMS._CANVAS_WIDTH && MODIFIED_PARAMS._SIDE_BAR_WIDTH > DEFAULT_PARAMS._SIDE_BAR_WIDTH) basicDrawFunction();
+
+        else {
+            MODIFIED_PARAMS._CANVAS_WIDTH -= deltaX;
+            MODIFIED_PARAMS._SIDE_BAR_WIDTH += deltaX;
+        }
     }
 }

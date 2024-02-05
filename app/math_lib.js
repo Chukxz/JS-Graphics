@@ -1195,6 +1195,7 @@ class CameraObjects extends Clip {
     createNewCameraObject() {
         this.max_camera_instance_number = this.instance_number;
         this.camera_objects_array[this.arrlen] = new CameraObject();
+        this.camera_objects_array[this.arrlen].instance.instance_number = this.instance_number;
         this.instance_number_to_list_map[this.instance_number] = this.arrlen;
         this.current_camera_instance = this.instance_number;
         this.instance_number++;

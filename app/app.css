@@ -116,8 +116,6 @@ canvas {
 
 .menu {
     z-index: 2;
-    overflow-x: hidden;
-    overflow-y: auto;
 }
 
 
@@ -286,4 +284,30 @@ canvas {
     border: none;
     border-radius: 5px;
     margin: 0px 5px 0px 5px;
+}
+
+
+/* Camera */
+
+#camera_div {
+    overflow-y: auto;
+    width: var(--custom-sub-menu-width);
+}
+
+.camera {
+    width: var(--camera-paragraph-width);
+}
+
+.custom_menu_header {
+    width: var(--custom-menu-header-width);
+}
+
+#custom_sub_menu {
+    box-sizing: border-box;
+    overflow-x: auto;
+    border: 3px solid #333;
+    border-bottom-width: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    width: var(--custom-sub-menu-width);
 }

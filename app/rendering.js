@@ -3,48 +3,63 @@ window.parent.addEventListener("message", (e) => { if (e.data === "Rendering")
 function render() {
     while (main_menu.firstChild)
         main_menu.removeChild(main_menu.firstChild);
-    const objs = document.createElement("p");
-    objs.textContent = "Camera Objects";
-    objs.style.paddingLeft = "10px";
-    main_menu.appendChild(objs);
+    create_main_menu_divider = true;
+    const cross_indicator = new CreateCross_SVG_Indicator(main_menu, "Add Camera");
+    const menu_header = document.createElement("p");
+    menu_header.className = "custom_menu_header with_cross_hairs";
+    menu_header.textContent = "Camera Objects";
+    menu_header.style.paddingLeft = "10px";
+    main_menu.appendChild(menu_header);
     const camera_div = document.createElement("div");
+    camera_div.id = "camera_div";
     camera_div.style.zIndex = "inherit";
-    camera_div.style.width = "inherit";
+    if (svg_main_menu_divider_top < 0)
+        svg_main_menu_divider_top = main_menu_height + svg_main_menu_divider_top;
+    console.log(svg_main_menu_divider_top);
+    camera_div.style.height = `${svg_main_menu_divider_top - 10}px`;
+    camera_div.style.overflowY = "auto";
     main_menu.appendChild(camera_div);
-    new CameraIndicator(camera_div);
+    const camera_indicator = new CameraIndicator(camera_div);
+    const crossClick = () => {
+        _CAMERA.createNewCameraObject();
+        camera_indicator.showCameras();
+    };
+    cross_indicator.clickFunction(crossClick);
+    sub_menu = new CreateSubMenu().submenu;
+    basicDrawFunction();
 }
 class CameraIndicator {
     camera_objects;
+    camera_container;
     constructor(container) {
-        this.showCameras(container);
+        this.camera_container = container;
+        this.showCameras();
     }
-    showCamera(sub_container, camera) {
-        const cam = document.createElement("p");
-        cam.textContent = `Camera   ${camera.instance.instance_number}`;
-        cam.style.backgroundColor = elem_hover_col;
-        cam.style.color = "#fff";
-        cam.style.width = `${Number(window.getComputedStyle(main_menu).width.split("px")[0]) - 50}px`;
-        cam.style.padding = "5px";
-        cam.style.borderRadius = "8px";
-        cam.style.cursor = "pointer";
-        cam.style.overflowX = "clip";
-        sub_container.appendChild(cam);
-        window.addEventListener("resize", () => {
-            cam.style.width = `${Number(window.getComputedStyle(main_menu).width.split("px")[0]) - 50}px`;
-        });
-    }
-    showCameras(container) {
-        while (container.firstChild)
-            container.removeChild(container.firstChild);
+    showCameras() {
+        while (this.camera_container.firstChild)
+            this.camera_container.removeChild(this.camera_container.firstChild);
         this.camera_objects = _CAMERA.camera_objects_array;
         const sub_container = document.createElement("div");
         sub_container.style.margin = "10px";
-        container.appendChild(sub_container);
+        this.camera_container.appendChild(sub_container);
         console.log(this.camera_objects);
         for (const camera_object of this.camera_objects) {
             this.showCamera(sub_container, camera_object);
         }
         //this.svg_class.svg.addEventListener("click", (()=>console.log(tooltip_text)))
+    }
+    showCamera(sub_container, camera) {
+        const cam = document.createElement("p");
+        cam.className = "camera";
+        cam.textContent = `Camera   ${camera.instance.instance_number}`;
+        cam.style.backgroundColor = elem_hover_col;
+        cam.style.color = "#fff";
+        cam.style.padding = "5px";
+        cam.style.borderRadius = "8px";
+        cam.style.cursor = "pointer";
+        cam.style.overflowX = "clip";
+        sub_container.appendChild(cam);
+        cam.addEventListener("click", () => { });
     }
 }
 function gridRender() {
@@ -90,63 +105,66 @@ function gridRender() {
 //     drawLine(c_t_s_a_2D,c_t_s_b_2D);
 //   }
 // }
-function drawPoint(point, _strokeStyle = "black", _lineWidth = 1, _fillStyle = "black") {
-    ctx.beginPath();
-    ctx.lineWidth = _lineWidth;
-    ctx.strokeStyle = _strokeStyle;
-    ctx.arc(point.x, point.y, 3, 0, 2 * Math.PI);
-    ctx.fillStyle = _fillStyle;
-    ctx.stroke();
-    ctx.fill();
-    ctx.closePath();
-}
-function drawVertex(vertex, _strokeStyle = "black", _lineWidth = 1, _fillStyle = "black") {
-    ctx.beginPath();
-    ctx.lineWidth = _lineWidth;
-    ctx.strokeStyle = _strokeStyle;
-    ctx.arc(vertex[0], vertex[1], 3, 0, 2 * Math.PI);
-    ctx.fillStyle = _fillStyle;
-    ctx.stroke();
-    ctx.fill();
-    ctx.closePath();
-}
-function lineDraw(a, b, _strokeStyle = "black", _lineWidth = 2) {
-    ctx.beginPath();
-    ctx.lineWidth = _lineWidth;
-    ctx.strokeStyle = _strokeStyle;
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
-    ctx.closePath();
-}
-function drawLine(a, b, _strokeStyle = "black", _lineWidth = 2) {
-    if (typeof a === "undefined" || typeof b === "undefined")
-        return;
-    ctx.beginPath();
-    ctx.lineWidth = _lineWidth;
-    ctx.strokeStyle = _strokeStyle;
-    ctx.moveTo(a[0], a[1]);
-    ctx.lineTo(b[0], b[1]);
-    ctx.stroke();
-    ctx.closePath();
-}
-function drawObject(object) {
-    if (typeof object === "undefined")
-        return;
-    for (const vertex in object.vertices) {
-        const vertexes = object.vertices[vertex];
-        if (typeof vertexes === "undefined")
-            continue;
-        drawVertex(vertexes);
+class Draw {
+    constructor() { }
+    drawPoint(point, _strokeStyle = "black", _lineWidth = 1, _fillStyle = "black") {
+        ctx.beginPath();
+        ctx.lineWidth = _lineWidth;
+        ctx.strokeStyle = _strokeStyle;
+        ctx.arc(point.x, point.y, 3, 0, 2 * Math.PI);
+        ctx.fillStyle = _fillStyle;
+        ctx.stroke();
+        ctx.fill();
+        ctx.closePath();
     }
-    const half_edges = structuredClone(object.object.mesh.HalfEdgeDict);
-    for (const half_edge in half_edges) {
-        const twin = half_edges[half_edge].twin;
-        if (half_edges[twin])
-            delete half_edges[twin];
+    drawVertex(vertex, _strokeStyle = "black", _lineWidth = 1, _fillStyle = "black") {
+        ctx.beginPath();
+        ctx.lineWidth = _lineWidth;
+        ctx.strokeStyle = _strokeStyle;
+        ctx.arc(vertex[0], vertex[1], 3, 0, 2 * Math.PI);
+        ctx.fillStyle = _fillStyle;
+        ctx.stroke();
+        ctx.fill();
+        ctx.closePath();
     }
-    for (const edge in half_edges) {
-        const [a, b] = edge.split("-").map((value) => object.vertices[value]);
-        drawLine(a, b);
+    lineDraw(a, b, _strokeStyle = "black", _lineWidth = 2) {
+        ctx.beginPath();
+        ctx.lineWidth = _lineWidth;
+        ctx.strokeStyle = _strokeStyle;
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+        ctx.closePath();
+    }
+    drawLine(a, b, _strokeStyle = "black", _lineWidth = 2) {
+        if (typeof a === "undefined" || typeof b === "undefined")
+            return;
+        ctx.beginPath();
+        ctx.lineWidth = _lineWidth;
+        ctx.strokeStyle = _strokeStyle;
+        ctx.moveTo(a[0], a[1]);
+        ctx.lineTo(b[0], b[1]);
+        ctx.stroke();
+        ctx.closePath();
+    }
+    drawObject(object) {
+        if (typeof object === "undefined")
+            return;
+        for (const vertex in object.vertices) {
+            const vertexes = object.vertices[vertex];
+            if (typeof vertexes === "undefined")
+                continue;
+            this.drawVertex(vertexes);
+        }
+        const half_edges = structuredClone(object.object.mesh.HalfEdgeDict);
+        for (const half_edge in half_edges) {
+            const twin = half_edges[half_edge].twin;
+            if (half_edges[twin])
+                delete half_edges[twin];
+        }
+        for (const edge in half_edges) {
+            const [a, b] = edge.split("-").map((value) => object.vertices[value]);
+            this.drawLine(a, b);
+        }
     }
 }

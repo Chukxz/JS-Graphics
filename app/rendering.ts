@@ -1,87 +1,105 @@
 window.parent.addEventListener("message",(e) => { if(e.data === "Rendering") render() });
 
 function render() {
-  while(main_menu.firstChild) main_menu.removeChild(main_menu.firstChild);
-    const objs = document.createElement("p");
-    objs.textContent = "Camera Objects";
-    objs.style.paddingLeft = "10px";
-    main_menu.appendChild(objs);
+    while(main_menu.firstChild)main_menu.removeChild(main_menu.firstChild);
+    create_main_menu_divider = true;
+
+    const cross_indicator = new CreateCross_SVG_Indicator(main_menu,"Add Camera");
+
+    const menu_header = document.createElement("p");
+    menu_header.className = "custom_menu_header with_cross_hairs";
+    menu_header.textContent = "Camera Objects";
+    menu_header.style.paddingLeft = "10px";
+    main_menu.appendChild(menu_header);
 
     const camera_div = document.createElement("div");
+    camera_div.id = "camera_div";
     camera_div.style.zIndex = "inherit";
-    camera_div.style.width = "inherit";
+    if(svg_main_menu_divider_top < 0) svg_main_menu_divider_top = main_menu_height + svg_main_menu_divider_top;
+    console.log(svg_main_menu_divider_top)
+    camera_div.style.height = `${svg_main_menu_divider_top - 10}px`;
+    camera_div.style.overflowY = "auto";
     main_menu.appendChild(camera_div);
 
-    new CameraIndicator(camera_div);
-}
+    const camera_indicator = new CameraIndicator(camera_div);
 
-class CameraIndicator{
-  camera_objects : CameraObject[];
-
-  constructor (container: HTMLDivElement) {
-    this.showCameras(container);
-  }
-
-  showCamera(sub_container : HTMLDivElement, camera : CameraObject){
-    const cam = document.createElement("p");
-    cam.textContent = `Camera   ${camera.instance.instance_number}`;
-    cam.style.backgroundColor = elem_hover_col;
-    cam.style.color = "#fff";
-    cam.style.width = `${Number(window.getComputedStyle(main_menu).width.split("px")[0]) - 50}px`;
-    cam.style.padding = "5px";
-    cam.style.borderRadius = "8px";
-    cam.style.cursor = "pointer";
-    cam.style.overflowX = "clip"
-    sub_container.appendChild(cam);
-
-    window.addEventListener("resize", ()=>{
-      cam.style.width = `${Number(window.getComputedStyle(main_menu).width.split("px")[0]) - 50}px`;
-    })
-  }
-
-  showCameras(container: HTMLDivElement){
-    while(container.firstChild) container.removeChild(container.firstChild);
-    this.camera_objects = _CAMERA.camera_objects_array;
-    const sub_container = document.createElement("div");
-    sub_container.style.margin = "10px";
-    container.appendChild(sub_container);
-
-    console.log(this.camera_objects)
-
-    for(const camera_object of this.camera_objects){
-      this.showCamera(sub_container, camera_object);
+    const crossClick = () => {
+        _CAMERA.createNewCameraObject();
+        camera_indicator.showCameras();
     }
-    //this.svg_class.svg.addEventListener("click", (()=>console.log(tooltip_text)))
-  }
+
+    cross_indicator.clickFunction(crossClick);
+
+    sub_menu = new CreateSubMenu().submenu;
+    basicDrawFunction()
 }
 
+class CameraIndicator {
+    camera_objects: CameraObject[];
+    camera_container: HTMLDivElement;
 
-function gridRender(){
-  const a = MODIFIED_PARAMS._CANVAS_WIDTH;
-  const b = MODIFIED_PARAMS._FZ * Math.sin(MODIFIED_PARAMS._ANGLE_CONSTANT * MODIFIED_PARAMS._GRID_VERT_THETA);
-  const c = MODIFIED_PARAMS._FZ * Math.cos(MODIFIED_PARAMS._ANGLE_CONSTANT * MODIFIED_PARAMS._GRID_VERT_THETA);
-  // console.log(a,b,c,MODIFIED_PARAMS._ASPECT_RATIO,MODIFIED_PARAMS._CANVAS_WIDTH,MODIFIED_PARAMS._CANVAS_HEIGHT);
-  const p_3 = new Point3D(a,b,c);
+    constructor (container: HTMLDivElement) {
+        this.camera_container = container;
+        this.showCameras();
+    }
 
-  const e = 0;
-  const f = MODIFIED_PARAMS._FZ * Math.sin(MODIFIED_PARAMS._ANGLE_CONSTANT * MODIFIED_PARAMS._GRID_VERT_THETA);
-  const g = MODIFIED_PARAMS._FZ * Math.cos(MODIFIED_PARAMS._ANGLE_CONSTANT * MODIFIED_PARAMS._GRID_VERT_THETA);
-  // console.log(e,f,g,MODIFIED_PARAMS._ASPECT_RATIO,MODIFIED_PARAMS._CANVAS_WIDTH,MODIFIED_PARAMS._CANVAS_HEIGHT);
-  const p_4 = new Point3D(e,f,g);
+    showCameras() {
+        while(this.camera_container.firstChild) this.camera_container.removeChild(this.camera_container.firstChild);
+        this.camera_objects = _CAMERA.camera_objects_array;
+        const sub_container = document.createElement("div");
+        sub_container.style.margin = "10px";
+        this.camera_container.appendChild(sub_container);
 
-  const h = MODIFIED_PARAMS._CANVAS_WIDTH;
-  const i = MODIFIED_PARAMS._NZ * Math.sin(MODIFIED_PARAMS._ANGLE_CONSTANT * MODIFIED_PARAMS._GRID_VERT_THETA);
-  const j = MODIFIED_PARAMS._NZ * Math.cos(MODIFIED_PARAMS._ANGLE_CONSTANT * MODIFIED_PARAMS._GRID_VERT_THETA);
-  // console.log(h,i,j,MODIFIED_PARAMS._ASPECT_RATIO,MODIFIED_PARAMS._CANVAS_WIDTH,MODIFIED_PARAMS._CANVAS_HEIGHT);
-  const p_2 = new Point3D(h,i,j);
+        console.log(this.camera_objects)
 
-  const k = 0;
-  const l = MODIFIED_PARAMS._NZ * Math.sin(MODIFIED_PARAMS._ANGLE_CONSTANT * MODIFIED_PARAMS._GRID_VERT_THETA);
-  const m = MODIFIED_PARAMS._NZ * Math.cos(MODIFIED_PARAMS._ANGLE_CONSTANT * MODIFIED_PARAMS._GRID_VERT_THETA);
-  // console.log(k,l,m,MODIFIED_PARAMS._ASPECT_RATIO,MODIFIED_PARAMS._CANVAS_WIDTH,MODIFIED_PARAMS._CANVAS_HEIGHT);
-  const p_1 = new Point3D(k,l,m);
+        for(const camera_object of this.camera_objects) {
+            this.showCamera(sub_container,camera_object);
+        }
+        //this.svg_class.svg.addEventListener("click", (()=>console.log(tooltip_text)))
+    }
 
-  //const points = [p_1,p_2,p_3,p_4];
+    showCamera(sub_container: HTMLDivElement,camera: CameraObject) {
+        const cam = document.createElement("p");
+        cam.className = "camera";
+        cam.textContent = `Camera   ${camera.instance.instance_number}`;
+        cam.style.backgroundColor = elem_hover_col;
+        cam.style.color = "#fff";
+        cam.style.padding = "5px";
+        cam.style.borderRadius = "8px";
+        cam.style.cursor = "pointer";
+        cam.style.overflowX = "clip"
+        sub_container.appendChild(cam);
+
+        cam.addEventListener("click",() => {});
+    }
+}
+
+function gridRender() {
+    const a = MODIFIED_PARAMS._CANVAS_WIDTH;
+    const b = MODIFIED_PARAMS._FZ * Math.sin(MODIFIED_PARAMS._ANGLE_CONSTANT * MODIFIED_PARAMS._GRID_VERT_THETA);
+    const c = MODIFIED_PARAMS._FZ * Math.cos(MODIFIED_PARAMS._ANGLE_CONSTANT * MODIFIED_PARAMS._GRID_VERT_THETA);
+    // console.log(a,b,c,MODIFIED_PARAMS._ASPECT_RATIO,MODIFIED_PARAMS._CANVAS_WIDTH,MODIFIED_PARAMS._CANVAS_HEIGHT);
+    const p_3 = new Point3D(a,b,c);
+
+    const e = 0;
+    const f = MODIFIED_PARAMS._FZ * Math.sin(MODIFIED_PARAMS._ANGLE_CONSTANT * MODIFIED_PARAMS._GRID_VERT_THETA);
+    const g = MODIFIED_PARAMS._FZ * Math.cos(MODIFIED_PARAMS._ANGLE_CONSTANT * MODIFIED_PARAMS._GRID_VERT_THETA);
+    // console.log(e,f,g,MODIFIED_PARAMS._ASPECT_RATIO,MODIFIED_PARAMS._CANVAS_WIDTH,MODIFIED_PARAMS._CANVAS_HEIGHT);
+    const p_4 = new Point3D(e,f,g);
+
+    const h = MODIFIED_PARAMS._CANVAS_WIDTH;
+    const i = MODIFIED_PARAMS._NZ * Math.sin(MODIFIED_PARAMS._ANGLE_CONSTANT * MODIFIED_PARAMS._GRID_VERT_THETA);
+    const j = MODIFIED_PARAMS._NZ * Math.cos(MODIFIED_PARAMS._ANGLE_CONSTANT * MODIFIED_PARAMS._GRID_VERT_THETA);
+    // console.log(h,i,j,MODIFIED_PARAMS._ASPECT_RATIO,MODIFIED_PARAMS._CANVAS_WIDTH,MODIFIED_PARAMS._CANVAS_HEIGHT);
+    const p_2 = new Point3D(h,i,j);
+
+    const k = 0;
+    const l = MODIFIED_PARAMS._NZ * Math.sin(MODIFIED_PARAMS._ANGLE_CONSTANT * MODIFIED_PARAMS._GRID_VERT_THETA);
+    const m = MODIFIED_PARAMS._NZ * Math.cos(MODIFIED_PARAMS._ANGLE_CONSTANT * MODIFIED_PARAMS._GRID_VERT_THETA);
+    // console.log(k,l,m,MODIFIED_PARAMS._ASPECT_RATIO,MODIFIED_PARAMS._CANVAS_WIDTH,MODIFIED_PARAMS._CANVAS_HEIGHT);
+    const p_1 = new Point3D(k,l,m);
+
+    //const points = [p_1,p_2,p_3,p_4];
 }
 
 // function renderGrid(points_list : Point3D[]) {
@@ -111,72 +129,76 @@ function gridRender(){
 //   }
 // }
 
-function drawPoint(point: Point2D, _strokeStyle = "black", _lineWidth = 1, _fillStyle = "black") {
-  ctx.beginPath();
-  ctx.lineWidth = _lineWidth;
-  ctx.strokeStyle = _strokeStyle;
+class Draw {
+    constructor(){}
 
-  ctx.arc(point.x,point.y,3,0,2*Math.PI);
-  ctx.fillStyle = _fillStyle;
+    drawPoint(point: Point2D,_strokeStyle = "black",_lineWidth = 1,_fillStyle = "black") {
+        ctx.beginPath();
+        ctx.lineWidth = _lineWidth;
+        ctx.strokeStyle = _strokeStyle;
 
-  ctx.stroke();
-  ctx.fill();
-  ctx.closePath();
-}
+        ctx.arc(point.x,point.y,3,0,2 * Math.PI);
+        ctx.fillStyle = _fillStyle;
 
-function drawVertex(vertex : _4D_VEC_, _strokeStyle = "black", _lineWidth = 1, _fillStyle = "black") {
-  ctx.beginPath();
-  ctx.lineWidth = _lineWidth;
-  ctx.strokeStyle = _strokeStyle;
+        ctx.stroke();
+        ctx.fill();
+        ctx.closePath();
+    }
 
-  ctx.arc(vertex[0],vertex[1],3,0,2*Math.PI);
-  ctx.fillStyle = _fillStyle;
+    drawVertex(vertex: _4D_VEC_,_strokeStyle = "black",_lineWidth = 1,_fillStyle = "black") {
+        ctx.beginPath();
+        ctx.lineWidth = _lineWidth;
+        ctx.strokeStyle = _strokeStyle;
 
-  ctx.stroke();
-  ctx.fill();
-  ctx.closePath();
-}
+        ctx.arc(vertex[0],vertex[1],3,0,2 * Math.PI);
+        ctx.fillStyle = _fillStyle;
 
-function lineDraw(a: Point2D,b: Point2D,_strokeStyle = "black", _lineWidth = 2) {
-  ctx.beginPath();
-  ctx.lineWidth = _lineWidth;
-  ctx.strokeStyle = _strokeStyle;
+        ctx.stroke();
+        ctx.fill();
+        ctx.closePath();
+    }
 
-  ctx.moveTo(a.x,a.y);
-  ctx.lineTo(b.x,b.y);
+    lineDraw(a: Point2D,b: Point2D,_strokeStyle = "black",_lineWidth = 2) {
+        ctx.beginPath();
+        ctx.lineWidth = _lineWidth;
+        ctx.strokeStyle = _strokeStyle;
 
-  ctx.stroke();
-  ctx.closePath();
-}
+        ctx.moveTo(a.x,a.y);
+        ctx.lineTo(b.x,b.y);
 
-function drawLine(a: _4D_VEC_ | undefined,b: _4D_VEC_ | undefined,_strokeStyle = "black", _lineWidth = 2) {
-  if(typeof a === "undefined" || typeof b === "undefined") return;
-  ctx.beginPath();
-  ctx.lineWidth = _lineWidth;
-  ctx.strokeStyle = _strokeStyle;
+        ctx.stroke();
+        ctx.closePath();
+    }
 
-  ctx.moveTo(a[0],a[1]);
-  ctx.lineTo(b[0],b[1]);
+    drawLine(a: _4D_VEC_ | undefined,b: _4D_VEC_ | undefined,_strokeStyle = "black",_lineWidth = 2) {
+        if(typeof a === "undefined" || typeof b === "undefined") return;
+        ctx.beginPath();
+        ctx.lineWidth = _lineWidth;
+        ctx.strokeStyle = _strokeStyle;
 
-  ctx.stroke();
-  ctx.closePath();
-}
+        ctx.moveTo(a[0],a[1]);
+        ctx.lineTo(b[0],b[1]);
 
-function drawObject(object : _CAM_RENDERED_OBJ_ | undefined){
-  if(typeof object === "undefined") return;
-  for(const vertex in object.vertices){
-    const vertexes = object.vertices[vertex];
-    if(typeof vertexes === "undefined") continue;
-    drawVertex(vertexes);
-  }
-  const half_edges = structuredClone(object.object.mesh.HalfEdgeDict)
-  for(const half_edge in half_edges){
-    const twin = half_edges[half_edge].twin;
-    if(half_edges[twin]) delete half_edges[twin];
-  }
+        ctx.stroke();
+        ctx.closePath();
+    }
 
-  for(const edge in half_edges){
-    const [a,b] = edge.split("-").map((value)=>object.vertices[value]);
-    drawLine(a,b)
-  }
+    drawObject(object: _CAM_RENDERED_OBJ_ | undefined) {
+        if(typeof object === "undefined") return;
+        for(const vertex in object.vertices) {
+            const vertexes = object.vertices[vertex];
+            if(typeof vertexes === "undefined") continue;
+            this.drawVertex(vertexes);
+        }
+        const half_edges = structuredClone(object.object.mesh.HalfEdgeDict)
+        for(const half_edge in half_edges) {
+            const twin = half_edges[half_edge].twin;
+            if(half_edges[twin]) delete half_edges[twin];
+        }
+
+        for(const edge in half_edges) {
+            const [a,b] = edge.split("-").map((value) => object.vertices[value]);
+            this.drawLine(a,b)
+        }
+    }
 }
