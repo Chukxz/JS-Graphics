@@ -17,7 +17,8 @@ function render() {
     camera_div.style.zIndex = "inherit";
     if(svg_main_menu_divider_top < 0) svg_main_menu_divider_top = main_menu_height + svg_main_menu_divider_top;
     console.log(svg_main_menu_divider_top)
-    camera_div.style.height = `${svg_main_menu_divider_top - 10}px`;
+    camera_div.style.height = `${svg_main_menu_divider_top - 80}px`;
+    camera_div.style.overflowX = "hidden";
     camera_div.style.overflowY = "auto";
     main_menu.appendChild(camera_div);
 

@@ -961,23 +961,36 @@ class Linear extends Vector {
         return q2;
     }
 }
-class PerspectiveProjection extends Linear {
+class Projection extends Linear {
     constructor() { super(); }
     changeNearZ(val) {
         MODIFIED_PARAMS._NZ = val;
-        this.setPersProjectParam();
+        this.setProjectionParam();
     }
     changeFarZ(val) {
         MODIFIED_PARAMS._FZ = val;
-        this.setPersProjectParam();
+        this.setProjectionParam();
     }
-    changeProjAngle(val) {
-        MODIFIED_PARAMS._PROJ_ANGLE = val;
-        this.setPersProjectParam();
+    changeProjAngle(vert, hori) {
+        MODIFIED_PARAMS._VERT_PROJ_ANGLE = vert;
+        MODIFIED_PARAMS._HORI_PROJ_ANGLE = hori;
+        this.setProjectionParam();
     }
-    setPersProjectParam() {
-        MODIFIED_PARAMS._DIST = 1 / (Math.tan(MODIFIED_PARAMS._PROJ_ANGLE / 2 * MODIFIED_PARAMS._ANGLE_CONSTANT));
-        MODIFIED_PARAMS._PROJECTION_MAT = [MODIFIED_PARAMS._DIST / MODIFIED_PARAMS._ASPECT_RATIO, 0, 0, 0, 0, MODIFIED_PARAMS._DIST, 0, 0, 0, 0, (-MODIFIED_PARAMS._NZ - MODIFIED_PARAMS._FZ) / (MODIFIED_PARAMS._NZ - MODIFIED_PARAMS._FZ), (2 * MODIFIED_PARAMS._FZ * MODIFIED_PARAMS._NZ) / (MODIFIED_PARAMS._NZ - MODIFIED_PARAMS._FZ), 0, 0, 1, 0];
+    setProjectionParam() {
+        if (MODIFIED_PARAMS._PROJ_TYPE === "orthographic")
+            this.orthographicProjection();
+        else if (MODIFIED_PARAMS._PROJ_TYPE === "perspective")
+            this.perspectiveProjection();
+    }
+    orthographicProjection() {
+        const a_v = MODIFIED_PARAMS._VERT_PROJ_ANGLE * MODIFIED_PARAMS._ANGLE_CONSTANT;
+        const a_h = MODIFIED_PARAMS._HORI_PROJ_ANGLE * MODIFIED_PARAMS._ANGLE_CONSTANT;
+        const [n, f] = [MODIFIED_PARAMS._NZ, MODIFIED_PARAMS._FZ];
+        const t = n * Math.tan(a_v / 2);
+        const b = -t;
+        const r = n * Math.tan(a_h / 2);
+        const l = -r;
+        MODIFIED_PARAMS._PROJECTION_MAT = [2 / (r - l), 0, 0, -((r + l) / (r - l)), 0, 2 / (t - b), 0, -((t + b) / (t - b)), 0, 0, -2 / (f - n), -((f + n) / (f - n)), 0, 0, 0, 1];
         const inverse_res = this.getInvMat(MODIFIED_PARAMS._PROJECTION_MAT, 4);
         if (typeof inverse_res === "undefined")
             return;
@@ -985,10 +998,26 @@ class PerspectiveProjection extends Linear {
             return;
         MODIFIED_PARAMS._INV_PROJECTION_MAT = inverse_res;
     }
-    persProject(input_array) {
+    perspectiveProjection() {
+        const a_v = MODIFIED_PARAMS._VERT_PROJ_ANGLE * MODIFIED_PARAMS._ANGLE_CONSTANT;
+        const a_h = MODIFIED_PARAMS._HORI_PROJ_ANGLE * MODIFIED_PARAMS._ANGLE_CONSTANT;
+        const [n, f] = [MODIFIED_PARAMS._NZ, MODIFIED_PARAMS._FZ];
+        const t = n * Math.tan(a_v / 2);
+        const b = -t;
+        const r = n * Math.tan(a_h / 2);
+        const l = -r;
+        MODIFIED_PARAMS._PROJECTION_MAT = [(2 * n) / (r - l), 0, (r + l) / (r - l), 0, 0, (2 * n) / (t - b), (t + b) / (t - b), 0, 0, 0, -((f + n) / (f - n)), -(2 * f * n) / (f - n), 0, 0, -1, 0];
+        const inverse_res = this.getInvMat(MODIFIED_PARAMS._PROJECTION_MAT, 4);
+        if (typeof inverse_res === "undefined")
+            return;
+        if (inverse_res.length !== 16)
+            return;
+        MODIFIED_PARAMS._INV_PROJECTION_MAT = inverse_res;
+    }
+    project(input_array) {
         return this.matMult(MODIFIED_PARAMS._PROJECTION_MAT, input_array, [4, 4], [4, 1]);
     }
-    invPersProject(input_array) {
+    invProject(input_array) {
         return this.matMult(MODIFIED_PARAMS._INV_PROJECTION_MAT, input_array, [4, 4], [4, 1]);
     }
 }
@@ -1046,7 +1075,7 @@ class CameraObject extends Vector {
     constructor() {
         super();
         this.setConversionMatrices();
-        this.setCameraPos_nonIncremental([0, 0, -20]);
+        this.setCameraPos_nonIncremental([0, 100, -300]);
         return this;
     }
     isInBetween(a, b, c) {
@@ -1149,23 +1178,23 @@ class CameraObject extends Vector {
         return fromHomoVec;
     }
 }
-class NDCSspace extends Matrix {
+class NDCSpace extends Matrix {
     constructor() { super(); }
     ;
-    toPerspective(arr) {
+    project(arr) {
         if (typeof arr === "undefined")
             return undefined;
         const orig_proj = this.matMult(MODIFIED_PARAMS._PROJECTION_MAT, arr, [4, 4], [4, 1]);
-        const pers_div = this.scaMult(1 / orig_proj[3], orig_proj, true);
-        if (pers_div[2] >= -1.0 && pers_div[2] <= 1.0 && pers_div[2] != Infinity) { //Culling
-            return pers_div;
+        const proj_div = this.scaMult(1 / orig_proj[3], orig_proj, true);
+        if (proj_div[2] >= -1.0 && proj_div[2] <= 1.0 && proj_div[2] != Infinity) { //Culling
+            return proj_div;
         }
         else
             return undefined;
     }
-    fromPerspective(arr) {
-        const rev_pers_div = this.scaMult(arr[3], arr, true);
-        const rev_orig_proj = this.matMult(MODIFIED_PARAMS._INV_PROJECTION_MAT, rev_pers_div, [4, 4], [4, 1]);
+    unProject(arr) {
+        const rev_proj_div = this.scaMult(arr[3], arr, true);
+        const rev_orig_proj = this.matMult(MODIFIED_PARAMS._INV_PROJECTION_MAT, rev_proj_div, [4, 4], [4, 1]);
         return rev_orig_proj;
     }
 }
@@ -1200,7 +1229,7 @@ class CameraObjects extends Clip {
         this.current_camera_instance = this.instance_number;
         this.instance_number++;
         this.arrlen++;
-        this.select_camera_instance(0);
+        this.select_camera_instance(this.instance_number - 1);
     }
     createNewMultipleCameraObjects = (num) => { if (num > 0)
         while (num > 0) {
@@ -1270,25 +1299,27 @@ class CameraObjects extends Clip {
         const camera = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]].instance._C;
         const lookat = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]].instance._LOOK_AT_POINT;
         console.log(vertex, "vertex");
-        console.log("camera lookat point", this.camera_objects_array[0].isInBetween(camera, lookat, vertex));
-        console.log("camera point lookat", this.camera_objects_array[0].isInBetween(camera, vertex, lookat));
-        console.log("lookat camera point", this.camera_objects_array[0].isInBetween(lookat, camera, vertex));
-        const isBehindCamera = this.camera_objects_array[this.selected_camera_instances[this.current_camera_instance]].isInBetween(lookat, camera, vertex);
-        if (isBehindCamera) {
-            console.log("vertex is behind camera");
-            return undefined;
-        }
+        // console.log("camera lookat point", this.camera_objects_array[0].isInBetween(camera, lookat, vertex))
+        // console.log("camera point lookat", this.camera_objects_array[0].isInBetween(camera, vertex, lookat))
+        // console.log("lookat camera point", this.camera_objects_array[0].isInBetween(lookat, camera, vertex))
+        // const isBehindCamera = this.camera_objects_array[this.selected_camera_instances[this.current_camera_instance]].isInBetween(lookat, camera, vertex);
+        // if (isBehindCamera) {console.log("vertex is behind camera"); return undefined;}
         console.log("vertex is not behind camera");
         const world_to_camera_space = this.camera_objects_array[this.selected_camera_instances[this.current_camera_instance]].worldToCamera(vertex);
         console.log(world_to_camera_space, "camera");
         const camera_to_ndc_space = this.camToNDC(world_to_camera_space);
         console.log(camera_to_ndc_space, "camera to ndc");
-        const pers_div = new NDCSspace().toPerspective(camera_to_ndc_space);
-        console.log(pers_div, "perspective projection space");
-        if (typeof pers_div === "undefined")
+        const proj_div = new NDCSpace().project(camera_to_ndc_space);
+        console.log(proj_div, "projection space");
+        if (typeof proj_div === "undefined")
             return undefined;
-        const pers_div_to_canvas = this.NDCToCanvas(pers_div);
-        console.log(pers_div_to_canvas, "canvas");
-        return pers_div_to_canvas;
+        const proj_div_to_canvas = this.NDCToCanvas(proj_div);
+        console.log(proj_div_to_canvas, "canvas");
+        return proj_div_to_canvas;
     }
 }
+/*
+Projection and CameraObjects classes are initiated in the app.ts/app.js file and used through this program as a single long-lived instance by composition;
+Other classes in this file are used by inheritance or by composition (multiple mostly short-lived instances)
+
+*/

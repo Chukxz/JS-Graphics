@@ -39,7 +39,6 @@ var create_main_menu_divider = false;
 let svg_main_menu_divider = undefined;
 let svg_main_menu_divider_line_drag = undefined;
 let svg_main_menu_divider_top = -100;
-const sendMessage = (function_name) => window.parent.postMessage(function_name);
 const DEFAULT_PARAMS = {
     _GLOBAL_ALPHA: 1,
     _CANVAS_OPACITY: '1',
@@ -61,10 +60,11 @@ const DEFAULT_PARAMS = {
     _Q_QUART: [0, 0, 0, 0],
     _Q_INV_QUART: [0, 0, 0, 0],
     _NZ: 0.1,
-    _FZ: 100,
-    _PROJ_ANGLE: 10,
+    _FZ: 1000,
+    _PROJ_TYPE: "orthographic",
+    _VERT_PROJ_ANGLE: 30,
+    _HORI_PROJ_ANGLE: 30,
     _ASPECT_RATIO: 1,
-    _DIST: 1,
     _HALF_X: 50,
     _HALF_Y: 50,
     _PROJECTION_MAT: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -74,8 +74,15 @@ const DEFAULT_PARAMS = {
     _SIDE_BAR_WIDTH: 100,
 };
 const MODIFIED_PARAMS = JSON.parse(JSON.stringify(DEFAULT_PARAMS));
-const _PERS_PROJ = new PerspectiveProjection();
-const _CAMERA = new CameraObjects();
+const sendMessage = (function_name) => window.parent.postMessage(function_name);
+var Nav_list;
+(function (Nav_list) {
+    Nav_list[Nav_list["Editing"] = 0] = "Editing";
+    Nav_list[Nav_list["Animation"] = 1] = "Animation";
+    Nav_list[Nav_list["Sculpting"] = 2] = "Sculpting";
+    Nav_list[Nav_list["Rendering"] = 3] = "Rendering";
+})(Nav_list || (Nav_list = {}));
+const start_nav = Nav_list.Editing;
 //const catmull_clark_subdivision_worker = new Worker("catmull_clark_worker.js");
 // const worker_script =
 //     `
@@ -218,7 +225,7 @@ const basicDrawFunction = (set_last_canvas_width = true) => {
     MODIFIED_PARAMS._HALF_Y = MODIFIED_PARAMS._CANVAS_HEIGHT / 2;
     // Perspective Projection
     MODIFIED_PARAMS._ASPECT_RATIO = MODIFIED_PARAMS._CANVAS_WIDTH / MODIFIED_PARAMS._CANVAS_HEIGHT;
-    _PERS_PROJ.setPersProjectParam();
+    _PROJ.setProjectionParam();
     const main_menu_computed_style = window.getComputedStyle(main_menu);
     main_menu_width = Number(main_menu_computed_style.width.split("px")[0]);
     main_menu_height = Number(main_menu_computed_style.height.split("px")[0]);
@@ -252,6 +259,13 @@ const basicDrawFunction = (set_last_canvas_width = true) => {
         return;
     sub_menu.style.top = `${svg_main_menu_divider_top + 8}px`;
     sub_menu.style.height = `${main_menu_height - svg_main_menu_divider_top - 20}px`;
+    const elems = document.getElementsByClassName("object_div");
+    for (const elem of elems) {
+        if (typeof elem === "undefined")
+            continue;
+        const elem_height = Number(window.getComputedStyle(elem).height.split("px")[0]);
+        elem.style.height = `${elem_height}px`;
+    }
 };
 class MeshDataStructure {
     HalfEdgeDict;
@@ -1266,7 +1280,7 @@ class BasicSettings {
         for (let child of main_nav.children) {
             const _child = document.getElementById(child.id);
             if (_child.id !== TouchMouseEventId) {
-                if (numero === 3)
+                if (numero === start_nav)
                     this.modifyState(child.id, _child, true);
                 _child.addEventListener("mouseenter", () => { this.hoverState(child.id, _child); });
                 _child.addEventListener("mouseout", () => { this.unhoverState(child.id, _child); });
@@ -1636,3 +1650,10 @@ class DrawCanvas {
         }
     }
 }
+// From math_lib.ts/mathlib.js file
+const _PROJ = new Projection();
+const _CAMERA = new CameraObjects();
+window.addEventListener("load", () => {
+    new BasicSettings();
+    new DrawCanvas();
+});

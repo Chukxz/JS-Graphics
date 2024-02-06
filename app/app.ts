@@ -55,8 +55,6 @@ let svg_main_menu_divider: CreateSVG | undefined = undefined;
 let svg_main_menu_divider_line_drag: CreateSVGLineDrag | undefined = undefined;
 let svg_main_menu_divider_top = -100;
 
-const sendMessage = (function_name: string) => window.parent.postMessage(function_name);
-
 type _ANGLE_UNIT_ = "deg" | "rad" | "grad";
 
 type _2D_VEC_ = [number,number];
@@ -181,9 +179,10 @@ interface _BASIC_PARAMS_ {
     _Q_INV_QUART: _4D_VEC_,
     _NZ: number,
     _FZ: number,
-    _PROJ_ANGLE: number,
+    _PROJ_TYPE : "orthographic" | "perspective",
+    _VERT_PROJ_ANGLE: number,
+    _HORI_PROJ_ANGLE: number,
     _ASPECT_RATIO: number,
-    _DIST: number,
     _HALF_X: number,
     _HALF_Y: number,
     _PROJECTION_MAT: _16D_VEC_,
@@ -215,10 +214,11 @@ const DEFAULT_PARAMS: _BASIC_PARAMS_ =
     _Q_QUART: [0,0,0,0],
     _Q_INV_QUART: [0,0,0,0],
     _NZ: 0.1,
-    _FZ: 100,
-    _PROJ_ANGLE: 10,
+    _FZ: 1000,
+    _PROJ_TYPE : "orthographic",
+    _VERT_PROJ_ANGLE: 30,
+    _HORI_PROJ_ANGLE : 30,
     _ASPECT_RATIO: 1,
-    _DIST: 1,
     _HALF_X: 50,
     _HALF_Y: 50,
     _PROJECTION_MAT: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
@@ -230,8 +230,16 @@ const DEFAULT_PARAMS: _BASIC_PARAMS_ =
 
 const MODIFIED_PARAMS: _BASIC_PARAMS_ = JSON.parse(JSON.stringify(DEFAULT_PARAMS));
 
-const _PERS_PROJ: PerspectiveProjection = new PerspectiveProjection();
-const _CAMERA: CameraObjects = new CameraObjects();
+const sendMessage = (function_name: string) => window.parent.postMessage(function_name);
+
+enum Nav_list{
+    Editing,
+    Animation,
+    Sculpting,
+    Rendering
+}
+
+const start_nav = Nav_list.Editing;
 
 //const catmull_clark_subdivision_worker = new Worker("catmull_clark_worker.js");
 
@@ -428,7 +436,7 @@ const basicDrawFunction = (set_last_canvas_width = true) => {
 
     // Perspective Projection
     MODIFIED_PARAMS._ASPECT_RATIO = MODIFIED_PARAMS._CANVAS_WIDTH / MODIFIED_PARAMS._CANVAS_HEIGHT;
-    _PERS_PROJ.setPersProjectParam();
+    _PROJ.setProjectionParam();
 
     const main_menu_computed_style : CSSStyleDeclaration = window.getComputedStyle(main_menu);
     main_menu_width = Number(main_menu_computed_style.width.split("px")[0]);
@@ -463,6 +471,14 @@ const basicDrawFunction = (set_last_canvas_width = true) => {
     if(typeof sub_menu === "undefined") return;
     sub_menu.style.top = `${svg_main_menu_divider_top+8}px`;
     sub_menu.style.height = `${main_menu_height - svg_main_menu_divider_top - 20}px`;
+
+    const elems = document.getElementsByClassName("object_div") as HTMLCollectionOf<HTMLDivElement>;
+
+    for(const elem of elems){
+        if(typeof elem === "undefined") continue;
+        const elem_height = Number(window.getComputedStyle(elem).height.split("px")[0]);
+        elem.style.height = `${elem_height}px`;
+    }
 }
 
 class MeshDataStructure {
@@ -1607,7 +1623,7 @@ class BasicSettings {
         for(let child of main_nav.children) {
             const _child = document.getElementById(child.id) as HTMLLIElement;
             if(_child.id !== TouchMouseEventId) {
-                if(numero === 3) this.modifyState(child.id,_child,true);
+                if(numero === start_nav) this.modifyState(child.id,_child,true);
                 _child.addEventListener("mouseenter",() => { this.hoverState(child.id,_child) });
                 _child.addEventListener("mouseout",() => { this.unhoverState(child.id,_child) });
                 _child.addEventListener("click",() => { this.modifyState(child.id,_child) });
@@ -1994,3 +2010,12 @@ class DrawCanvas {
         }
     }
 }
+
+// From math_lib.ts/mathlib.js file
+const _PROJ: Projection = new Projection();
+const _CAMERA: CameraObjects = new CameraObjects();
+
+window.addEventListener("load",()=>{
+    new BasicSettings();
+    new DrawCanvas();
+})
