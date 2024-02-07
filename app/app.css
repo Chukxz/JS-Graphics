@@ -285,11 +285,9 @@ canvas {
     margin: 0px 5px 0px 5px;
 }
 
-
-/* Editing */
-
-
-/* Rendering - Camera */
+.container_div {
+    height: var(--container-div-height);
+}
 
 #camera_div {
     width: var(--custom-sub-menu-width);

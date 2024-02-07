@@ -14,6 +14,7 @@ const canvas = document.getElementsByTagName('canvas')[0];
 const ctx = canvas.getContext('2d',{ willReadFrequently: true }) as CanvasRenderingContext2D;
 const svg_container = document.getElementById("container") as HTMLDivElement;
 const main_menu = document.getElementById("main") as HTMLDivElement;
+var main_menu_animate = true;
 const stats = document.getElementById("status") as HTMLElement;
 
 const anim_number = document.getElementById("anim1_value") as HTMLElement;
@@ -149,6 +150,24 @@ type _CAM_RENDERED_OBJ_ = { object: CreateMeshObject,vertices: _OBJ_VERT_ };
 
 type _TOOLTIP_POSITION_ = "top" | "bottom" | "left" | "right";
 
+type _PROJ_TYPE_ = "orthographic" | "perspective";
+
+enum Nav_list{
+    Editing,
+    Animation,
+    Sculpting,
+    Lighting,
+    Rendering
+}
+
+const start_nav = Nav_list.Rendering;
+
+enum Handedness{
+    left = 1,
+    right = -1
+}
+
+
 interface IMPL_DRAG_ {
     changeAcc: (acc: number) => void,
     start: (element: GlobalEventHandlers,call_func: (deltaX: number,deltaY: number) => void) => void,
@@ -169,8 +188,7 @@ interface _BASIC_PARAMS_ {
     _ANGLE_UNIT: _ANGLE_UNIT_
     _ANGLE_CONSTANT: number,
     _REVERSE_ANGLE_CONSTANT: number,
-    _HANDEDNESS: _HANDEDNESS_;
-    _HANDEDNESS_CONSTANT: number,
+    _HANDEDNESS: number;
     _X: _3D_VEC_,
     _Y: _3D_VEC_,
     _Z: _3D_VEC_,
@@ -179,7 +197,7 @@ interface _BASIC_PARAMS_ {
     _Q_INV_QUART: _4D_VEC_,
     _NZ: number,
     _FZ: number,
-    _PROJ_TYPE : "orthographic" | "perspective",
+    _PROJ_TYPE : _PROJ_TYPE_,
     _VERT_PROJ_ANGLE: number,
     _HORI_PROJ_ANGLE: number,
     _ASPECT_RATIO: number,
@@ -205,19 +223,18 @@ const DEFAULT_PARAMS: _BASIC_PARAMS_ =
     _ANGLE_UNIT: "deg",
     _ANGLE_CONSTANT: Math.PI / 180,
     _REVERSE_ANGLE_CONSTANT: 180 / Math.PI,
-    _HANDEDNESS: "left",
-    _HANDEDNESS_CONSTANT: 1,
+    _HANDEDNESS : Handedness.left,
     _X: [1,0,0],
     _Y: [0,1,0],
     _Z: [0,0,1],
-    _Q_VEC: [0,0,0],
-    _Q_QUART: [0,0,0,0],
-    _Q_INV_QUART: [0,0,0,0],
+    _Q_VEC: [0,1,0],
+    _Q_QUART: [1,0,0,0],
+    _Q_INV_QUART: [1,0,0,0],
     _NZ: 0.1,
-    _FZ: 1000,
+    _FZ: 500,
     _PROJ_TYPE : "orthographic",
-    _VERT_PROJ_ANGLE: 30,
-    _HORI_PROJ_ANGLE : 30,
+    _VERT_PROJ_ANGLE: 60,
+    _HORI_PROJ_ANGLE : 60,
     _ASPECT_RATIO: 1,
     _HALF_X: 50,
     _HALF_Y: 50,
@@ -231,15 +248,6 @@ const DEFAULT_PARAMS: _BASIC_PARAMS_ =
 const MODIFIED_PARAMS: _BASIC_PARAMS_ = JSON.parse(JSON.stringify(DEFAULT_PARAMS));
 
 const sendMessage = (function_name: string) => window.parent.postMessage(function_name);
-
-enum Nav_list{
-    Editing,
-    Animation,
-    Sculpting,
-    Rendering
-}
-
-const start_nav = Nav_list.Editing;
 
 //const catmull_clark_subdivision_worker = new Worker("catmull_clark_worker.js");
 
@@ -419,6 +427,8 @@ const main_menu_divider_drag_function = (deltaX: number,deltaY: number) => {
     if(typeof sub_menu === "undefined") return;
     sub_menu.style.top = `${svg_main_menu_divider_top+8}px`;
     sub_menu.style.height = `${main_menu_height - svg_main_menu_divider_top - 20}px`;
+
+    root.style.setProperty("--container-div-height",`${svg_main_menu_divider_top - 80}px`);
 }
 
 const basicDrawFunction = (set_last_canvas_width = true) => {
@@ -442,6 +452,8 @@ const basicDrawFunction = (set_last_canvas_width = true) => {
     main_menu_width = Number(main_menu_computed_style.width.split("px")[0]);
     main_menu_height = Number(main_menu_computed_style.height.split("px")[0]);
     const main_menu_border_width = Number(main_menu_computed_style.borderWidth.split("px")[0]);
+    if(main_menu_width > 150) main_menu_animate = true;
+    else main_menu_animate = false;
 
     root.style.setProperty("--camera-paragraph-width",`${main_menu_width - 50}px`);
     root.style.setProperty("--custom-menu-header-width",`${main_menu_width - 100}px`);
@@ -1691,8 +1703,8 @@ class BasicSettings {
     }
 
     setHandedness(value: _HANDEDNESS_) {
-        if(value === 'left') MODIFIED_PARAMS._HANDEDNESS_CONSTANT = -1;
-        else if(value === 'right') MODIFIED_PARAMS._HANDEDNESS_CONSTANT = 1;
+        if(value === 'left') MODIFIED_PARAMS._HANDEDNESS = Handedness.left;
+        else if(value === 'right') MODIFIED_PARAMS._HANDEDNESS = Handedness.right;
     }
 
     private angleUnit(angle_unit: _ANGLE_UNIT_): number { // for sin, sinh, cos, cosh, tan and tanh  
@@ -1759,6 +1771,33 @@ class CreateSVG {
     }
 }
 
+class CreateSVGHelper{
+    constructor(){}
+
+    generateSVGArc (cx = 0, cy = 0, w = 10, h = 10,v = 10, start = 0, interval = 360, moveTo = "M", lineTo = "L", closePath = ""){
+        const angle_inc = 360 / v;
+        let path = "";
+        const stop = start + interval;
+
+        if (moveTo !== "M") moveTo = "m";
+        if(lineTo !== "L") lineTo = "l";
+    
+        for(let i = 0; i < v; i++) {
+            const cur_ang = (i * angle_inc) + start;
+            if(cur_ang>stop) break;
+            const conv = Math.PI / 180;
+            const x = Math.cos((cur_ang - 90) * conv) * (w / 2)+cx;
+            const y = Math.sin((cur_ang - 90) * conv) * (h / 2)+cy
+            if(i === 0) path += `${moveTo} ${x} ${y}`;
+            else path += `, ${lineTo} ${x} ${y}`;
+        }
+
+        path+= ` ${closePath}`;
+    
+        return path;
+    }
+}
+
 class CreateSVGPath {
     path: Element;
     path_ns: string;
@@ -1781,6 +1820,7 @@ class CreateSVGPath {
         _path.setAttribute("d",d);
         _path.setAttribute("stroke",stroke);
         _path.setAttribute("stroke-width",strokeWidth);
+        _path.setAttribute("fill",fill);
 
         if(svg_class.svg.childElementCount < svg_class.max_child_elem_count) {
             svg_class.svg.appendChild(_path);
@@ -1935,15 +1975,276 @@ class CreateSVGLineDrag extends CreateSVGLine {
     }
 }
 
+class SVG_Indicator {
+    svg_class: CreateSVG;
+    tooltip_class: CreateToolTip;
+    svg_container: HTMLDivElement;
+    tooltip_container: HTMLDivElement;
+
+    constructor (container: HTMLDivElement,max_child_elem_count: number,tooltip_text = "Generic",respect_animate = true) {
+        const sub_container = document.createElement("div");
+        sub_container.style.margin = "10px";
+        container.appendChild(sub_container);
+        this.svg_class = new CreateSVG(sub_container,"20","20",max_child_elem_count);
+        this.tooltip_class = new CreateToolTip(container,sub_container,tooltip_text,5,100,respect_animate);
+        this.svg_container = sub_container;
+        this.tooltip_container = container;
+    }
+}
+
+class Other_SVG_Indicator extends SVG_Indicator {
+    constructor (container: HTMLDivElement,max_child_elem_count: number,tooltip_text = "Generic",hori_pos_ = "right-10px", vert_pos_ = "top-0px",tooltip_position: _TOOLTIP_POSITION_ = "left") {
+        super(container,max_child_elem_count,tooltip_text,true);
+        this.svg_container.style.display = "inline";
+        this.svg_container.style.position = "absolute";
+
+        const vert_pos = vert_pos_.split("-");
+        const hori_pos = hori_pos_.split("-");
+        
+        if(vert_pos[0] === "top") this.svg_container.style.top = vert_pos[1];
+        else if(vert_pos[0] === "bottom") this.svg_container.style.bottom = vert_pos[1];
+
+        if(hori_pos[0] === "left") this.svg_container.style.left = hori_pos[1];
+        else if(hori_pos[0] === "right") this.svg_container.style.right = hori_pos[1];
+
+        switch(tooltip_position) {
+            case "top":
+                this.tooltip_class.top_tooltip();
+                break;
+            case "bottom":
+                this.tooltip_class.bottom_tooltip();
+                break;
+            case "left":
+                this.tooltip_class.left_tooltip();
+                break;
+            case "right":
+                this.tooltip_class.right_tooltip();
+                break;
+        }
+    }
+}
+
+class CreateCross_SVG_Indicator extends Other_SVG_Indicator {
+    constructor (container: HTMLDivElement,text: string,hori_pos = "right-10px", vert_pos = "top-0px",tooltip_postition: _TOOLTIP_POSITION_ = "left") {
+        super(container,2,text,hori_pos,vert_pos,tooltip_postition);
+        new CreateSVGLine(this.svg_class,"1","10","19","10",svg_objects_color,svg_objects_strokeWidth,svg_hover_color);
+        new CreateSVGLine(this.svg_class,"10","1","10","19",svg_objects_color,svg_objects_strokeWidth,svg_hover_color);
+    }
+
+    clickFunction(func: () => void) {
+        this.svg_container.addEventListener("click",func);
+    }
+}
+
+class CreateUndo_SVG_Indicator extends Other_SVG_Indicator{
+    constructor (container: HTMLDivElement,text: string,hori_pos = "right-10px", vert_pos = "top-0px",tooltip_postition: _TOOLTIP_POSITION_ = "left") {
+        super(container,3,text,hori_pos,vert_pos,tooltip_postition);
+        const svg_helper = new CreateSVGHelper();
+
+        const outer_curved_path = svg_helper.generateSVGArc(10,10,14,12,20,0,180,"Z");
+        new CreateSVGPath(this.svg_class,outer_curved_path,svg_objects_color,svg_objects_strokeWidth,svg_hover_color,svg_objects_color,true);
+
+        const inner_curved_path = svg_helper.generateSVGArc(7,10,14,12,20,0,180,"Z");
+        new CreateSVGPath(this.svg_class,inner_curved_path,svg_objects_color,svg_objects_strokeWidth,svg_hover_color,genBackgroundColor,false);
+
+        new CreateSVGPath(this.svg_class,"M 2 4, L 8 6, L 8 2, Z",svg_objects_color,svg_objects_strokeWidth,svg_hover_color,svg_objects_color,true);
+
+    }
+
+    clickFunction(func: () => void) {
+        this.svg_container.addEventListener("click",func);
+    }
+}
+
+class CreateRedo_SVG_Indicator extends Other_SVG_Indicator{
+    constructor (container: HTMLDivElement,text: string,hori_pos = "right-10px", vert_pos = "top-0px",tooltip_postition: _TOOLTIP_POSITION_ = "left") {
+        super(container,3,text,hori_pos,vert_pos,tooltip_postition);
+        const svg_helper = new CreateSVGHelper();
+
+        const outer_curved_path = svg_helper.generateSVGArc(10,10,14,12,20,180,180,"Z");
+        new CreateSVGPath(this.svg_class,outer_curved_path,svg_objects_color,svg_objects_strokeWidth,svg_hover_color,svg_objects_color,true);
+
+        const inner_curved_path = svg_helper.generateSVGArc(13,10,14,12,20,180,180,"Z");
+        new CreateSVGPath(this.svg_class,inner_curved_path,svg_objects_color,svg_objects_strokeWidth,svg_hover_color,genBackgroundColor,false);
+
+        new CreateSVGPath(this.svg_class,"M 18 4, L 12 6, L 12 2, Z",svg_objects_color,svg_objects_strokeWidth,svg_hover_color,svg_objects_color,true);
+    }
+
+    clickFunction(func: () => void) {
+        this.svg_container.addEventListener("click",func);
+    }
+}
+
+class CreateDelete_SVG_Indicator extends Other_SVG_Indicator{
+    constructor (container: HTMLDivElement,text: string,hori_pos = "right-10px", vert_pos = "top-0px",tooltip_postition: _TOOLTIP_POSITION_ = "left") {
+        super(container,8,text,hori_pos,vert_pos,tooltip_postition);
+        new CreateSVGPath(this.svg_class,"M 3 5, L 4 3, L 7 3, L 9 1, L 11 1, L 13 3, L 16 3, L 17 5",svg_objects_color,svg_objects_strokeWidth,svg_hover_color, svg_objects_color, true);
+        new CreateSVGPath(this.svg_class,"M 3 7, L 5 19, L 15 19, L 17 7",svg_objects_color,svg_objects_strokeWidth,svg_hover_color, svg_objects_color, true);
+
+        new CreateSVGLine(this.svg_class,"7.5","9","7.5","16",svg_vert_bar_color,svg_objects_strokeWidth,elem_col);
+        new CreateSVGLine(this.svg_class,"12.5","9","12.5","16",svg_vert_bar_color,svg_objects_strokeWidth,elem_col);
+    }
+    
+    clickFunction(func: () => void) {
+        this.svg_container.addEventListener("click",func);
+    }
+}
+
 class CreateSubMenu{
     submenu : HTMLDivElement;
     constructor(){
         this.submenu = document.createElement("div");
         this.submenu.id = "custom_sub_menu";
         this.submenu.style.position = "absolute";
-        this.submenu.style.backgroundColor = elem_hover_col;
+        this.submenu.style.backgroundColor = genBackgroundColor;
         this.submenu.style.zIndex = `${Number(window.getComputedStyle(main_menu).zIndex)+100}`;
         main_menu.appendChild(this.submenu);
+    }
+}
+
+class CreateToolTip {
+    tooltip_container_elem: HTMLElement;
+    tooltip_elem: HTMLElement;
+    tooltip_text_elem: HTMLSpanElement;
+    vert_padding: number;
+    width: number;
+    tooltip_text_elem_orientation = "default";
+    default_positioning: { top: string,bottom: string,left: string,right: string,marginLeft: string };
+    constructor (tooltip_container: HTMLDivElement,tooltip: HTMLElement,tooltip_text: string,vert_padding = 5,width: number,respect_animate = true) {
+        this.tooltip_container_elem = tooltip_container;
+
+        tooltip.style.position = "relative";
+        tooltip.style.display = "inline-block";
+        this.tooltip_elem = tooltip;
+
+        const tooltip_text_element = document.createElement("span");
+        this.tooltip_text_elem = tooltip_text_element;
+        tooltip_text_element.style.position = "absolute";
+        tooltip_text_element.style.visibility = "hidden";
+        tooltip_text_element.innerHTML = tooltip_text;
+        tooltip_text_element.style.backgroundColor = svg_objects_color;
+        tooltip_text_element.style.textAlign = "center";
+        tooltip_text_element.style.width = `${width}px`;
+        this.width = width;
+        tooltip_text_element.style.zIndex = `${Number(window.getComputedStyle(tooltip).zIndex) + 10}`;
+        tooltip_text_element.style.borderRadius = "5px";
+        tooltip_text_element.style.padding = `${vert_padding}px 0`;
+        this.vert_padding = vert_padding;
+
+        this.default_positioning = {
+            top: window.getComputedStyle(tooltip_text_element).top,
+            bottom: window.getComputedStyle(tooltip_text_element).bottom,
+            left: window.getComputedStyle(tooltip_text_element).left,
+            right: window.getComputedStyle(tooltip_text_element).right,
+            marginLeft: window.getComputedStyle(tooltip_text_element).marginLeft,
+        }
+
+        tooltip.appendChild(tooltip_text_element);
+
+
+        tooltip.addEventListener("mouseover",() => { if(!isTouchDevice && (main_menu_animate || !respect_animate)) tooltip_text_element.style.visibility = "visible" });
+        tooltip.addEventListener("mouseout",() => { if(!isTouchDevice && (main_menu_animate || !respect_animate)) tooltip_text_element.style.visibility = "hidden" });
+        tooltip.addEventListener("touchstart",() => { if(isTouchDevice && (main_menu_animate || !respect_animate)) tooltip_text_element.style.visibility = "visible" },{ 'passive': true });
+        tooltip.addEventListener("touchend",() => { if(isTouchDevice && (main_menu_animate || !respect_animate)) tooltip_text_element.style.visibility = "hidden" },{ 'passive': true });
+    }
+
+    change_vert_padding(vert_padding: number) {
+        this.tooltip_text_elem.style.padding = `${vert_padding}px 0`;
+        this.vert_padding = vert_padding;
+
+        if(this.tooltip_text_elem_orientation === "left" || this.tooltip_text_elem_orientation === "right") this.tooltip_text_elem.style.top = `-${this.vert_padding}px`;
+    }
+
+    change_width(width: number) {
+        this.tooltip_text_elem.style.width = `${width}px`;
+        this.width = width;
+    }
+
+    toDefault() {
+        this.tooltip_text_elem.style.top = this.default_positioning.top;
+        this.tooltip_text_elem.style.bottom = this.default_positioning.bottom;
+        this.tooltip_text_elem.style.left = this.default_positioning.left;
+        this.tooltip_text_elem.style.right = this.default_positioning.right;
+        this.tooltip_text_elem.style.marginLeft = this.default_positioning.marginLeft;
+        this.tooltip_text_elem.style.padding = `${this.vert_padding}px 0`;
+        this.tooltip_text_elem_orientation = "";
+    }
+
+    left_tooltip() {
+        this.toDefault();
+        this.tooltip_text_elem.style.top = `-${this.vert_padding}px`;
+        this.tooltip_text_elem.style.right = "105%";
+        this.tooltip_text_elem_orientation = "right";
+        this.tooltip_text_elem.className = "tooltiptext_right";
+    }
+
+    right_tooltip() {
+        this.toDefault();
+        this.tooltip_text_elem.style.top = `-${this.vert_padding}px`;
+        this.tooltip_text_elem.style.left = "105%";
+        this.tooltip_text_elem_orientation = "left";
+        this.tooltip_text_elem.className = "tooltiptext_left";
+    }
+
+    top_tooltip() {
+        this.toDefault();
+        this.tooltip_text_elem.style.bottom = "100%";
+        this.tooltip_text_elem.style.left = "50%";
+        this.tooltip_text_elem.className = "tooltiptext_top";
+        this.tooltip_text_elem.style.margin = "5px 0";
+
+        this.tooltip_elem.addEventListener("mousemove",() => {
+            if(!isTouchDevice) {
+                const half_width = this.width / 2;
+                const container_width = Number(window.getComputedStyle(this.tooltip_container_elem).width.split("px")[0]);
+                const helper: _VERT_TOOLTIP_HELPER_ = this.vertical_tooltip_helper(half_width,container_width);
+                this.tooltip_text_elem.style.marginLeft = `-${half_width - helper.before + helper.after}px`;
+                root.style.setProperty("--margin-left-percent",`${(half_width - helper.before + helper.after) / this.width * 100}%`);
+            }
+        });
+        this.tooltip_elem.addEventListener("touchstart",() => {
+            if(isTouchDevice) {
+                const half_width = this.width / 2;
+                const container_width = Number(window.getComputedStyle(this.tooltip_container_elem).width.split("px")[0]);
+                const helper: _VERT_TOOLTIP_HELPER_ = this.vertical_tooltip_helper(half_width,container_width);
+                this.tooltip_text_elem.style.marginLeft = `-${half_width - helper.before + helper.after}px`;
+                root.style.setProperty("--margin-left-percent",`${(half_width - helper.before + helper.after) / this.width * 100}%`);
+            }
+        },{ 'passive': true });
+    }
+
+    bottom_tooltip() {
+        this.toDefault();
+        this.tooltip_text_elem.style.top = "100%";
+        this.tooltip_text_elem.style.left = "50%";
+        this.tooltip_text_elem.className = "tooltiptext_bottom";
+        this.tooltip_text_elem.style.margin = "5px 0";
+
+        this.tooltip_elem.addEventListener("mousemove",() => {
+            if(!isTouchDevice) {
+                const half_width = this.width / 2;
+                const container_width = Number(window.getComputedStyle(this.tooltip_container_elem).width.split("px")[0]);
+                const helper: _VERT_TOOLTIP_HELPER_ = this.vertical_tooltip_helper(half_width,container_width);
+                this.tooltip_text_elem.style.marginLeft = `-${half_width - helper.before + helper.after}px`;
+                root.style.setProperty("--margin-left-percent",`${(half_width - helper.before + helper.after) / this.width * 100}%`);
+            }
+        });
+        this.tooltip_elem.addEventListener("touchstart",() => {
+            if(isTouchDevice) {
+                const half_width = this.width / 2;
+                const container_width = Number(window.getComputedStyle(this.tooltip_container_elem).width.split("px")[0]);
+                const helper: _VERT_TOOLTIP_HELPER_ = this.vertical_tooltip_helper(half_width,container_width);
+                this.tooltip_text_elem.style.marginLeft = `-${half_width - helper.before + helper.after}px`;
+                root.style.setProperty("--margin-left-percent",`${(half_width - helper.before + helper.after) / this.width * 100}%`);
+            }
+        },{ 'passive': true });
+    }
+
+    vertical_tooltip_helper(half_width: number,container_width: number): _VERT_TOOLTIP_HELPER_ {
+        const tooltip_margin_right = Number(window.getComputedStyle(this.tooltip_elem).marginRight.split("px")[0]);
+        const before = half_width > this.tooltip_elem.offsetLeft ? half_width - this.tooltip_elem.offsetLeft : 0;
+        const after = half_width > (container_width - this.tooltip_elem.offsetLeft - tooltip_margin_right) ? half_width - tooltip_margin_right : 0;
+        return { before: before,after: after };
     }
 }
 
@@ -1951,21 +2252,34 @@ class DrawCanvas {
     protected static drawCount = 0;
     constructor () {
         this.drawCanvas();
-        window.addEventListener("resize",() => {
-            const _last = window.innerWidth > MODIFIED_PARAMS._LAST_CANVAS_WIDTH;
-            const _last_helper = window.innerWidth > (MODIFIED_PARAMS._LAST_CANVAS_WIDTH + 15 + MODIFIED_PARAMS._SIDE_BAR_WIDTH);
-            const _last_modifier = MODIFIED_PARAMS._CANVAS_WIDTH - MODIFIED_PARAMS._LAST_CANVAS_WIDTH >= 0;
-            const modify_side_width = DEFAULT_PARAMS._SIDE_BAR_WIDTH < window.innerWidth - 15 - MODIFIED_PARAMS._CANVAS_WIDTH;
-            const process_modify = (((modify_side_width || _last_helper) && _last) && _last_modifier);
 
-            MODIFIED_PARAMS._SIDE_BAR_WIDTH = process_modify ? window.innerWidth - 15 - MODIFIED_PARAMS._CANVAS_WIDTH : DEFAULT_PARAMS._SIDE_BAR_WIDTH;
-            MODIFIED_PARAMS._CANVAS_WIDTH = process_modify ? MODIFIED_PARAMS._CANVAS_WIDTH : Math.max(DEFAULT_PARAMS._CANVAS_WIDTH,window.innerWidth - MODIFIED_PARAMS._SIDE_BAR_WIDTH - 15);
+        const is_orientation_ehange_event = "onorientationchange" in  window;
 
-            nav_height = Number(window.getComputedStyle(main_nav).height.split("px")[0]);
-            MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(window.innerHeight - 50 - nav_height);
+        if(is_orientation_ehange_event){
+            window.addEventListener("orientationchange",() => {
+                nav_height = Number(window.getComputedStyle(main_nav).height.split("px")[0]);
+                MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(window.innerHeight - 50 - nav_height);
 
-            this.drawCanvas(false);
-        })
+                this.drawCanvas();
+            });
+        }
+        else{
+            window.addEventListener("resize",() => {
+                const _last = window.innerWidth > MODIFIED_PARAMS._LAST_CANVAS_WIDTH;
+                const _last_helper = window.innerWidth > (MODIFIED_PARAMS._LAST_CANVAS_WIDTH + 15 + MODIFIED_PARAMS._SIDE_BAR_WIDTH);
+                const _last_modifier = MODIFIED_PARAMS._CANVAS_WIDTH - MODIFIED_PARAMS._LAST_CANVAS_WIDTH >= 0;
+                const modify_side_width = DEFAULT_PARAMS._SIDE_BAR_WIDTH < window.innerWidth - 15 - MODIFIED_PARAMS._CANVAS_WIDTH;
+                const process_modify = (((modify_side_width || _last_helper) && _last) && _last_modifier);
+
+                MODIFIED_PARAMS._SIDE_BAR_WIDTH = process_modify ? window.innerWidth - 15 - MODIFIED_PARAMS._CANVAS_WIDTH : DEFAULT_PARAMS._SIDE_BAR_WIDTH;
+                MODIFIED_PARAMS._CANVAS_WIDTH = process_modify ? MODIFIED_PARAMS._CANVAS_WIDTH : Math.max(DEFAULT_PARAMS._CANVAS_WIDTH,window.innerWidth - MODIFIED_PARAMS._SIDE_BAR_WIDTH - 15);
+
+                nav_height = Number(window.getComputedStyle(main_nav).height.split("px")[0]);
+                MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(window.innerHeight - 50 - nav_height);
+
+                this.drawCanvas(false);
+            });
+        }
     }
 
     drawCanvas(set_last_canvas_width = true) {

@@ -1105,50 +1105,48 @@ class Projection extends Linear {
   setProjectionParam(){
     if(MODIFIED_PARAMS._PROJ_TYPE === "orthographic") this.orthographicProjection();
     else if (MODIFIED_PARAMS._PROJ_TYPE === "perspective") this.perspectiveProjection();
+    else return;
+
+    const inverse_res: number[] | undefined = this.getInvMat(MODIFIED_PARAMS._PROJECTION_MAT,4);
+    if(typeof inverse_res === "undefined") return;
+    if(inverse_res.length !== 16) return;
+    MODIFIED_PARAMS._INV_PROJECTION_MAT = inverse_res as _16D_VEC_;
   }
 
   orthographicProjection(){
+    const sgn = MODIFIED_PARAMS._HANDEDNESS;
     const a_v = MODIFIED_PARAMS._VERT_PROJ_ANGLE * MODIFIED_PARAMS._ANGLE_CONSTANT;
     const a_h = MODIFIED_PARAMS._HORI_PROJ_ANGLE * MODIFIED_PARAMS._ANGLE_CONSTANT;
 
     const [n,f] = [MODIFIED_PARAMS._NZ, MODIFIED_PARAMS._FZ];
-    const t = n * Math.tan(a_v/2);
+    const t = MODIFIED_PARAMS._CANVAS_HEIGHT * Math.tan(a_v/2);
     const b = -t;
-    const r = n * Math.tan(a_h/2);
+    const r = MODIFIED_PARAMS._CANVAS_WIDTH * Math.tan(a_h/2);
     const l = -r;
 
-    MODIFIED_PARAMS._PROJECTION_MAT = [2/(r-l), 0, 0, -((r+l)/(r-l)), 0, 2/(t-b), 0, -((t+b)/(t-b)), 0, 0, -2/(f-n), -((f+n)/(f-n)), 0, 0, 0, 1];
-
-    const inverse_res: number[] | undefined = this.getInvMat(MODIFIED_PARAMS._PROJECTION_MAT,4);
-    if(typeof inverse_res === "undefined") return;
-    if(inverse_res.length !== 16) return;
-    MODIFIED_PARAMS._INV_PROJECTION_MAT = inverse_res as _16D_VEC_;
+    MODIFIED_PARAMS._PROJECTION_MAT = [2/(r-l), 0, 0, 0, 0, 2/(t-b), 0, 0, 0, 0, sgn*2/(f-n), 0, -(r+l)/(r-l), -(t+b)/(t-b), -(f+n)/(f-n), 1];
   }
 
   perspectiveProjection() {
+    const sgn = MODIFIED_PARAMS._HANDEDNESS;
     const a_v = MODIFIED_PARAMS._VERT_PROJ_ANGLE * MODIFIED_PARAMS._ANGLE_CONSTANT;
     const a_h = MODIFIED_PARAMS._HORI_PROJ_ANGLE * MODIFIED_PARAMS._ANGLE_CONSTANT;
 
     const [n,f] = [MODIFIED_PARAMS._NZ, MODIFIED_PARAMS._FZ];
     const t = n * Math.tan(a_v/2);
     const b = -t;
-    const r = n * Math.tan(a_h/2);
+    const r = n * Math.tan(a_h/2) * MODIFIED_PARAMS._ASPECT_RATIO;
     const l = -r;
 
-    MODIFIED_PARAMS._PROJECTION_MAT = [(2*n)/(r-l), 0, (r+l)/(r-l), 0, 0, (2*n)/(t-b), (t+b)/(t-b), 0, 0, 0, -((f+n)/(f-n)), -(2*f*n)/(f-n), 0, 0, -1, 0];
-
-    const inverse_res: number[] | undefined = this.getInvMat(MODIFIED_PARAMS._PROJECTION_MAT,4);
-    if(typeof inverse_res === "undefined") return;
-    if(inverse_res.length !== 16) return;
-    MODIFIED_PARAMS._INV_PROJECTION_MAT = inverse_res as _16D_VEC_;
+    MODIFIED_PARAMS._PROJECTION_MAT = [2*n/(r-l), 0, 0, 0, 0, 2*n/(t-b), 0, 0, (r+l)/(r-l), (t+b)/(t-b), -(f+n)/(f-n), -1, 0, 0, sgn*2*f*n/(f-n), 0];
   }
 
   project(input_array: _4D_VEC_): _4D_VEC_ {
-      return this.matMult(MODIFIED_PARAMS._PROJECTION_MAT,input_array,[4,4],[4,1]) as _4D_VEC_;
+    return this.matMult(input_array,MODIFIED_PARAMS._PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
   }
 
   invProject(input_array: _4D_VEC_): _4D_VEC_ {
-      return this.matMult(MODIFIED_PARAMS._INV_PROJECTION_MAT,input_array,[4,4],[4,1]) as _4D_VEC_;
+      return this.matMult(input_array,MODIFIED_PARAMS._INV_PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
   }
 }
 
@@ -1166,19 +1164,19 @@ class Clip {
         return [...arr].splice(0, 3) as _3D_VEC_;
     }
 
-    camToNDC(arr : _4D_VEC_) : _4D_VEC_{
-        const array : _4D_VEC_ = [...arr];
-        array[0] /= MODIFIED_PARAMS._HALF_X;
-        array[1] /= MODIFIED_PARAMS._HALF_Y;
-        return array;
-    }
+    // camToNDC(arr : _4D_VEC_) : _4D_VEC_{
+    //     const array : _4D_VEC_ = [...arr];
+    //     array[0] /= MODIFIED_PARAMS._HALF_X;
+    //     array[1] /= MODIFIED_PARAMS._HALF_Y;
+    //     return array;
+    // }
 
-    NDCToCam(arr : _4D_VEC_) : _4D_VEC_{
-        const array: _4D_VEC_ = [...arr];
-        array[0] *= MODIFIED_PARAMS._HALF_X;
-        array[1] *= MODIFIED_PARAMS._HALF_Y;
-        return array;
-    }
+    // NDCToCam(arr : _4D_VEC_) : _4D_VEC_{
+    //     const array: _4D_VEC_ = [...arr];
+    //     array[0] *= MODIFIED_PARAMS._HALF_X;
+    //     array[1] *= MODIFIED_PARAMS._HALF_Y;
+    //     return array;
+    // }
 
     NDCToCanvas(arr : _4D_VEC_) : _4D_VEC_{
         const array : _4D_VEC_ = [...arr];
@@ -1196,38 +1194,109 @@ class Clip {
 }
 
 interface _CAMERAOBJECT_ {
-    instance_number: number;
+    history_id : number,
+    time_id : number;
+    instance_number : number;
     _LOOK_AT_POINT: _3D_VEC_;
     _U: _3D_VEC_;
     _V: _3D_VEC_;
     _N: _3D_VEC_;
     _C: _3D_VEC_;
+    _PROJ_TYPE : _PROJ_TYPE_;
+    theta: number;
+    q_vector: _3D_VEC_;
+    q_quarternion: _4D_VEC_;
+    q_inv_quarternion: _4D_VEC_;
     _MATRIX: _16D_VEC_;
     _INV_MATRIX: _16D_VEC_,
-    depthBuffer: Float64Array,
-    frameBuffer: Uint8Array,
 }
 
 class CameraObject extends Vector {
 
-    instance: _CAMERAOBJECT_ = {
+    instance : _CAMERAOBJECT_ = {
+        history_id : 0,
+        time_id : 0,
         instance_number: 0,
         _LOOK_AT_POINT: [0,0,0],
         _U: [1,0,0],
         _V: [0,1,0],
         _N: [0,0,1],
         _C: [0,0,0],
+        _PROJ_TYPE : "orthographic",
         _MATRIX: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1] as _16D_VEC_,
         _INV_MATRIX: [1, -0, 0, -0, -0, 1, -0, 0, 0, -0, 1, -0, -0, 0, -0, 1] as _16D_VEC_,
-        depthBuffer: new Miscellanous().initDepthBuffer(),
-        frameBuffer: new Miscellanous().initFrameBuffer(),
+        theta: 0,
+        q_vector: [0,1,0],
+        q_quarternion: [1,0,0,0],
+        q_inv_quarternion: [1,0,0,0],
     }
+
+    depthBuffer: Float64Array;
+    frameBuffer: Uint8Array;
+
+    cam_history : _CAMERAOBJECT_[];
+    prev_h : boolean;
+    next_h : boolean;
 
     constructor () {
         super();
-        this.setConversionMatrices();
-        this.setCameraPos_nonIncremental([0,100,-300])
+        this.cam_history = [];
+        this.prev_h = false;
+        this.next_h = false;
+        this.initializeBuffers();
+        this.setCameraPos_nonIncremental([0,10,-400]);
+        MODIFIED_PARAMS._PROJ_TYPE = this.instance._PROJ_TYPE;
         return this;
+    }
+    
+    initializeBuffers(){
+        this.depthBuffer = new Miscellanous().initDepthBuffer();
+        this.frameBuffer = new Miscellanous().initFrameBuffer();    
+    }
+
+    resetBuffers() {
+        new Miscellanous().resetDepthBuffer(this.depthBuffer);
+        new Miscellanous().resetFrameBuffer(this.frameBuffer);
+    }
+
+    prevHistory(){
+        const id = this.instance.history_id;
+        if(id === 0) return;
+        const required_id = id - 1;
+        this.instance = structuredClone(this.cam_history[required_id]);
+    }
+
+    nextHistory(){
+        const id = this.instance.history_id;
+        if(id === this.cam_history.length - 1) return;
+        const required_id = id + 1;
+        this.instance = structuredClone(this.cam_history[required_id]);
+    }
+
+    addHistory(){
+        const time = new Date().getTime();
+        const id = this.cam_history.length;
+        this.instance.history_id = id;
+        this.instance.time_id = time;
+        this.cam_history.push(structuredClone(this.instance));
+        if(id > 0) this.prev_h = true;
+        this.next_h = false;
+    }
+
+    goToHistory(id : number){
+        this.instance = structuredClone(this.cam_history[id]);
+        if(id === 0) this.prev_h = false;
+        else this.prev_h = true;
+        if(id === this.cam_history.length - 1) this.next_h = false;
+        else this.next_h = true;
+    }
+
+    deleteRightWardHistories(id : number){
+        this.cam_history.splice(id+1);
+    }
+    
+    changeProjType(projection_type : _PROJ_TYPE_){
+        this.instance._PROJ_TYPE = projection_type;
     }
 
     isInBetween(a : _3D_VEC_, b : _3D_VEC_, c : _3D_VEC_){
@@ -1237,25 +1306,21 @@ class CameraObject extends Vector {
         return dist_ac >= dist_ab && dist_ac >= dist_bc;
     }
 
-    resetBuffers() {
-        new Miscellanous().resetDepthBuffer(this.instance.depthBuffer);
-        new Miscellanous().resetFrameBuffer(this.instance.frameBuffer);
-    }
-
 
     setConversionMatrices() {
         // camera coordinate system is always left handed but world may be right or left handed
-        if(MODIFIED_PARAMS._HANDEDNESS === "left"){
-            this.instance._MATRIX = [...this.instance._U,-this.instance._C[0],...this.instance._V,-this.instance._C[1],...this.instance._N,-this.instance._C[2],...[0,0,0,1]] as _16D_VEC_;
-            this.instance._INV_MATRIX = this.getInvMat(this.instance._MATRIX,4) as _16D_VEC_;
-        }
+        // negate the forward (N) vector in right handed world coordinate systems
+        const sgn = MODIFIED_PARAMS._HANDEDNESS;
 
-        else if(MODIFIED_PARAMS._HANDEDNESS === "right"){
-            // negate the forward (N) vector in right handed world coordinate systems
-            const neg_N = this.scaMult(-1, this.instance._N);
-            this.instance._MATRIX = [...this.instance._U,-this.instance._C[0],...this.instance._V,-this.instance._C[1],...neg_N,-this.instance._C[2],...[0,0,0,1]] as _16D_VEC_;
-            this.instance._INV_MATRIX = this.getInvMat(this.instance._MATRIX,4) as _16D_VEC_;
-        }
+        const neg_N = this.scaMult(-1, this.instance._N);
+        this.instance._MATRIX = [...this.instance._U,sgn * this.instance._C[0],...this.instance._V,sgn * this.instance._C[1],...neg_N,sgn * this.instance._C[2],...[0,0,0,1]] as _16D_VEC_;
+        this.instance._INV_MATRIX = this.getInvMat(this.instance._MATRIX,4) as _16D_VEC_;
+        this.instance.theta = this.theta;
+        this.instance.q_vector = this.q_vector;
+        this.instance.q_quarternion = this.q_quarternion;
+        this.instance.q_inv_quarternion = this.q_inv_quarternion;
+
+        this.addHistory();
     }
 
     getQuartenions(start: _3D_VEC_,end: _3D_VEC_) : boolean {
@@ -1310,6 +1375,10 @@ class CameraObject extends Vector {
         this.translateHelper();
     }
 
+    setAxisX(){}
+    setAxisY(){}
+    setAxisZ(){}
+
     rotateCamera_incremental(axis: _3D_VEC_,angle: number) {     
         const DIFF: _3D_VEC_ = this.matAdd(this.instance._LOOK_AT_POINT,this.instance._C,true) as _3D_VEC_;
         const NEW_DIFF : _3D_VEC_ = this.q_rot(angle, axis, DIFF);
@@ -1355,20 +1424,20 @@ class NDCSpace extends Matrix{
 
     project(arr : _4D_VEC_ | undefined) : _4D_VEC_ | undefined{
         if(typeof arr === "undefined") return undefined;
-        const orig_proj: _4D_VEC_ = this.matMult(MODIFIED_PARAMS._PROJECTION_MAT,arr,[4,4],[4,1]) as _4D_VEC_;
-        const proj_div: _4D_VEC_ = this.scaMult(1 / orig_proj[3],orig_proj,true) as _4D_VEC_;
-
-        
-        if (proj_div[2] >= -1.0 && proj_div[2] <= 1.0 && proj_div[2] != Infinity) { //Culling
-            return proj_div;
+        if(MODIFIED_PARAMS._PROJ_TYPE === "orthographic") return this.matMult(arr,MODIFIED_PARAMS._PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
+        else if(MODIFIED_PARAMS._PROJ_TYPE === "perspective") {
+            const proj = this.matMult(arr,MODIFIED_PARAMS._PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
+            return this.scaMult(1/proj[3],proj,true) as _4D_VEC_;
         }
-        else return undefined;
     }
 
-    unProject(arr : _4D_VEC_) : _4D_VEC_{
-        const rev_proj_div: _4D_VEC_ = this.scaMult(arr[3],arr,true) as _4D_VEC_;
-        const rev_orig_proj: _4D_VEC_ = this.matMult(MODIFIED_PARAMS._INV_PROJECTION_MAT,rev_proj_div,[4,4],[4,1]) as _4D_VEC_;
-        return rev_orig_proj;
+    unProject(arr : _4D_VEC_) : _4D_VEC_ | undefined{
+        if(MODIFIED_PARAMS._PROJ_TYPE === "orthographic") return this.matMult(arr,MODIFIED_PARAMS._INV_PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
+        else if(MODIFIED_PARAMS._PROJ_TYPE === "perspective")
+        {
+            const rev_proj_div: _4D_VEC_ = this.scaMult(arr[3],arr,true) as _4D_VEC_;
+            return this.matMult(rev_proj_div,MODIFIED_PARAMS._INV_PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;;
+        }
     }
 }
 
@@ -1401,6 +1470,11 @@ class CameraObjects extends Clip {
 
     changeCurrentInstanceNumber(instance_number : number){
         if(instance_number in this.instance_number_to_list_map) this.current_camera_instance = instance_number;
+    }
+
+    changeProjType(projection_type : _PROJ_TYPE_){
+        this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]].changeProjType(projection_type);
+        MODIFIED_PARAMS._PROJ_TYPE = projection_type;
     }
 
     createNewCameraObject() {
@@ -1485,10 +1559,11 @@ class CameraObjects extends Clip {
     }
 
     render(vertex: _3D_VEC_): _4D_VEC_ | undefined {
-        const camera = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]].instance._C;
-        const lookat = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]].instance._LOOK_AT_POINT;
+        // MODIFIED_PARAMS._PROJ_TYPE = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]].instance._PROJ_TYPE;
+        // const camera = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]].instance._C;
+        // const lookat = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]].instance._LOOK_AT_POINT;
 
-        console.log(vertex,"vertex")
+        // console.log(vertex,"vertex")
         // console.log("camera lookat point", this.camera_objects_array[0].isInBetween(camera, lookat, vertex))
         // console.log("camera point lookat", this.camera_objects_array[0].isInBetween(camera, vertex, lookat))
         // console.log("lookat camera point", this.camera_objects_array[0].isInBetween(lookat, camera, vertex))
@@ -1496,20 +1571,17 @@ class CameraObjects extends Clip {
         // const isBehindCamera = this.camera_objects_array[this.selected_camera_instances[this.current_camera_instance]].isInBetween(lookat, camera, vertex);
         // if (isBehindCamera) {console.log("vertex is behind camera"); return undefined;}
 
-        console.log("vertex is not behind camera");
+        // console.log("vertex is not behind camera");
 
-        const world_to_camera_space :  _4D_VEC_ = this.camera_objects_array[this.selected_camera_instances[this.current_camera_instance]].worldToCamera(vertex); 
-        console.log(world_to_camera_space,"camera");
-    
-        const camera_to_ndc_space : _4D_VEC_ = this.camToNDC(world_to_camera_space);
-        console.log(camera_to_ndc_space,"camera to ndc");
+        const world_to_camera_space :  _4D_VEC_ = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]].worldToCamera(vertex); 
+        // console.log(world_to_camera_space,"camera");
 
-        const proj_div : _4D_VEC_ | undefined = new NDCSpace().project(camera_to_ndc_space);
-        console.log(proj_div,"projection space")
+        const proj_div : _4D_VEC_ | undefined = new NDCSpace().project(world_to_camera_space);
+        // console.log(proj_div,"projection space")
 
         if(typeof proj_div === "undefined") return undefined;
         const proj_div_to_canvas = this.NDCToCanvas(proj_div);
-        console.log(proj_div_to_canvas, "canvas")
+        // console.log(proj_div_to_canvas, "canvas")
 
         return proj_div_to_canvas;
     }

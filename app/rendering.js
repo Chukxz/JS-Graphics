@@ -12,11 +12,12 @@ function render() {
     main_menu.appendChild(menu_header);
     const camera_div = document.createElement("div");
     camera_div.id = "camera_div";
+    camera_div.className = "container_div";
     camera_div.style.zIndex = "inherit";
     if (svg_main_menu_divider_top < 0)
         svg_main_menu_divider_top = main_menu_height + svg_main_menu_divider_top;
     console.log(svg_main_menu_divider_top);
-    camera_div.style.height = `${svg_main_menu_divider_top - 80}px`;
+    root.style.setProperty("--container-div-height", `${svg_main_menu_divider_top - 80}px`);
     camera_div.style.overflowX = "hidden";
     camera_div.style.overflowY = "auto";
     main_menu.appendChild(camera_div);
@@ -27,6 +28,9 @@ function render() {
     };
     cross_indicator.clickFunction(crossClick);
     sub_menu = new CreateSubMenu().submenu;
+    const redo = new CreateRedo_SVG_Indicator(sub_menu, "Redo", "left-50px", "top-0px", "right");
+    const undo = new CreateUndo_SVG_Indicator(sub_menu, "Undo", "left-10px", "top-0px", "right");
+    const remove = new CreateDelete_SVG_Indicator(sub_menu, "Remove", "right-10px", "top-0px", "left");
     basicDrawFunction();
 }
 class CameraIndicator {

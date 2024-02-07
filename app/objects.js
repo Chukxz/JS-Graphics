@@ -12,10 +12,10 @@ class CreateObject extends Vector {
     object_state;
     constructor() {
         super();
-        this.object_rotation_angle = 0;
+        this.object_rotation_angle = 10;
         this.object_revolution_angle = 0;
         this.object_translation_array = [0, 0, 0];
-        this.object_rotation_axis = [0, 1, 0];
+        this.object_rotation_axis = [-1, 1, 0];
         this.object_revolution_axis = [0, 1, 0];
         this.rendered_points_list = [];
         this.object_revolution_angle_backup = 0;
@@ -135,7 +135,7 @@ class CreatePoint extends CreateMeshObject {
 class CreateLine extends CreateMeshObject {
     start;
     end;
-    constructor(s_x = -400, s_y = 0, s_z = 0, e_x = 400, e_y = 0, e_z = 0, start_vertex = 0) {
+    constructor(s_x = -100, s_y = 0, s_z = 0, e_x = 100, e_y = 0, e_z = 0, start_vertex = 0) {
         super(0, 0, 0, start_vertex);
         this.shape = "Line";
         this._is_degenerate_ = true;
@@ -170,13 +170,17 @@ class CreatePolygon extends CreateMeshObject {
     half_edges;
     face;
     increment;
-    constructor(vertex_number = 3, width = 400, depth = 400, increment = 0, start_vertex = 0) {
+    add_face;
+    inc;
+    constructor(vertex_number = 3, width = 200, depth = 200, increment = 0, start_vertex = 0, addFace = true, incr = 0) {
         super(width, 0, depth, start_vertex);
         this.shape = "Polygon";
         this.half_edges = [];
         this.face = [];
         this.vertex_number = Math.max(vertex_number, 3);
         this.increment = increment;
+        this.add_face = addFace;
+        this.inc = incr;
         return this.initMesh();
     }
     reconstructMesh(vertex_number = 3, increment = 0, start_vertex = 0) {
@@ -197,19 +201,16 @@ class CreatePolygon extends CreateMeshObject {
             this.half_edges.push(`${i + this.increment + this.vert_st}-${output_res}`);
             this.face.push(i + this.increment + this.vert_st);
         }
-        if (this.increment === 0)
+        if (this.add_face)
             this.addFace(this.face.join("-"));
         return this;
     }
     calculatePoints() {
         const angle_inc = 360 / this.vertex_number;
-        var inc = 0;
-        if (this.increment === 1)
-            inc = 1;
         for (let i = 0; i < this.vertex_number; i++) {
             const cur_ang = i * angle_inc;
-            const conv = Math.PI / 180;
-            this.points_list[i + inc] = new Point3D(Math.cos((cur_ang + 90) * conv) * (this.width / 2), this.height / 2, Math.sin((cur_ang + 90) * conv) * (this.depth / 2));
+            const conv = MODIFIED_PARAMS._ANGLE_CONSTANT;
+            this.points_list[i + this.inc] = new Point3D(Math.cos((cur_ang + 90) * conv) * (this.width / 2), this.height / 2, Math.sin((cur_ang + 90) * conv) * (this.depth / 2));
         }
         return this;
     }
@@ -219,7 +220,7 @@ class CreatePolygon extends CreateMeshObject {
     }
 }
 class CreateEllipse extends CreatePolygon {
-    constructor(vertex_number = 10, width = 400, depth = 400, increment = 0, start_vertex = 0) {
+    constructor(vertex_number = 20, width = 200, depth = 150, increment = 0, start_vertex = 0) {
         const vert_number = Math.max(vertex_number, 10);
         super(vert_number, width, depth, increment, start_vertex);
         this.shape = "Ellipse";
@@ -242,7 +243,7 @@ class CreateEllipse extends CreatePolygon {
     }
 }
 class CreateCircle extends CreateEllipse {
-    constructor(vertex_number = 10, radius = 400, increment = 0, start_vertex = 0) {
+    constructor(vertex_number = 20, radius = 200, increment = 0, start_vertex = 0) {
         super(vertex_number, radius, radius, increment, start_vertex);
         this.shape = "Circle";
     }
@@ -258,12 +259,16 @@ class CreateRectangle extends CreateMeshObject {
     half_edges;
     face;
     increment;
-    constructor(width = 400, depth = 400, increment = 0, start_vertex = 0) {
+    add_face;
+    inc;
+    constructor(width = 200, depth = 200, increment = 0, start_vertex = 0, addFace = true, incr = 0) {
         super(width, 0, depth, start_vertex);
         this.shape = "Rectangle";
         this.half_edges = [];
         this.face = [];
         this.increment = increment;
+        this.add_face = addFace;
+        this.inc = incr;
         return this.initMesh();
     }
     reconstructMesh(increment = 0, start_vertex = 0) {
@@ -283,18 +288,15 @@ class CreateRectangle extends CreateMeshObject {
             this.half_edges.push(`${i + this.increment + this.vert_st}-${output_res}`);
             this.face.push(i + this.increment + this.vert_st);
         }
-        if (this.increment === 0)
+        if (this.add_face)
             this.addFace(this.face.join("-"));
         return this;
     }
     calculatePoints() {
-        var inc = 0;
-        if (this.increment === 1)
-            inc = 1;
-        this.points_list[0 + inc] = new Point3D(-this.width / 2, this.height / 2, -this.depth / 2);
-        this.points_list[1 + inc] = new Point3D(this.width / 2, this.height / 2, -this.depth / 2);
-        this.points_list[2 + inc] = new Point3D(this.width / 2, this.height / 2, this.depth / 2);
-        this.points_list[3 + inc] = new Point3D(-this.width / 2, this.height / 2, this.depth / 2);
+        this.points_list[0 + this.inc] = new Point3D(-this.width / 2, this.height / 2, -this.depth / 2);
+        this.points_list[1 + this.inc] = new Point3D(this.width / 2, this.height / 2, -this.depth / 2);
+        this.points_list[2 + this.inc] = new Point3D(this.width / 2, this.height / 2, this.depth / 2);
+        this.points_list[3 + this.inc] = new Point3D(-this.width / 2, this.height / 2, this.depth / 2);
         return this;
     }
     editDimensions(width = this.width, depth = this.depth) {
@@ -307,10 +309,10 @@ class CreateRectangle extends CreateMeshObject {
 class CreatePyramidalBase extends CreateMeshObject {
     base_class;
     choice;
-    constructor(vertex_number = 3, width = 400, height = 400, depth = 400, choice = 1, start_vertex = 0) {
+    constructor(vertex_number = 3, width = 200, height = 200, depth = 200, choice = 1, start_vertex = 0) {
         super(width, height, depth, start_vertex);
         this.initBase(choice, vertex_number, start_vertex);
-        this.base_class.height = height;
+        this.base_class.height = -height;
     }
     reconstructMesh(vertex_number = 3, choice = 1, start_vertex = 0) {
         this.vert_st = start_vertex;
@@ -320,10 +322,10 @@ class CreatePyramidalBase extends CreateMeshObject {
     initBase(choice, vertex_number, start_vertex) {
         switch (choice) {
             case 1:
-                this.base_class = new CreatePolygon(vertex_number, this.width, this.depth, 1, start_vertex);
+                this.base_class = new CreatePolygon(vertex_number, this.width, this.depth, 1, start_vertex, false, 1);
                 break;
             case 2:
-                this.base_class = new CreateRectangle(this.width, this.depth, 1, start_vertex);
+                this.base_class = new CreateRectangle(this.width, this.depth, 1, start_vertex, false, 1);
         }
         this.choice = choice;
     }
@@ -339,6 +341,7 @@ class CreatePyramidalBase extends CreateMeshObject {
             this.initBase(choice, vertex_number, start_vertex);
     }
     calculatePoints() {
+        console.log(this.height);
         this.base_class.points_list[0] = new Point3D(0, this.height / 2, 0);
         this.base_class.calculatePoints();
         this.points_list = [...this.base_class.points_list];
@@ -346,7 +349,7 @@ class CreatePyramidalBase extends CreateMeshObject {
     }
     editDimensions(width = this.width, height = this.height, depth = this.depth) {
         this.modifyDimensions(width, height, depth);
-        this.base_class.modifyDimensions(width, height, depth);
+        this.base_class.modifyDimensions(width, -height, depth);
         this.points_list = [];
         return this;
     }
@@ -357,7 +360,7 @@ class CreatePyramid extends CreatePyramidalBase {
     last;
     penultimate;
     primary;
-    constructor(base_vertex_number = 3, width = 400, height = 400, depth = 400, choice = 1, start_vertex = 0) {
+    constructor(base_vertex_number = 3, width = 200, height = 200, depth = 200, choice = 1, start_vertex = 0) {
         super(base_vertex_number, width, height, depth, choice, start_vertex);
         this.shape = "Pyramid";
         this.half_edges = [];
@@ -410,7 +413,7 @@ class CreatePyramid extends CreatePyramidalBase {
     }
 }
 class CreateCone extends CreatePyramid {
-    constructor(base_vertex_number = 10, radius = 400, height = 400, start_vertex = 0) {
+    constructor(base_vertex_number = 20, radius = 200, height = 200, start_vertex = 0) {
         super(Math.max(base_vertex_number, 10), radius, height, radius, 1, start_vertex);
         this.shape = "Cone";
         return this;
@@ -436,7 +439,7 @@ class CreatePrismBases extends CreateMeshObject {
     base_class_1;
     base_class_2;
     choice;
-    constructor(vertex_number = 3, width = 400, height = 400, depth = 400, choice = 1, start_vertex = 0) {
+    constructor(vertex_number = 3, width = 200, height = 200, depth = 200, choice = 1, start_vertex = 0) {
         super(width, height, depth, start_vertex);
         this.initBase(choice, vertex_number, start_vertex);
         this.base_class_1.height = -height;
@@ -450,14 +453,14 @@ class CreatePrismBases extends CreateMeshObject {
     initBase(choice, vertex_number, start_vertex) {
         switch (choice) {
             case 1:
-                this.base_class_1 = new CreatePolygon(vertex_number, this.width, this.depth, 2, start_vertex);
+                this.base_class_1 = new CreatePolygon(vertex_number, this.width, this.depth, 0, start_vertex, false, 0);
                 start_vertex += this.base_class_1.half_edges.length;
-                this.base_class_2 = new CreatePolygon(vertex_number, this.width, this.depth, 2, start_vertex);
+                this.base_class_2 = new CreatePolygon(vertex_number, this.width, this.depth, 0, start_vertex, false, 0);
                 break;
             case 2:
-                this.base_class_1 = new CreateRectangle(this.width, this.depth, 2, start_vertex);
+                this.base_class_1 = new CreateRectangle(this.width, this.depth, 0, start_vertex, false, 2);
                 start_vertex += this.base_class_1.half_edges.length;
-                this.base_class_2 = new CreateRectangle(this.width, this.depth, 2, start_vertex);
+                this.base_class_2 = new CreateRectangle(this.width, this.depth, 0, start_vertex, false, 2);
         }
         this.choice = choice;
     }
@@ -497,7 +500,7 @@ class CreatePrism extends CreatePrismBases {
     last;
     penultimate;
     primary;
-    constructor(vertex_number = 3, width = 400, height = 400, depth = 400, choice = 1, start_vertex = 0) {
+    constructor(vertex_number = 3, width = 200, height = 200, depth = 200, choice = 1, start_vertex = 0) {
         super(vertex_number, width, height, depth, choice, start_vertex);
         this.shape = "Prism";
         this.half_edges = [];
@@ -524,6 +527,7 @@ class CreatePrism extends CreatePrismBases {
             const mod_edge = other_edge.split("-").reverse().join("-");
             this.addFace(edge + "-" + mod_edge);
         }
+        console.log(this.mesh);
         return this;
     }
     calculatePoints() {
@@ -536,7 +540,7 @@ class CreatePrism extends CreatePrismBases {
     }
 }
 class CreateCylinder extends CreatePrism {
-    constructor(base_vertex_number = 10, radius = 200, height = 400, start_vertex = 0) {
+    constructor(base_vertex_number = 20, radius = 200, height = 200, start_vertex = 0) {
         super(Math.max(base_vertex_number, 10), radius, height, radius, 1, start_vertex);
         this.shape = "Cylinder";
         return this;
@@ -562,7 +566,7 @@ class CreateCylinder extends CreatePrism {
 class CreateCuboid extends CreateMeshObject {
     default_faces;
     default_vertex_map;
-    constructor(width = 400, height = 400, depth = 400, start_vertex = 0) {
+    constructor(width = 200, height = 200, depth = 200, start_vertex = 0) {
         super(width, height, depth, start_vertex);
         this.shape = "Cuboid";
         this.default_faces = [[0, 1, 2, 3], [4, 6, 7, 5], [0, 3, 6, 4], [1, 5, 7, 2], [3, 2, 7, 6], [0, 4, 5, 1]]; // standard default mesh configuration
@@ -620,7 +624,7 @@ class CreateSphere extends CreateMeshObject {
     lat_divs;
     long_divs;
     radius;
-    constructor(radius = 200, latitude_divisions = 10, longitude_divisions = 10, start_vertex = 0) {
+    constructor(radius = 150, latitude_divisions = 15, longitude_divisions = 15, start_vertex = 0) {
         super(radius, radius, radius, start_vertex);
         this.shape = "Sphere";
         this.radius = radius;
@@ -697,7 +701,7 @@ class CreateTorus extends CreateMeshObject {
     polar_width;
     polar_radius;
     polar_height;
-    constructor(R = 200, r = 50, latitude_divisions = 10, longitude_divisions = 10, start_vertex = 0) {
+    constructor(R = 60, r = 60, latitude_divisions = 15, longitude_divisions = 15, start_vertex = 0) {
         super(R + 2 * r, r, R + 2 * r, start_vertex);
         this.shape = "Torus";
         this.toroidal_radius = R;
@@ -1019,6 +1023,7 @@ class ObjectRendering extends Miscellanous {
             const rendered_vertex = _CAMERA.render(vertex);
             renderedObjectVertices[index] = rendered_vertex;
         }
+        console.log(Object.keys(renderedObjectVertices).length + " vertice(s) ", "******************", MODIFIED_PARAMS._PROJ_TYPE, "*********************", MODIFIED_PARAMS._PROJECTION_MAT);
         return { object: object, vertices: renderedObjectVertices };
     }
 }

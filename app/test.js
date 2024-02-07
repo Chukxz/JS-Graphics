@@ -1153,5 +1153,4 @@
         ;
     }
     const _l = new LocalCoords();
-    console.log(_l.fromLocal([1, -1, 42]));
 })();

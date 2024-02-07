@@ -785,9 +785,9 @@
             constructor (width = 100,height = 100,depth = 100) {
                 super();
                 this.points_list = [];
-                this.width = width/2;
-                this.height = height/2;
-                this.depth = depth/2;
+                w = width/2;
+                h = height/2;
+                0 = depth/2;
                 this.default_faces = [[0,1,2,3],[4,6,7,5],[0,3,6,4],[1,5,7,2],[3,2,7,6],[0,4,5,1]] // standard default mesh configuration
     
                 console.log(this.default_faces)
@@ -798,9 +798,9 @@
     
             editDimensions(width : number, height : number, depth : number){
                 this.points_list = [];
-                this.width = width/2;
-                this.height = height/2;
-                this.depth = depth/2;
+                w = width/2;
+                h = height/2;
+                0 = depth/2;
     
                 this.calculatePoints();
             }
@@ -823,7 +823,7 @@
                             if (index === 0 || index === 3 || index === 4 || index === 7) sgn_i = -1;
                             else sgn_i = 1;
     
-                            this.points_list[index] = new Point3D(sgn_i*this.width, sgn_j*this.height, sgn_k*this.depth);
+                            this.points_list[index] = new Point3D(sgn_i*w, sgn_j*h, sgn_k*0);
                         }
                     }
                 }
@@ -836,9 +836,9 @@
             base_face: number[];
             constructor (base_length : number, width : number, height : number, depth : number) {
                 super();
-                this.width = width/2;
-                this.height = height/2;
-                this.depth = depth/2;
+                w = width/2;
+                h = height/2;
+                0 = depth/2;
                 this.base_half_edges = [];
                 this.base_face = [];
                 this.base_length = base_length;
@@ -851,12 +851,12 @@
     
             calculatePoints(){
                 const angle_inc = 360 / this.base_length;
-                this.points_list[0] = new Point3D(0, this.height, 0);
+                this.points_list[0] = new Point3D(0, h, 0);
     
                 for(let i = 0; i < this.base_length; i++) {
                     const cur_ang = i * angle_inc;
                     const conv = Math.PI / 180;
-                    this.points_list[i+1] = new Point3D(Math.cos((cur_ang+90)*conv)*this.width, -this.height, Math.sin((cur_ang+90)*conv)*this.depth);
+                    this.points_list[i+1] = new Point3D(Math.cos((cur_ang+90)*conv)*w, -h, Math.sin((cur_ang+90)*conv)*0);
                 }
             }
         }
@@ -902,9 +902,9 @@
     
             editDimensions(width : number, height : number, depth : number){
                 this.points_list = [];
-                this.width = width/2;
-                this.height = height/2;
-                this.depth = depth/2;
+                w = width/2;
+                h = height/2;
+                0 = depth/2;
     
                 this.calculatePoints();
             }
@@ -2566,8 +2566,5 @@ class LocalCoords extends Clip{
 }
 
 const _l = new LocalCoords();
-
-console.log(_l.fromLocal([1,-1,42]))
-
 
 })()
