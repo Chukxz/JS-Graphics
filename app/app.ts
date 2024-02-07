@@ -1683,12 +1683,12 @@ class BasicSettings {
         // Canvas and sidebar
 
         nav_height = Number(window.getComputedStyle(main_nav).height.split("px")[0]);
+        MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(window.innerHeight - 50 - nav_height);
 
         MODIFIED_PARAMS._SIDE_BAR_WIDTH = window.innerWidth / 3.5;
         var width = window.innerWidth - MODIFIED_PARAMS._SIDE_BAR_WIDTH - 15;
 
         MODIFIED_PARAMS._CANVAS_WIDTH = width;
-        MODIFIED_PARAMS._CANVAS_HEIGHT = window.innerHeight - 50 - nav_height;
     }
 
     resetCanvasToDefault() {
@@ -2259,6 +2259,11 @@ class DrawCanvas {
             window.addEventListener("orientationchange",() => {
                 nav_height = Number(window.getComputedStyle(main_nav).height.split("px")[0]);
                 MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(window.innerHeight - 50 - nav_height);
+
+                MODIFIED_PARAMS._SIDE_BAR_WIDTH = window.innerWidth / 3.5;
+                var width = window.innerWidth - MODIFIED_PARAMS._SIDE_BAR_WIDTH - 15;
+        
+                MODIFIED_PARAMS._CANVAS_WIDTH = width;
 
                 this.drawCanvas();
             });
