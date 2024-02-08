@@ -28,7 +28,6 @@ ul.nav {
     background-color: #333;
     position: static;
     top: 0;
-    height: 50px;
     width: 75%;
     display: inline-block;
     cursor: pointer;
@@ -37,6 +36,7 @@ ul.nav {
 
 li.nav {
     float: left;
+    height: 50px;
     background-color: #333;
     border-radius: 5px;
 }
