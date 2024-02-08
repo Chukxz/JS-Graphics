@@ -28,6 +28,7 @@ ul.nav {
     background-color: #333;
     position: static;
     top: 0;
+    height: 50px;
     width: 75%;
     display: inline-block;
     cursor: pointer;
@@ -308,5 +309,5 @@ canvas {
     border-bottom-width: 8px;
     border-bottom-left-radius: 8px;
     border-bottom-right-radius: 8px;
-    box-shadow: 0 4px 6px 2px #111111cc;
+    /* box-shadow: 0 4px 6px 2px #111111cc; */
 }

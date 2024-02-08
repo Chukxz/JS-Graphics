@@ -42,7 +42,8 @@ const svg_hover_color = "#ccc";
 const svg_objects_strokeWidth = "2";
 const svg_del_color = "#eee";
 
-var nav_height = 0;
+const nav_height = Number(window.getComputedStyle(nav).height.split("px")[0]);
+console.log(nav_height)
 var main_menu_width = 0;
 var main_menu_height = 0;
 
@@ -1684,7 +1685,6 @@ class BasicSettings {
     setCanvas(): void {
         // Canvas and sidebar
 
-        nav_height = Number(window.getComputedStyle(main_nav).height.split("px")[0]);
         MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(window.innerHeight - 50 - nav_height);
 
         MODIFIED_PARAMS._SIDE_BAR_WIDTH = Math.max(window.innerWidth / 3.5,DEFAULT_PARAMS._SIDE_BAR_WIDTH);
@@ -2275,20 +2275,25 @@ class DrawCanvas {
 
         if(is_orientation_change_event){
             window.addEventListener("orientationchange",() => {
-                nav_height = Number(window.getComputedStyle(main_nav).height.split("px")[0]);
-                MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(window.innerHeight - 50 - nav_height);
+                console.log("changed orientation")
+                const _height_ = screen.availHeight;
+                const _width_ =  screen.availWidth;
 
-                MODIFIED_PARAMS._SIDE_BAR_WIDTH = window.innerWidth / 3.5;
-                var width = window.innerWidth - MODIFIED_PARAMS._SIDE_BAR_WIDTH - 15;
-        
+                console.log(_width_,_height_)
+
+                MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(_height_ - 50 - nav_height);
+                MODIFIED_PARAMS._SIDE_BAR_WIDTH = _width_ / 3.5;
+                const width = _width_ - MODIFIED_PARAMS._SIDE_BAR_WIDTH - 15;        
                 MODIFIED_PARAMS._CANVAS_WIDTH = width;
 
-                sendMessage(MODIFIED_PARAMS._ACTIVE);
+                main_nav.style.width = `${_width_ - 15}px`;
+
                 this.drawCanvas();
             });
         }
         else{
             window.addEventListener("resize",() => {
+                console.log("resized")
                 const _last = window.innerWidth > MODIFIED_PARAMS._LAST_CANVAS_WIDTH;
                 const _last_helper = window.innerWidth > (MODIFIED_PARAMS._LAST_CANVAS_WIDTH + 15 + MODIFIED_PARAMS._SIDE_BAR_WIDTH);
                 const _last_modifier = MODIFIED_PARAMS._CANVAS_WIDTH - MODIFIED_PARAMS._LAST_CANVAS_WIDTH >= 0;
@@ -2297,9 +2302,9 @@ class DrawCanvas {
 
                 MODIFIED_PARAMS._SIDE_BAR_WIDTH = process_modify ? window.innerWidth - 15 - MODIFIED_PARAMS._CANVAS_WIDTH : DEFAULT_PARAMS._SIDE_BAR_WIDTH;
                 MODIFIED_PARAMS._CANVAS_WIDTH = process_modify ? MODIFIED_PARAMS._CANVAS_WIDTH : Math.max(DEFAULT_PARAMS._CANVAS_WIDTH,window.innerWidth - MODIFIED_PARAMS._SIDE_BAR_WIDTH - 15);
-
-                nav_height = Number(window.getComputedStyle(main_nav).height.split("px")[0]);
                 MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(window.innerHeight - 50 - nav_height);
+
+                main_nav.style.width = `${window.innerWidth - 15}px`;
 
                 this.drawCanvas(false);
             });
@@ -2324,7 +2329,6 @@ class DrawCanvas {
 
         const main_menu_height = MODIFIED_PARAMS._CANVAS_HEIGHT + 2 * canvas_border_width;
         main_menu.style.height = `${main_menu_height}px`;
-        main_nav.style.width = `${window.innerWidth - 15}px`;
 
         const svg_canvas_main_menu = new CreateSVG(svg_container,"10",`${main_menu_height}`);
         const svg_canvas_main_menu_line_drag = new CreateSVGLineDrag(svg_canvas_main_menu,"0","0","0",`${main_menu_height}`,svg_vert_bar_color,"14",svg_hover_color);
@@ -2334,6 +2338,20 @@ class DrawCanvas {
         basicDrawFunction(set_last_canvas_width);
 
         DrawCanvas.drawCount++;
+
+        console.log("Screen Orientation : ",screen.orientation)
+        console.log("Color Depth : ",screen.colorDepth)
+        console.log("Pixel Depth : ", screen.pixelDepth)
+        console.log("Available Screen Width : ", screen.availWidth)
+        console.log("Available Screen Height : ",screen.availHeight)
+        console.log("Screen Width : ",screen.width)
+        console.log("Screen Height : ", screen.height)
+        console.log("Inner Window Width : ",window.innerWidth)
+        console.log("Inner Window Height : ",window.innerHeight)
+        console.log("Outer Window Width : ",window.outerWidth)
+        console.log("Outer Window Height : ",window.outerHeight)
+        console.log("nav height : ",nav_height, "nav width : ", Number(window.getComputedStyle(main_nav).width.split("px")[0]))
+        console.log(MODIFIED_PARAMS)
     }
 
     canvas_main_menu_drag_function(deltaX: number,deltaY: number) {
