@@ -2283,6 +2283,7 @@ class DrawCanvas {
         
                 MODIFIED_PARAMS._CANVAS_WIDTH = width;
 
+                sendMessage(MODIFIED_PARAMS._ACTIVE);
                 this.drawCanvas();
             });
         }
