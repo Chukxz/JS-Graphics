@@ -2288,6 +2288,7 @@ class DrawCanvas {
 
                 main_nav.style.width = `${_width_ - 15}px`;
 
+
                 this.drawCanvas();
             });
         }
