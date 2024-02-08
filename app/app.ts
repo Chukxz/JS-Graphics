@@ -2271,9 +2271,9 @@ class DrawCanvas {
     constructor () {
         this.drawCanvas();
 
-        const is_orientation_ehange_event = "onorientationchange" in  window;
+        const is_orientation_change_event = "onorientationchange" in  window;
 
-        if(is_orientation_ehange_event){
+        if(is_orientation_change_event){
             window.addEventListener("orientationchange",() => {
                 nav_height = Number(window.getComputedStyle(main_nav).height.split("px")[0]);
                 MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(window.innerHeight - 50 - nav_height);
