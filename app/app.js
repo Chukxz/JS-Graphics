@@ -29,6 +29,7 @@ const svg_vert_bar_color = "#aaa";
 const svg_objects_color = elem_col;
 const svg_hover_color = "#ccc";
 const svg_objects_strokeWidth = "2";
+const svg_del_color = "#eee";
 var nav_height = 0;
 var main_menu_width = 0;
 var main_menu_height = 0;
@@ -237,11 +238,11 @@ const basicDrawFunction = (set_last_canvas_width = true) => {
     main_menu_width = Number(main_menu_computed_style.width.split("px")[0]);
     main_menu_height = Number(main_menu_computed_style.height.split("px")[0]);
     const main_menu_border_width = Number(main_menu_computed_style.borderWidth.split("px")[0]);
-    if (main_menu_width > 150)
+    if (main_menu_width > 200)
         main_menu_animate = true;
     else
         main_menu_animate = false;
-    root.style.setProperty("--camera-paragraph-width", `${main_menu_width - 50}px`);
+    root.style.setProperty("--camera-paragraph-width", `${main_menu_width - 80}px`);
     root.style.setProperty("--custom-menu-header-width", `${main_menu_width - 100}px`);
     root.style.setProperty("--custom-sub-menu-width", `${main_menu_width - 2 * main_menu_border_width}px`);
     const c_m_h_with_cross_hairs = document.getElementsByClassName("with_cross_hairs");
@@ -1338,7 +1339,7 @@ class BasicSettings {
         // Canvas and sidebar
         nav_height = Number(window.getComputedStyle(main_nav).height.split("px")[0]);
         MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(window.innerHeight - 50 - nav_height);
-        MODIFIED_PARAMS._SIDE_BAR_WIDTH = window.innerWidth / 3.5;
+        MODIFIED_PARAMS._SIDE_BAR_WIDTH = Math.max(window.innerWidth / 3.5, DEFAULT_PARAMS._SIDE_BAR_WIDTH);
         var width = window.innerWidth - MODIFIED_PARAMS._SIDE_BAR_WIDTH - 15;
         MODIFIED_PARAMS._CANVAS_WIDTH = width;
     }
@@ -1626,6 +1627,19 @@ class CreateSVGLineDrag extends CreateSVGLine {
         this.implement_drag.changeAcc(acceleration);
     }
 }
+class CreateSVGDelete {
+    svg_class_;
+    path_1;
+    path_2;
+    constructor(svg_class, d_1, d_2, stroke, strokeWidth, hover_color, fill = "none", hover_fill = false) {
+        this.svg_class_ = svg_class;
+        this.path_1 = new CreateSVGPath(svg_class, d_1, stroke, strokeWidth, hover_color, fill, hover_fill);
+        this.path_2 = new CreateSVGPath(svg_class, d_2, stroke, strokeWidth, hover_color, fill, hover_fill);
+    }
+    clickFunction(instance, func) {
+        this.svg_class_.svg.addEventListener("click", () => { func(instance); });
+    }
+}
 class SVG_Indicator {
     svg_class;
     tooltip_class;
@@ -1642,12 +1656,12 @@ class SVG_Indicator {
     }
 }
 class Other_SVG_Indicator extends SVG_Indicator {
-    constructor(container, max_child_elem_count, tooltip_text = "Generic", hori_pos_ = "right-10px", vert_pos_ = "top-0px", tooltip_position = "left") {
+    constructor(container, max_child_elem_count, tooltip_text = "Generic", hori_pos_ = "right_10px", vert_pos_ = "top_0px", tooltip_position = "left") {
         super(container, max_child_elem_count, tooltip_text, true);
         this.svg_container.style.display = "inline";
         this.svg_container.style.position = "absolute";
-        const vert_pos = vert_pos_.split("-");
-        const hori_pos = hori_pos_.split("-");
+        const vert_pos = vert_pos_.split("_");
+        const hori_pos = hori_pos_.split("_");
         if (vert_pos[0] === "top")
             this.svg_container.style.top = vert_pos[1];
         else if (vert_pos[0] === "bottom")
@@ -1673,7 +1687,7 @@ class Other_SVG_Indicator extends SVG_Indicator {
     }
 }
 class CreateCross_SVG_Indicator extends Other_SVG_Indicator {
-    constructor(container, text, hori_pos = "right-10px", vert_pos = "top-0px", tooltip_postition = "left") {
+    constructor(container, text, hori_pos = "right_10px", vert_pos = "top_0px", tooltip_postition = "left") {
         super(container, 2, text, hori_pos, vert_pos, tooltip_postition);
         new CreateSVGLine(this.svg_class, "1", "10", "19", "10", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         new CreateSVGLine(this.svg_class, "10", "1", "10", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
@@ -1683,7 +1697,7 @@ class CreateCross_SVG_Indicator extends Other_SVG_Indicator {
     }
 }
 class CreateUndo_SVG_Indicator extends Other_SVG_Indicator {
-    constructor(container, text, hori_pos = "right-10px", vert_pos = "top-0px", tooltip_postition = "left") {
+    constructor(container, text, hori_pos = "right_10px", vert_pos = "top_0px", tooltip_postition = "left") {
         super(container, 3, text, hori_pos, vert_pos, tooltip_postition);
         const svg_helper = new CreateSVGHelper();
         const outer_curved_path = svg_helper.generateSVGArc(10, 10, 14, 12, 20, 0, 180, "Z");
@@ -1697,7 +1711,7 @@ class CreateUndo_SVG_Indicator extends Other_SVG_Indicator {
     }
 }
 class CreateRedo_SVG_Indicator extends Other_SVG_Indicator {
-    constructor(container, text, hori_pos = "right-10px", vert_pos = "top-0px", tooltip_postition = "left") {
+    constructor(container, text, hori_pos = "right_10px", vert_pos = "top_0px", tooltip_postition = "left") {
         super(container, 3, text, hori_pos, vert_pos, tooltip_postition);
         const svg_helper = new CreateSVGHelper();
         const outer_curved_path = svg_helper.generateSVGArc(10, 10, 14, 12, 20, 180, 180, "Z");
@@ -1711,7 +1725,7 @@ class CreateRedo_SVG_Indicator extends Other_SVG_Indicator {
     }
 }
 class CreateDelete_SVG_Indicator extends Other_SVG_Indicator {
-    constructor(container, text, hori_pos = "right-10px", vert_pos = "top-0px", tooltip_postition = "left") {
+    constructor(container, text, hori_pos = "right_10px", vert_pos = "top_0px", tooltip_postition = "left") {
         super(container, 8, text, hori_pos, vert_pos, tooltip_postition);
         new CreateSVGPath(this.svg_class, "M 3 5, L 4 3, L 7 3, L 9 1, L 11 1, L 13 3, L 16 3, L 17 5", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, svg_objects_color, true);
         new CreateSVGPath(this.svg_class, "M 3 7, L 5 19, L 15 19, L 17 7", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, svg_objects_color, true);
@@ -1936,4 +1950,5 @@ const _CAMERA = new CameraObjects();
 window.addEventListener("load", () => {
     new BasicSettings();
     new DrawCanvas();
+    console.log(MODIFIED_PARAMS);
 });

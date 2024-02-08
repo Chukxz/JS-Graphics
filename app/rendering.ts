@@ -23,7 +23,13 @@ function render() {
     camera_div.style.overflowY = "auto";
     main_menu.appendChild(camera_div);
 
-    const camera_indicator = new CameraIndicator(camera_div);
+    sub_menu = new CreateSubMenu().submenu;
+
+    const undo = new CreateUndo_SVG_Indicator(sub_menu, "Undo","left_2px","top_0px","right")
+    const redo = new CreateRedo_SVG_Indicator(sub_menu, "Redo", "right_2px","top_0px", "left");
+    //const remove = new CreateDelete_SVG_Indicator(sub_menu, "Remove", "right-10px", "top-0px","left");
+
+    const camera_indicator = new CameraIndicator(camera_div, sub_menu);    
 
     const crossClick = () => {
         _CAMERA.createNewCameraObject();
@@ -32,21 +38,37 @@ function render() {
 
     cross_indicator.clickFunction(crossClick);
 
-    sub_menu = new CreateSubMenu().submenu;
-
-    const redo = new CreateRedo_SVG_Indicator(sub_menu, "Redo", "left-50px","top-0px", "right");
-    const undo = new CreateUndo_SVG_Indicator(sub_menu, "Undo","left-10px","top-0px","right")
-    const remove = new CreateDelete_SVG_Indicator(sub_menu, "Remove", "right-10px", "top-0px","left");
-
     basicDrawFunction()
 }
 
-class CameraIndicator {
+class CreateSubMenuContent{
+    instance_para : HTMLParagraphElement;
+    sub_menu_container : HTMLDivElement;
+
+    constructor(container : HTMLDivElement){
+        this.sub_menu_container = document.createElement("div");
+        this.sub_menu_container.style.margin = "40px 0 0 10px";
+        container.appendChild(this.sub_menu_container);
+
+        this.instance_para = document.createElement("p");
+        this.sub_menu_container.appendChild(this.instance_para);
+    }
+
+    refreshInstance(instance : number){
+        this.instance_para.innerHTML = `Current Camera Instance : ${instance}`;
+        _CAMERA.current_camera_instance = instance;
+    }
+}
+
+class CameraIndicator extends CreateSubMenuContent {
     camera_objects: CameraObject[];
     camera_container: HTMLDivElement;
+    menu_container : HTMLDivElement;
 
-    constructor (container: HTMLDivElement) {
+    constructor (container: HTMLDivElement, menu_container : HTMLDivElement) {
+        super(menu_container);
         this.camera_container = container;
+        this.menu_container = container;
         this.showCameras();
     }
 
@@ -57,27 +79,59 @@ class CameraIndicator {
         sub_container.style.margin = "10px";
         this.camera_container.appendChild(sub_container);
 
-        console.log(this.camera_objects)
-
+        var index = 0;
         for(const camera_object of this.camera_objects) {
-            this.showCamera(sub_container,camera_object);
+            this.showCamera(sub_container,camera_object,index);
+            index++;
         }
+
+        this.refreshInstance(_CAMERA.current_camera_instance);
         //this.svg_class.svg.addEventListener("click", (()=>console.log(tooltip_text)))
     }
 
-    showCamera(sub_container: HTMLDivElement,camera: CameraObject) {
+    showCamera(sub_container: HTMLDivElement,camera: CameraObject, index:number) {
+
         const cam = document.createElement("p");
         cam.className = "camera";
-        cam.textContent = `Camera   ${camera.instance.instance_number}`;
-        cam.style.backgroundColor = elem_hover_col;
+        const instance = camera.instance.instance_number;
+        cam.id = `${instance}`;
+        cam.textContent = `Camera   ${_CAMERA.instance_number_to_list_map[instance]} - ${instance}`;
         cam.style.color = "#fff";
         cam.style.padding = "5px";
-        cam.style.borderRadius = "8px";
         cam.style.cursor = "pointer";
-        cam.style.overflowX = "clip"
+        cam.style.overflowX = "clip";
+        cam.style.float = "left";
+        cam.style.backgroundColor = elem_hover_col;
+        cam.style.borderRadius = "8px";
         sub_container.appendChild(cam);
 
-        cam.addEventListener("click",() => {});
+        let _col = elem_hover_col;
+        let _h_col = svg_del_color;
+
+        if(this.camera_objects.length === 1) {
+            _col = elem_col;
+            _h_col = elem_col;
+        }
+
+        cam.addEventListener("click",() => {this.clickCamera(instance)});
+
+        const svg_class = new CreateSVG(sub_container, "20","20",2);
+        svg_class.svg.style.marginTop = "18px";
+        svg_class.svg.style.float = "right";
+        const remove = new CreateSVGDelete(svg_class, "M 3 3, L 17 17", "M 3 17, L 17 3", _col, svg_objects_strokeWidth, _h_col);
+        const instance_number_input = Number(cam.id);
+
+        remove.clickFunction(instance_number_input,this.removeCamera);
+        remove.svg_class_.svg.addEventListener("click",() => { this.showCameras(); })
+    }
+
+    removeCamera(instance : number){
+        _CAMERA.deleteCameraObject(instance);
+    }
+
+    clickCamera(instance : number){
+        this.refreshInstance(instance);
+        console.log(_CAMERA.instance_number_to_list_map)
     }
 }
 
@@ -139,9 +193,9 @@ function gridRender() {
 class Draw {
     constructor(){}
 
-    drawPoint(point: Point2D,_strokeStyle = "black",_lineWidth = 1,_fillStyle = "black") {
+    drawPoint(point: Point2D,_strokeStyle = "black",line_1Width = 1,_fillStyle = "black") {
         ctx.beginPath();
-        ctx.lineWidth = _lineWidth;
+        ctx.lineWidth = line_1Width;
         ctx.strokeStyle = _strokeStyle;
 
         ctx.arc(point.x,point.y,3,0,2 * Math.PI);
@@ -152,9 +206,9 @@ class Draw {
         ctx.closePath();
     }
 
-    drawVertex(vertex: _4D_VEC_,_strokeStyle = "black",_lineWidth = 1,_fillStyle = "black") {
+    drawVertex(vertex: _4D_VEC_,_strokeStyle = "black",line_1Width = 1,_fillStyle = "black") {
         ctx.beginPath();
-        ctx.lineWidth = _lineWidth;
+        ctx.lineWidth = line_1Width;
         ctx.strokeStyle = _strokeStyle;
 
         ctx.arc(vertex[0],vertex[1],3,0,2 * Math.PI);
@@ -165,9 +219,9 @@ class Draw {
         ctx.closePath();
     }
 
-    lineDraw(a: Point2D,b: Point2D,_strokeStyle = "black",_lineWidth = 2) {
+    lineDraw(a: Point2D,b: Point2D,_strokeStyle = "black",line_1Width = 2) {
         ctx.beginPath();
-        ctx.lineWidth = _lineWidth;
+        ctx.lineWidth = line_1Width;
         ctx.strokeStyle = _strokeStyle;
 
         ctx.moveTo(a.x,a.y);
@@ -177,10 +231,10 @@ class Draw {
         ctx.closePath();
     }
 
-    drawLine(a: _4D_VEC_ | undefined,b: _4D_VEC_ | undefined,_strokeStyle = "black",_lineWidth = 2) {
+    drawLine(a: _4D_VEC_ | undefined,b: _4D_VEC_ | undefined,_strokeStyle = "black",line_1Width = 2) {
         if(typeof a === "undefined" || typeof b === "undefined") return;
         ctx.beginPath();
-        ctx.lineWidth = _lineWidth;
+        ctx.lineWidth = line_1Width;
         ctx.strokeStyle = _strokeStyle;
 
         ctx.moveTo(a[0],a[1]);
