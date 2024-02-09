@@ -5,6 +5,7 @@ const genBackgroundColor = "#888";
 const root = document.querySelector(":root");
 const nav = document.getElementsByTagName("nav")[0];
 const main_nav = document.getElementById("main_nav");
+// const click_elem = document.getElementById
 main_nav.style.width = `${window.innerWidth - 15}px`;
 const canvas = document.getElementsByTagName('canvas')[0];
 const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -1640,6 +1641,31 @@ class CreateSVGDelete {
         this.svg_class_.svg.addEventListener("click", () => { func(instance); });
     }
 }
+class CreateSVGCameraOrthographic {
+    svg_class_;
+    path_1;
+    path_2;
+    constructor(svg_class, d_1, d_2, stroke, strokeWidth, hover_color, fill = "none", hover_fill = false) {
+        this.path_1 = new CreateSVGPath(svg_class, d_1, stroke, strokeWidth, hover_color, fill, hover_fill);
+        this.path_2 = new CreateSVGPath(svg_class, d_2, stroke, strokeWidth, hover_color, fill, hover_fill);
+    }
+    clickFunction(instance, func) {
+        this.svg_class_.svg.addEventListener("click", () => { func(instance); });
+    }
+}
+class CreateSVGCameraPerspective {
+    svg_class_;
+    path_1;
+    path_2;
+    constructor(svg_class, d_1, d_2, stroke, strokeWidth, hover_color, fill = "none", hover_fill = false) {
+        this.svg_class_ = svg_class;
+        this.path_1 = new CreateSVGPath(svg_class, d_1, stroke, strokeWidth, hover_color, fill, hover_fill);
+        this.path_2 = new CreateSVGPath(svg_class, d_2, stroke, strokeWidth, hover_color, fill, hover_fill);
+    }
+    clickFunction(instance, func) {
+        this.svg_class_.svg.addEventListener("click", () => { func(instance); });
+    }
+}
 class SVG_Indicator {
     svg_class;
     tooltip_class;
@@ -1884,36 +1910,25 @@ class DrawCanvas {
     static drawCount = 0;
     constructor() {
         this.drawCanvas();
-        const is_orientation_change_event = "onorientationchange" in window;
-        if (is_orientation_change_event) {
-            window.addEventListener("orientationchange", () => {
-                console.log("changed orientation");
-                const _height_ = screen.availHeight;
-                const _width_ = screen.availWidth;
-                console.log(_width_, _height_);
-                MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(_height_ - 50 - nav_height);
-                MODIFIED_PARAMS._SIDE_BAR_WIDTH = _width_ / 3.5;
-                const width = _width_ - MODIFIED_PARAMS._SIDE_BAR_WIDTH - 15;
-                MODIFIED_PARAMS._CANVAS_WIDTH = width;
-                main_nav.style.width = `${_width_ - 15}px`;
-                this.drawCanvas();
-            });
-        }
-        else {
-            window.addEventListener("resize", () => {
-                console.log("resized");
-                const _last = window.innerWidth > MODIFIED_PARAMS._LAST_CANVAS_WIDTH;
-                const _last_helper = window.innerWidth > (MODIFIED_PARAMS._LAST_CANVAS_WIDTH + 15 + MODIFIED_PARAMS._SIDE_BAR_WIDTH);
-                const _last_modifier = MODIFIED_PARAMS._CANVAS_WIDTH - MODIFIED_PARAMS._LAST_CANVAS_WIDTH >= 0;
-                const modify_side_width = DEFAULT_PARAMS._SIDE_BAR_WIDTH < window.innerWidth - 15 - MODIFIED_PARAMS._CANVAS_WIDTH;
-                const process_modify = (((modify_side_width || _last_helper) && _last) && _last_modifier);
-                MODIFIED_PARAMS._SIDE_BAR_WIDTH = process_modify ? window.innerWidth - 15 - MODIFIED_PARAMS._CANVAS_WIDTH : DEFAULT_PARAMS._SIDE_BAR_WIDTH;
-                MODIFIED_PARAMS._CANVAS_WIDTH = process_modify ? MODIFIED_PARAMS._CANVAS_WIDTH : Math.max(DEFAULT_PARAMS._CANVAS_WIDTH, window.innerWidth - MODIFIED_PARAMS._SIDE_BAR_WIDTH - 15);
-                MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(window.innerHeight - 50 - nav_height);
-                main_nav.style.width = `${window.innerWidth - 15}px`;
-                this.drawCanvas(false);
-            });
-        }
+        window.addEventListener("orientationchange", () => {
+            const href = window.location.href;
+            window.location.assign(href);
+        });
+        window.addEventListener("resize", () => {
+            console.log("resized");
+            const _last = window.innerWidth > MODIFIED_PARAMS._LAST_CANVAS_WIDTH;
+            const _last_helper = window.innerWidth > (MODIFIED_PARAMS._LAST_CANVAS_WIDTH + 15 + MODIFIED_PARAMS._SIDE_BAR_WIDTH);
+            const _last_modifier = MODIFIED_PARAMS._CANVAS_WIDTH - MODIFIED_PARAMS._LAST_CANVAS_WIDTH >= 0;
+            const modify_side_width = DEFAULT_PARAMS._SIDE_BAR_WIDTH < window.innerWidth - 15 - MODIFIED_PARAMS._CANVAS_WIDTH;
+            const process_modify = (((modify_side_width || _last_helper) && _last) && _last_modifier);
+            MODIFIED_PARAMS._SIDE_BAR_WIDTH = process_modify ? window.innerWidth - 15 - MODIFIED_PARAMS._CANVAS_WIDTH : DEFAULT_PARAMS._SIDE_BAR_WIDTH;
+            MODIFIED_PARAMS._CANVAS_WIDTH = process_modify ? MODIFIED_PARAMS._CANVAS_WIDTH : Math.max(DEFAULT_PARAMS._CANVAS_WIDTH, window.innerWidth - MODIFIED_PARAMS._SIDE_BAR_WIDTH - 15);
+            MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(window.innerHeight - 50 - nav_height);
+            main_nav.style.width = `${window.innerWidth - 15}px`;
+            // main_nav.style.width = `${window.innerWidth - 15}px`;
+            this.drawCanvas(false);
+            console.log(MODIFIED_PARAMS);
+        });
     }
     drawCanvas(set_last_canvas_width = true) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1948,7 +1963,7 @@ class DrawCanvas {
         console.log("Outer Window Width : ", window.outerWidth);
         console.log("Outer Window Height : ", window.outerHeight);
         console.log("nav height : ", nav_height, "nav width : ", Number(window.getComputedStyle(main_nav).width.split("px")[0]));
-        console.log(MODIFIED_PARAMS);
+        console.log(window.location.href);
     }
     canvas_main_menu_drag_function(deltaX, deltaY) {
         MODIFIED_PARAMS._CANVAS_WIDTH += deltaX;

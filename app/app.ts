@@ -8,6 +8,7 @@ const root = document.querySelector(":root") as HTMLElement;
 
 const nav = document.getElementsByTagName("nav")[0];
 const main_nav = document.getElementById("main_nav") as HTMLUListElement;
+// const click_elem = document.getElementById
 main_nav.style.width = `${window.innerWidth - 15}px`;
 
 const canvas = document.getElementsByTagName('canvas')[0];
@@ -150,12 +151,14 @@ type _OBJ_VERT_ = { [index: string]: _4D_VEC_ | undefined };
 
 type _CAM_RENDERED_OBJ_ = { object: CreateMeshObject,vertices: _OBJ_VERT_ };
 
+type _VERT_TOOLTIP_HELPER_ = { before: number; after: number };
+
 type _TOOLTIP_POSITION_ = "top" | "bottom" | "left" | "right";
 
 type _PROJ_TYPE_ = "orthographic" | "perspective";
 
 enum Nav_list{
-    Editing,
+    Editing, 
     Animation,
     Sculpting,
     Lighting,
@@ -1993,6 +1996,37 @@ class CreateSVGDelete {
     }
 }
 
+class CreateSVGCameraOrthographic {
+    svg_class_: CreateSVG;
+    path_1: CreateSVGPath;
+    path_2: CreateSVGPath;
+
+    constructor (svg_class: CreateSVG,d_1: string,d_2: string,stroke: string,strokeWidth: string,hover_color: string,fill = "none",hover_fill = false) {
+        this.path_1 = new CreateSVGPath(svg_class, d_1, stroke, strokeWidth, hover_color, fill, hover_fill);
+        this.path_2 = new CreateSVGPath(svg_class, d_2, stroke, strokeWidth, hover_color, fill, hover_fill);
+    }
+
+    clickFunction(instance : number,func: (instance_number_input : number) => void) {
+        this.svg_class_.svg.addEventListener("click",()=>{func(instance)});
+    }
+}
+
+class CreateSVGCameraPerspective {
+    svg_class_: CreateSVG;
+    path_1: CreateSVGPath;
+    path_2: CreateSVGPath;
+
+    constructor (svg_class: CreateSVG,d_1: string,d_2: string,stroke: string,strokeWidth: string,hover_color: string,fill = "none",hover_fill = false) {
+        this.svg_class_ = svg_class;
+        this.path_1 = new CreateSVGPath(svg_class, d_1, stroke, strokeWidth, hover_color, fill, hover_fill);
+        this.path_2 = new CreateSVGPath(svg_class, d_2, stroke, strokeWidth, hover_color, fill, hover_fill)
+    }
+
+    clickFunction(instance : number,func: (instance_number_input : number) => void) {
+        this.svg_class_.svg.addEventListener("click",()=>{func(instance)});
+    }
+}
+
 class SVG_Indicator {
     svg_class: CreateSVG;
     tooltip_class: CreateToolTip;
@@ -2271,30 +2305,14 @@ class DrawCanvas {
     constructor () {
         this.drawCanvas();
 
-        const is_orientation_change_event = "onorientationchange" in  window;
 
-        if(is_orientation_change_event){
-            window.addEventListener("orientationchange",() => {
-                console.log("changed orientation")
-                const _height_ = screen.availHeight;
-                const _width_ =  screen.availWidth;
+        window.addEventListener("orientationchange",() => {
+            const href = window.location.href;
+            window.location.assign(href);
+        });
 
-                console.log(_width_,_height_)
-
-                MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(_height_ - 50 - nav_height);
-                MODIFIED_PARAMS._SIDE_BAR_WIDTH = _width_ / 3.5;
-                const width = _width_ - MODIFIED_PARAMS._SIDE_BAR_WIDTH - 15;        
-                MODIFIED_PARAMS._CANVAS_WIDTH = width;
-
-                main_nav.style.width = `${_width_ - 15}px`;
-
-
-                this.drawCanvas();
-            });
-        }
-        else{
-            window.addEventListener("resize",() => {
-                console.log("resized")
+        window.addEventListener("resize",() => {
+                console.log("resized");
                 const _last = window.innerWidth > MODIFIED_PARAMS._LAST_CANVAS_WIDTH;
                 const _last_helper = window.innerWidth > (MODIFIED_PARAMS._LAST_CANVAS_WIDTH + 15 + MODIFIED_PARAMS._SIDE_BAR_WIDTH);
                 const _last_modifier = MODIFIED_PARAMS._CANVAS_WIDTH - MODIFIED_PARAMS._LAST_CANVAS_WIDTH >= 0;
@@ -2307,9 +2325,11 @@ class DrawCanvas {
 
                 main_nav.style.width = `${window.innerWidth - 15}px`;
 
+                // main_nav.style.width = `${window.innerWidth - 15}px`;
+
                 this.drawCanvas(false);
-            });
-        }
+                console.log(MODIFIED_PARAMS)
+        });
     }
 
     drawCanvas(set_last_canvas_width = true) {
@@ -2352,7 +2372,8 @@ class DrawCanvas {
         console.log("Outer Window Width : ",window.outerWidth)
         console.log("Outer Window Height : ",window.outerHeight)
         console.log("nav height : ",nav_height, "nav width : ", Number(window.getComputedStyle(main_nav).width.split("px")[0]))
-        console.log(MODIFIED_PARAMS)
+
+        console.log(window.location.href)
     }
 
     canvas_main_menu_drag_function(deltaX: number,deltaY: number) {

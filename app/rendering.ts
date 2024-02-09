@@ -1,4 +1,4 @@
-window.parent.addEventListener("message",(e) => { if(e.data === "Rendering") render() });
+window.parent.addEventListener("message",(e) => { if(e.data === "Rendering") render(); });
 
 function render() {
     while(main_menu.firstChild)main_menu.removeChild(main_menu.firstChild);
@@ -27,7 +27,6 @@ function render() {
 
     const undo = new CreateUndo_SVG_Indicator(sub_menu, "Undo","left_2px","top_0px","right")
     const redo = new CreateRedo_SVG_Indicator(sub_menu, "Redo", "right_2px","top_0px", "left");
-    //const remove = new CreateDelete_SVG_Indicator(sub_menu, "Remove", "right-10px", "top-0px","left");
 
     const camera_indicator = new CameraIndicator(camera_div, sub_menu);    
 
@@ -109,8 +108,8 @@ class CameraIndicator extends CreateSubMenuContent {
         let _h_col = svg_del_color;
 
         if(this.camera_objects.length === 1) {
-            _col = elem_col;
-            _h_col = elem_col;
+            _col = svg_vert_bar_color;
+            _h_col = svg_vert_bar_color;
         }
 
         cam.addEventListener("click",() => {this.clickCamera(instance)});
@@ -119,6 +118,7 @@ class CameraIndicator extends CreateSubMenuContent {
         svg_class.svg.style.marginTop = "18px";
         svg_class.svg.style.float = "right";
         const remove = new CreateSVGDelete(svg_class, "M 3 3, L 17 17", "M 3 17, L 17 3", _col, svg_objects_strokeWidth, _h_col);
+        // const remove = new CreateSVGCameraOrthographic(svg_class,"M 7 1, L 19 1, L 19 12, L 7 12, Z","M 1 8, L 13 8, L 13 19, L 1 19, Z",_col,svg_objects_strokeWidth,_h_col );
         const instance_number_input = Number(cam.id);
 
         remove.clickFunction(instance_number_input,this.removeCamera);

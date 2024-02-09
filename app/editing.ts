@@ -1,8 +1,6 @@
 // window.parent.addEventListener("message", (e) => window.parent.postMessage(e.data));
 
-window.parent.addEventListener("message",(e) => { if(e.data === "Editing") edit() });
-
-type _VERT_TOOLTIP_HELPER_ = { before: number; after: number };
+window.parent.addEventListener("message",(e) => { if(e.data === "Editing") edit(); });
 
 function edit() {
     while(main_menu.firstChild) main_menu.removeChild(main_menu.firstChild);
