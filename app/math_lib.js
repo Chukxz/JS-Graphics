@@ -977,9 +977,10 @@ class Projection extends Linear {
         this.setProjectionParam();
     }
     setProjectionParam() {
-        if (MODIFIED_PARAMS._PROJ_TYPE === "orthographic")
+        const projection_type = _CAMERA.camera_objects_array[_CAMERA.instance_number_to_list_map[_CAMERA.current_camera_instance]].instance._PROJ_TYPE;
+        if (projection_type === "Orthographic")
             this.orthographicProjection();
-        else if (MODIFIED_PARAMS._PROJ_TYPE === "perspective")
+        else if (projection_type === "Perspective")
             this.perspectiveProjection();
         else
             return;
@@ -989,6 +990,7 @@ class Projection extends Linear {
         if (inverse_res.length !== 16)
             return;
         MODIFIED_PARAMS._INV_PROJECTION_MAT = inverse_res;
+        console.log(MODIFIED_PARAMS._PROJECTION_MAT);
     }
     orthographicProjection() {
         const sgn = MODIFIED_PARAMS._HANDEDNESS;
@@ -1067,7 +1069,7 @@ class CameraObject extends Vector {
         _V: [0, 1, 0],
         _N: [0, 0, 1],
         _C: [0, 0, 0],
-        _PROJ_TYPE: "orthographic",
+        _PROJ_TYPE: MODIFIED_PARAMS._PROJ_TYPE,
         _MATRIX: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         _INV_MATRIX: [1, -0, 0, -0, -0, 1, -0, 0, 0, -0, 1, -0, -0, 0, -0, 1],
         theta: 0,
@@ -1244,17 +1246,17 @@ class NDCSpace extends Matrix {
     project(arr) {
         if (typeof arr === "undefined")
             return undefined;
-        if (MODIFIED_PARAMS._PROJ_TYPE === "orthographic")
+        if (MODIFIED_PARAMS._PROJ_TYPE === "Orthographic")
             return this.matMult(arr, MODIFIED_PARAMS._PROJECTION_MAT, [1, 4], [4, 4]);
-        else if (MODIFIED_PARAMS._PROJ_TYPE === "perspective") {
+        else if (MODIFIED_PARAMS._PROJ_TYPE === "Perspective") {
             const proj = this.matMult(arr, MODIFIED_PARAMS._PROJECTION_MAT, [1, 4], [4, 4]);
             return this.scaMult(1 / proj[3], proj, true);
         }
     }
     unProject(arr) {
-        if (MODIFIED_PARAMS._PROJ_TYPE === "orthographic")
+        if (MODIFIED_PARAMS._PROJ_TYPE === "Orthographic")
             return this.matMult(arr, MODIFIED_PARAMS._INV_PROJECTION_MAT, [1, 4], [4, 4]);
-        else if (MODIFIED_PARAMS._PROJ_TYPE === "perspective") {
+        else if (MODIFIED_PARAMS._PROJ_TYPE === "Perspective") {
             const rev_proj_div = this.scaMult(arr[3], arr, true);
             return this.matMult(rev_proj_div, MODIFIED_PARAMS._INV_PROJECTION_MAT, [1, 4], [4, 4]);
             ;

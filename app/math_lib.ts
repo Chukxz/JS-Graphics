@@ -1084,36 +1084,40 @@ class Linear extends Vector {
 
 class Projection extends Linear {
 
-  constructor () {super();}
+    constructor () {super();}
 
-  changeNearZ(val: number) {
-      MODIFIED_PARAMS._NZ = val;
-      this.setProjectionParam();
-  }
+    changeNearZ(val: number) {
+        MODIFIED_PARAMS._NZ = val;
+        this.setProjectionParam();
+    }
 
-  changeFarZ(val: number) {
-      MODIFIED_PARAMS._FZ = val;
-      this.setProjectionParam();
-  }
+    changeFarZ(val: number) {
+        MODIFIED_PARAMS._FZ = val;
+        this.setProjectionParam();
+    }
 
-  changeProjAngle(vert:number, hori:number) {
-      MODIFIED_PARAMS._VERT_PROJ_ANGLE = vert;
-      MODIFIED_PARAMS._HORI_PROJ_ANGLE = hori;
-      this.setProjectionParam();
-  }
+    changeProjAngle(vert:number, hori:number) {
+        MODIFIED_PARAMS._VERT_PROJ_ANGLE = vert;
+        MODIFIED_PARAMS._HORI_PROJ_ANGLE = hori;
+        this.setProjectionParam();
+    }
 
-  setProjectionParam(){
-    if(MODIFIED_PARAMS._PROJ_TYPE === "orthographic") this.orthographicProjection();
-    else if (MODIFIED_PARAMS._PROJ_TYPE === "perspective") this.perspectiveProjection();
-    else return;
+    setProjectionParam(){
+        const projection_type = _CAMERA.camera_objects_array[_CAMERA.instance_number_to_list_map[_CAMERA.current_camera_instance]].instance._PROJ_TYPE;
 
-    const inverse_res: number[] | undefined = this.getInvMat(MODIFIED_PARAMS._PROJECTION_MAT,4);
-    if(typeof inverse_res === "undefined") return;
-    if(inverse_res.length !== 16) return;
-    MODIFIED_PARAMS._INV_PROJECTION_MAT = inverse_res as _16D_VEC_;
-  }
+        if(projection_type === "Orthographic") this.orthographicProjection();
+        else if (projection_type === "Perspective") this.perspectiveProjection();
+        else return;
 
-  orthographicProjection(){
+        const inverse_res: number[] | undefined = this.getInvMat(MODIFIED_PARAMS._PROJECTION_MAT,4);
+        if(typeof inverse_res === "undefined") return;
+        if(inverse_res.length !== 16) return;
+        MODIFIED_PARAMS._INV_PROJECTION_MAT = inverse_res as _16D_VEC_;
+
+        console.log(MODIFIED_PARAMS._PROJECTION_MAT)
+    }
+
+orthographicProjection(){
     const sgn = MODIFIED_PARAMS._HANDEDNESS;
     const a_v = MODIFIED_PARAMS._VERT_PROJ_ANGLE * MODIFIED_PARAMS._ANGLE_CONSTANT;
     const a_h = MODIFIED_PARAMS._HORI_PROJ_ANGLE * MODIFIED_PARAMS._ANGLE_CONSTANT;
@@ -1125,9 +1129,9 @@ class Projection extends Linear {
     const l = -r;
 
     MODIFIED_PARAMS._PROJECTION_MAT = [2/(r-l), 0, 0, 0, 0, 2/(t-b), 0, 0, 0, 0, sgn*2/(f-n), 0, -(r+l)/(r-l), -(t+b)/(t-b), -(f+n)/(f-n), 1];
-  }
+}
 
-  perspectiveProjection() {
+perspectiveProjection() {
     const sgn = MODIFIED_PARAMS._HANDEDNESS;
     const a_v = MODIFIED_PARAMS._VERT_PROJ_ANGLE * MODIFIED_PARAMS._ANGLE_CONSTANT;
     const a_h = MODIFIED_PARAMS._HORI_PROJ_ANGLE * MODIFIED_PARAMS._ANGLE_CONSTANT;
@@ -1139,15 +1143,15 @@ class Projection extends Linear {
     const l = -r;
 
     MODIFIED_PARAMS._PROJECTION_MAT = [2*n/(r-l), 0, 0, 0, 0, 2*n/(t-b), 0, 0, (r+l)/(r-l), (t+b)/(t-b), -(f+n)/(f-n), -1, 0, 0, sgn*2*f*n/(f-n), 0];
-  }
+}
 
-  project(input_array: _4D_VEC_): _4D_VEC_ {
-    return this.matMult(input_array,MODIFIED_PARAMS._PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
-  }
+    project(input_array: _4D_VEC_): _4D_VEC_ {
+        return this.matMult(input_array,MODIFIED_PARAMS._PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
+    }
 
-  invProject(input_array: _4D_VEC_): _4D_VEC_ {
-      return this.matMult(input_array,MODIFIED_PARAMS._INV_PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
-  }
+    invProject(input_array: _4D_VEC_): _4D_VEC_ {
+        return this.matMult(input_array,MODIFIED_PARAMS._INV_PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
+    }
 }
 
 class Clip {
@@ -1222,7 +1226,7 @@ class CameraObject extends Vector {
         _V: [0,1,0],
         _N: [0,0,1],
         _C: [0,0,0],
-        _PROJ_TYPE : "orthographic",
+        _PROJ_TYPE : MODIFIED_PARAMS._PROJ_TYPE,
         _MATRIX: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1] as _16D_VEC_,
         _INV_MATRIX: [1, -0, 0, -0, -0, 1, -0, 0, 0, -0, 1, -0, -0, 0, -0, 1] as _16D_VEC_,
         theta: 0,
@@ -1424,16 +1428,16 @@ class NDCSpace extends Matrix{
 
     project(arr : _4D_VEC_ | undefined) : _4D_VEC_ | undefined{
         if(typeof arr === "undefined") return undefined;
-        if(MODIFIED_PARAMS._PROJ_TYPE === "orthographic") return this.matMult(arr,MODIFIED_PARAMS._PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
-        else if(MODIFIED_PARAMS._PROJ_TYPE === "perspective") {
+        if(MODIFIED_PARAMS._PROJ_TYPE === "Orthographic") return this.matMult(arr,MODIFIED_PARAMS._PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
+        else if(MODIFIED_PARAMS._PROJ_TYPE === "Perspective") {
             const proj = this.matMult(arr,MODIFIED_PARAMS._PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
             return this.scaMult(1/proj[3],proj,true) as _4D_VEC_;
         }
     }
 
     unProject(arr : _4D_VEC_) : _4D_VEC_ | undefined{
-        if(MODIFIED_PARAMS._PROJ_TYPE === "orthographic") return this.matMult(arr,MODIFIED_PARAMS._INV_PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
-        else if(MODIFIED_PARAMS._PROJ_TYPE === "perspective")
+        if(MODIFIED_PARAMS._PROJ_TYPE === "Orthographic") return this.matMult(arr,MODIFIED_PARAMS._INV_PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
+        else if(MODIFIED_PARAMS._PROJ_TYPE === "Perspective")
         {
             const rev_proj_div: _4D_VEC_ = this.scaMult(arr[3],arr,true) as _4D_VEC_;
             return this.matMult(rev_proj_div,MODIFIED_PARAMS._INV_PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;;

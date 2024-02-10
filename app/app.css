@@ -290,7 +290,7 @@ canvas {
     height: var(--container-div-height);
 }
 
-#camera_div {
+#overall_camera_div {
     width: var(--custom-sub-menu-width);
 }
 

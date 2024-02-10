@@ -33,6 +33,9 @@ const c_2 = document.getElementById("c_2") as HTMLButtonElement;
 const c_3 = document.getElementById("c_3") as HTMLButtonElement;
 const c_elems = document.getElementsByClassName("cdv_elem") as HTMLCollectionOf<HTMLButtonElement>;
 
+const c_m_h_with_cross_hairs = document.getElementsByClassName("with_cross_hairs") as HTMLCollectionOf<HTMLElement>;
+const camera_divs = document.getElementsByClassName("camera_div") as HTMLCollectionOf<HTMLDivElement>;
+
 const elem_col = "#333";
 const elem_hover_col = "#111";
 const elem_active_col = "#4CAF50";
@@ -155,7 +158,7 @@ type _VERT_TOOLTIP_HELPER_ = { before: number; after: number };
 
 type _TOOLTIP_POSITION_ = "top" | "bottom" | "left" | "right";
 
-type _PROJ_TYPE_ = "orthographic" | "perspective";
+type _PROJ_TYPE_ = "Orthographic" | "Perspective";
 
 enum Nav_list{
     Editing, 
@@ -237,7 +240,7 @@ const DEFAULT_PARAMS: _BASIC_PARAMS_ =
     _Q_INV_QUART: [1,0,0,0],
     _NZ: 0.1,
     _FZ: 500,
-    _PROJ_TYPE : "orthographic",
+    _PROJ_TYPE : "Orthographic",
     _VERT_PROJ_ANGLE: 60,
     _HORI_PROJ_ANGLE : 60,
     _ASPECT_RATIO: 1,
@@ -247,7 +250,7 @@ const DEFAULT_PARAMS: _BASIC_PARAMS_ =
     _INV_PROJECTION_MAT: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
     _GRID_VERT_THETA: 15,
     _ACTIVE: "",
-    _SIDE_BAR_WIDTH: 100,
+    _SIDE_BAR_WIDTH: 120,
 }
 
 const MODIFIED_PARAMS: _BASIC_PARAMS_ = JSON.parse(JSON.stringify(DEFAULT_PARAMS));
@@ -416,6 +419,36 @@ const implementDrag = function () {
     return retObject;
 };
 
+const camera_ui_handler = () =>{
+    const c_len = `${_CAMERA.instance_number}`.length;
+    const accom_1 = 170 + (c_len * 10);
+    const accom_2 = 150 + (c_len * 10);
+
+    for(const camera_div of camera_divs) {
+        const camera_elem = camera_div.children[0] as HTMLParagraphElement;
+        const camera_icon_elem = camera_div.children[3] as HTMLParagraphElement;
+
+        if(main_menu_width >= accom_1){
+            camera_elem.style.display = "block";
+            camera_icon_elem.style.display = "none";
+            const camera_object : CameraObject = _CAMERA.camera_objects_array[Number(camera_elem.id)];
+            camera_elem.textContent = `Camera ${camera_elem.id}`;
+        }
+
+        else if(main_menu_width < accom_1 && main_menu_width >= accom_2){
+            camera_elem.style.display = "block";
+            camera_icon_elem.style.display = "none";
+            const camera_object : CameraObject = _CAMERA.camera_objects_array[Number(camera_elem.id)];
+            camera_elem.textContent = `Cam ${camera_elem.id}`;
+        }
+
+        else if(main_menu_width < accom_2) {
+            camera_elem.style.display = "none";
+            camera_icon_elem.style.display = "block";
+        }
+    }
+}
+
 const main_menu_divider_drag_function = (deltaX: number,deltaY: number) => {
     if(typeof svg_main_menu_divider === "undefined") return;
     if(typeof svg_main_menu_divider_line_drag === "undefined") return;
@@ -460,14 +493,12 @@ const basicDrawFunction = (set_last_canvas_width = true) => {
     if(main_menu_width > 200) main_menu_animate = true;
     else main_menu_animate = false;
 
-
-    root.style.setProperty("--camera-paragraph-width",`${main_menu_width - 80}px`);
+    root.style.setProperty("--camera-paragraph-width",`${main_menu_width - 100}px`);
     root.style.setProperty("--custom-menu-header-width",`${main_menu_width - 100}px`);
     root.style.setProperty("--custom-sub-menu-width",`${main_menu_width - 2*main_menu_border_width}px`);
 
-    const c_m_h_with_cross_hairs = document.getElementsByClassName("with_cross_hairs") as HTMLCollectionOf<HTMLElement>;
     for(const elem of c_m_h_with_cross_hairs) {
-        if(main_menu_width < 120) elem.style.visibility = "hidden";
+        if(main_menu_width < 200) elem.style.visibility = "hidden";
         else elem.style.visibility = "visible";
     }
 
@@ -475,6 +506,8 @@ const basicDrawFunction = (set_last_canvas_width = true) => {
         svg_main_menu_divider = new CreateSVG(main_menu,`${main_menu_width - 2*main_menu_border_width}`,"10");
         create_main_menu_divider = false;
     }
+
+    camera_ui_handler();
 
     if(typeof svg_main_menu_divider === "undefined") return;
     svg_main_menu_divider.remove();
@@ -1991,41 +2024,103 @@ class CreateSVGDelete {
         this.path_2 = new CreateSVGPath(svg_class, d_2, stroke, strokeWidth, hover_color, fill, hover_fill)
     }
 
-    clickFunction(instance : number,func: (instance_number_input : number) => void) {
-        this.svg_class_.svg.addEventListener("click",()=>{func(instance)});
+    clickFunction(instance : number,self : CameraIndicator) {
+        this.svg_class_.svg.addEventListener("click",()=>{
+            self.removeCamera(instance);
+            self.showCameras();
+        });
     }
 }
 
-class CreateSVGCameraOrthographic {
-    svg_class_: CreateSVG;
-    path_1: CreateSVGPath;
-    path_2: CreateSVGPath;
-
-    constructor (svg_class: CreateSVG,d_1: string,d_2: string,stroke: string,strokeWidth: string,hover_color: string,fill = "none",hover_fill = false) {
-        this.path_1 = new CreateSVGPath(svg_class, d_1, stroke, strokeWidth, hover_color, fill, hover_fill);
-        this.path_2 = new CreateSVGPath(svg_class, d_2, stroke, strokeWidth, hover_color, fill, hover_fill);
-    }
-
-    clickFunction(instance : number,func: (instance_number_input : number) => void) {
-        this.svg_class_.svg.addEventListener("click",()=>{func(instance)});
-    }
-}
-
-class CreateSVGCameraPerspective {
+class CreateSVGCameraExperimental {
     svg_class_: CreateSVG;
     path_1: CreateSVGPath;
     path_2: CreateSVGPath;
 
     constructor (svg_class: CreateSVG,d_1: string,d_2: string,stroke: string,strokeWidth: string,hover_color: string,fill = "none",hover_fill = false) {
         this.svg_class_ = svg_class;
-        this.path_1 = new CreateSVGPath(svg_class, d_1, stroke, strokeWidth, hover_color, fill, hover_fill);
-        this.path_2 = new CreateSVGPath(svg_class, d_2, stroke, strokeWidth, hover_color, fill, hover_fill)
+        // this.path_1 = new CreateSVGPath(svg_class, d_1, stroke, strokeWidth, hover_color, fill, hover_fill);
+        // this.path_2 = new CreateSVGPath(svg_class, d_2, stroke, strokeWidth, hover_color, fill, hover_fill);
+
+        const p_1_proc = d_1.split(",");
+        const p_2_proc = d_2.split(",");
+
+        for(const index in p_1_proc){
+            if(Number(index) === 4) break;
+            let inc = 0;
+            if(Number(index) > 0) inc = 1;
+            console.log(p_1_proc[index],"***********")
+
+            const elems_1 = p_1_proc[index].split(" ");
+            const elems_2 = p_2_proc[index].split(" ");
+
+            const [x1, y1, x2, y2] = [elems_1[1+inc], elems_1[2+inc], elems_2[1+inc], elems_2[2+inc]]
+            new CreateSVGLine(svg_class, `${x1}`,`${y1}`,`${x2}`,`${y2}`, stroke, strokeWidth, hover_color);
+            new CreateSVGLine(svg_class, `${x1}`,`${x2}`,`${y1}`,`${y2}`, stroke, strokeWidth, hover_color);
+
+            console.log(x1,y1,x2,y2,"#########", elems_1, elems_2);
+        }
     }
 
     clickFunction(instance : number,func: (instance_number_input : number) => void) {
         this.svg_class_.svg.addEventListener("click",()=>{func(instance)});
     }
 }
+
+class CreateSVGCameraIcon{
+    path : CreateSVGPath;
+    constructor(svg_class: CreateSVG,stroke: string,strokeWidth: string,hover_color: string,fill = "none",hover_fill = false){
+        const path_string = "M 18 4, L 12 10, L 12 3, L 1 1, L 1 19, L 12 17, L 12 10, L 18 16";
+        this.path = new CreateSVGPath(svg_class, path_string, stroke, svg_objects_strokeWidth, svg_hover_color, fill, hover_fill);
+    }
+
+    // clickFunction(instance : number,func: (instance_number_input : number) => void) {
+    //     this.svg_class_.svg.addEventListener("click",()=>{func(instance)});
+    // }
+}
+
+class CreateSVGCameraProjection{
+    svg_class_: CreateSVG;
+    path_1: CreateSVGPath;
+    path_2: CreateSVGPath;
+    lines : CreateSVGLine[];
+
+    constructor (svg_class: CreateSVG,d_1: string,d_2: string,stroke: string,strokeWidth: string,hover_color: string,fill = "none",hover_fill = false) {
+        this.svg_class_ = svg_class;
+        this.path_1 = new CreateSVGPath(svg_class, d_1, stroke, strokeWidth, hover_color, fill, hover_fill);
+        this.path_2 = new CreateSVGPath(svg_class, d_2, stroke, strokeWidth, hover_color, fill, hover_fill);
+        this.lines = [];
+        const p_1_proc = d_1.split(",");
+        const p_2_proc = d_2.split(",");
+
+        for(const index in p_1_proc){
+            if(Number(index) === 4) break;
+            let inc = 0;
+            if(Number(index) > 0) inc = 1;
+    
+            const elems_1 = p_1_proc[index].split(" ");
+            const elems_2 = p_2_proc[index].split(" ");
+            const [x1, y1, x2, y2] = [elems_1[1+inc], elems_1[2+inc], elems_2[1+inc], elems_2[2+inc]];
+            this.lines.push(new CreateSVGLine(svg_class, `${x1}`,`${y1}`,`${x2}`,`${y2}`, stroke, strokeWidth, hover_color));
+        }
+    }
+    
+    clickFunction(instance : number,projection_type : _PROJ_TYPE_,self : CameraIndicator) {
+        this.svg_class_.svg.addEventListener("click",()=>{
+            self.changeProjType(instance, projection_type);
+            self.showCameras();
+        });
+    }
+
+    remove(){
+        this.svg_class_.svg.removeChild(this.path_1.path);
+        this.svg_class_.svg.removeChild(this.path_2.path);
+        for(const line of this.lines){
+            this.svg_class_.svg.removeChild(line.line);
+        }
+    }
+}
+
 
 class SVG_Indicator {
     svg_class: CreateSVG;
@@ -2073,6 +2168,37 @@ class Other_SVG_Indicator extends SVG_Indicator {
                 this.tooltip_class.right_tooltip();
                 break;
         }
+    }
+}
+
+class CreateCameraProjection_SVG_Indicator extends Other_SVG_Indicator{
+    projection : CreateSVGCameraProjection | undefined;
+    text : string;
+    constructor (container: HTMLDivElement,hori_pos = "right_40px", vert_pos = "top_0px",tooltip_postition: _TOOLTIP_POSITION_ = "left") {
+        super(container,6,"",hori_pos,vert_pos,tooltip_postition);
+        this.tooltip_class.tooltip_text_elem.innerHTML = `${MODIFIED_PARAMS._PROJ_TYPE}`;
+        this.projection = undefined;
+        this.loadCameraIcon();
+    }
+
+    loadCameraIcon(){
+        this.tooltip_class.tooltip_text_elem.innerHTML = `${MODIFIED_PARAMS._PROJ_TYPE}`;
+        if (MODIFIED_PARAMS._PROJ_TYPE === "Orthographic"){
+            this.projection = new CreateSVGCameraProjection(this.svg_class,"M 7 2, L 18 2, L 18 12, L 7 12, Z","M 2 8, L 13 8, L 13 18, L 2 18, Z",svg_objects_color,svg_objects_strokeWidth,svg_hover_color);
+        }
+        else if(MODIFIED_PARAMS._PROJ_TYPE === "Perspective"){
+            this.projection = new CreateSVGCameraProjection(this.svg_class,"M 9 3, L 17 3, L 17 10, L 9 10, Z","M 1 8, L 13 8, L 13 19, L 1 19, Z",svg_objects_color,svg_objects_strokeWidth,svg_hover_color);
+        }
+    }
+
+    clickFunction() {
+        this.svg_class.svg.addEventListener("click",()=>{
+            if(typeof this.projection === "undefined") return;
+            this.projection.remove();
+            if(MODIFIED_PARAMS._PROJ_TYPE === "Orthographic") MODIFIED_PARAMS._PROJ_TYPE = "Perspective";
+            else if(MODIFIED_PARAMS._PROJ_TYPE === "Perspective") MODIFIED_PARAMS._PROJ_TYPE = "Orthographic";
+            this.loadCameraIcon();
+        });
     }
 }
 
@@ -2305,7 +2431,6 @@ class DrawCanvas {
     constructor () {
         this.drawCanvas();
 
-
         window.addEventListener("orientationchange",() => {
             const href = window.location.href;
             window.location.assign(href);
@@ -2360,20 +2485,20 @@ class DrawCanvas {
 
         DrawCanvas.drawCount++;
 
-        console.log("Screen Orientation : ",screen.orientation)
-        console.log("Color Depth : ",screen.colorDepth)
-        console.log("Pixel Depth : ", screen.pixelDepth)
-        console.log("Available Screen Width : ", screen.availWidth)
-        console.log("Available Screen Height : ",screen.availHeight)
-        console.log("Screen Width : ",screen.width)
-        console.log("Screen Height : ", screen.height)
-        console.log("Inner Window Width : ",window.innerWidth)
-        console.log("Inner Window Height : ",window.innerHeight)
-        console.log("Outer Window Width : ",window.outerWidth)
-        console.log("Outer Window Height : ",window.outerHeight)
-        console.log("nav height : ",nav_height, "nav width : ", Number(window.getComputedStyle(main_nav).width.split("px")[0]))
+        // console.log("Screen Orientation : ",screen.orientation)
+        // console.log("Color Depth : ",screen.colorDepth)
+        // console.log("Pixel Depth : ", screen.pixelDepth)
+        // console.log("Available Screen Width : ", screen.availWidth)
+        // console.log("Available Screen Height : ",screen.availHeight)
+        // console.log("Screen Width : ",screen.width)
+        // console.log("Screen Height : ", screen.height)
+        // console.log("Inner Window Width : ",window.innerWidth)
+        // console.log("Inner Window Height : ",window.innerHeight)
+        // console.log("Outer Window Width : ",window.outerWidth)
+        // console.log("Outer Window Height : ",window.outerHeight)
+        // console.log("nav height : ",nav_height, "nav width : ", Number(window.getComputedStyle(main_nav).width.split("px")[0]))
 
-        console.log(window.location.href)
+        // console.log(window.location.href)
     }
 
     canvas_main_menu_drag_function(deltaX: number,deltaY: number) {

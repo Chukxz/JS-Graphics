@@ -4,27 +4,33 @@ function render() {
     while (main_menu.firstChild)
         main_menu.removeChild(main_menu.firstChild);
     create_main_menu_divider = true;
+    const svg_class_proj = new CreateSVG(main_menu, "20", "20", 6);
+    svg_class_proj.svg.style.marginTop = "18px";
+    svg_class_proj.svg.style.float = "right";
+    svg_class_proj.svg.style.marginRight = "5px";
+    const general_projection = new CreateCameraProjection_SVG_Indicator(main_menu);
+    general_projection.clickFunction();
     const cross_indicator = new CreateCross_SVG_Indicator(main_menu, "Add Camera");
     const menu_header = document.createElement("p");
     menu_header.className = "custom_menu_header with_cross_hairs";
     menu_header.textContent = "Camera Objects";
     menu_header.style.paddingLeft = "10px";
     main_menu.appendChild(menu_header);
-    const camera_div = document.createElement("div");
-    camera_div.id = "camera_div";
-    camera_div.className = "container_div";
-    camera_div.style.zIndex = "inherit";
+    const overall_camera_div = document.createElement("div");
+    overall_camera_div.id = "overall_camera_div";
+    overall_camera_div.className = "container_div";
+    overall_camera_div.style.zIndex = "inherit";
     if (svg_main_menu_divider_top < 0)
         svg_main_menu_divider_top = main_menu_height + svg_main_menu_divider_top;
     console.log(svg_main_menu_divider_top);
     root.style.setProperty("--container-div-height", `${svg_main_menu_divider_top - 80}px`);
-    camera_div.style.overflowX = "hidden";
-    camera_div.style.overflowY = "auto";
-    main_menu.appendChild(camera_div);
+    overall_camera_div.style.overflowX = "hidden";
+    overall_camera_div.style.overflowY = "auto";
+    main_menu.appendChild(overall_camera_div);
     sub_menu = new CreateSubMenu().submenu;
     const undo = new CreateUndo_SVG_Indicator(sub_menu, "Undo", "left_2px", "top_0px", "right");
     const redo = new CreateRedo_SVG_Indicator(sub_menu, "Redo", "right_2px", "top_0px", "left");
-    const camera_indicator = new CameraIndicator(camera_div, sub_menu);
+    const camera_indicator = new CameraIndicator(overall_camera_div, sub_menu);
     const crossClick = () => {
         _CAMERA.createNewCameraObject();
         camera_indicator.showCameras();
@@ -69,15 +75,20 @@ class CameraIndicator extends CreateSubMenuContent {
             this.showCamera(sub_container, camera_object, index);
             index++;
         }
+        camera_ui_handler();
         this.refreshInstance(_CAMERA.current_camera_instance);
         //this.svg_class.svg.addEventListener("click", (()=>console.log(tooltip_text)))
     }
     showCamera(sub_container, camera, index) {
+        const cam_div = document.createElement("div");
+        cam_div.style.clear = "both";
+        cam_div.className = "camera_div";
+        sub_container.appendChild(cam_div);
         const cam = document.createElement("p");
         cam.className = "camera";
         const instance = camera.instance.instance_number;
         cam.id = `${instance}`;
-        cam.textContent = `Camera   ${_CAMERA.instance_number_to_list_map[instance]} - ${instance}`;
+        cam.textContent = "";
         cam.style.color = "#fff";
         cam.style.padding = "5px";
         cam.style.cursor = "pointer";
@@ -85,7 +96,7 @@ class CameraIndicator extends CreateSubMenuContent {
         cam.style.float = "left";
         cam.style.backgroundColor = elem_hover_col;
         cam.style.borderRadius = "8px";
-        sub_container.appendChild(cam);
+        cam_div.appendChild(cam);
         let _col = elem_hover_col;
         let _h_col = svg_del_color;
         if (this.camera_objects.length === 1) {
@@ -93,21 +104,49 @@ class CameraIndicator extends CreateSubMenuContent {
             _h_col = svg_vert_bar_color;
         }
         cam.addEventListener("click", () => { this.clickCamera(instance); });
-        const svg_class = new CreateSVG(sub_container, "20", "20", 2);
-        svg_class.svg.style.marginTop = "18px";
-        svg_class.svg.style.float = "right";
-        const remove = new CreateSVGDelete(svg_class, "M 3 3, L 17 17", "M 3 17, L 17 3", _col, svg_objects_strokeWidth, _h_col);
-        // const remove = new CreateSVGCameraOrthographic(svg_class,"M 7 1, L 19 1, L 19 12, L 7 12, Z","M 1 8, L 13 8, L 13 19, L 1 19, Z",_col,svg_objects_strokeWidth,_h_col );
+        const projection_type = _CAMERA.camera_objects_array[index].instance._PROJ_TYPE;
         const instance_number_input = Number(cam.id);
-        remove.clickFunction(instance_number_input, this.removeCamera);
-        remove.svg_class_.svg.addEventListener("click", () => { this.showCameras(); });
+        const svg_class_rm = new CreateSVG(cam_div, "20", "20", 6);
+        svg_class_rm.svg.style.marginTop = "18px";
+        svg_class_rm.svg.style.float = "right";
+        const remove = new CreateSVGDelete(svg_class_rm, "M 3 3, L 17 17", "M 3 17, L 17 3", _col, svg_objects_strokeWidth, _h_col);
+        remove.clickFunction(instance_number_input, this);
+        const svg_class_proj = new CreateSVG(cam_div, "20", "20", 6);
+        svg_class_proj.svg.style.marginTop = "18px";
+        svg_class_proj.svg.style.float = "right";
+        svg_class_proj.svg.style.marginRight = "2px";
+        let projection = undefined;
+        if (projection_type === "Orthographic") {
+            projection = new CreateSVGCameraProjection(svg_class_proj, "M 7 2, L 18 2, L 18 12, L 7 12, Z", "M 2 8, L 13 8, L 13 18, L 2 18, Z", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
+        }
+        else if (projection_type === "Perspective") {
+            projection = new CreateSVGCameraProjection(svg_class_proj, "M 9 3, L 17 3, L 17 10, L 9 10, Z", "M 1 8, L 13 8, L 13 19, L 1 19, Z", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
+        }
+        if (typeof projection !== "undefined")
+            projection.clickFunction(instance_number_input, projection_type, this);
+        const svg_class_cam_icon = new CreateSVG(cam_div, "20", "20", 1);
+        svg_class_cam_icon.svg.style.marginTop = "18px";
+        svg_class_cam_icon.svg.style.float = "right";
+        svg_class_cam_icon.svg.style.marginRight = "2px";
+        svg_class_cam_icon.svg.style.display = "none";
+        const cam_icon = new CreateSVGCameraIcon(svg_class_cam_icon, svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
     }
     removeCamera(instance) {
         _CAMERA.deleteCameraObject(instance);
     }
+    changeProjType(instance, projection_type) {
+        const index = _CAMERA.instance_number_to_list_map[instance];
+        if (projection_type === "Orthographic") {
+            _CAMERA.camera_objects_array[index].instance._PROJ_TYPE = "Perspective";
+        }
+        else if (projection_type === "Perspective") {
+            _CAMERA.camera_objects_array[index].instance._PROJ_TYPE = "Orthographic";
+        }
+        _PROJ.setProjectionParam();
+    }
     clickCamera(instance) {
         this.refreshInstance(instance);
-        console.log(_CAMERA.instance_number_to_list_map);
+        console.log(_CAMERA.instance_number_to_list_map, _CAMERA.current_camera_instance);
     }
 }
 function gridRender() {
@@ -196,6 +235,7 @@ class Draw {
         ctx.closePath();
     }
     drawObject(object) {
+        console.log(typeof object);
         if (typeof object === "undefined")
             return;
         for (const vertex in object.vertices) {

@@ -57,6 +57,7 @@ class CreatePoint_SVG_Indicator extends Shape_SVG_Indicator {
         super(container, 1, "Point");
         new CreateSVGCircle(this.svg_class, "10", "10", "2", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, svg_objects_color);
         this.svg_container.addEventListener("click", () => {
+            console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreatePoint());
             _ObjectRendering.renderLocal();
@@ -70,6 +71,7 @@ class CreateLine_SVG_Indicator extends Shape_SVG_Indicator {
         super(container, 1, "Line");
         new CreateSVGLine(this.svg_class, "1", "19", "19", "1", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         this.svg_container.addEventListener("click", () => {
+            console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreateLine());
             _ObjectRendering.renderLocal();
@@ -87,6 +89,7 @@ class CreatePolygon_SVG_Indicator extends Shape_SVG_Indicator {
         new CreateSVGLine(this.svg_class, "10", "1", "19", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         new CreateSVGLine(this.svg_class, "1", "19", "19", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         this.svg_container.addEventListener("click", () => {
+            console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreatePolygon());
             _ObjectRendering.renderLocal();
@@ -100,6 +103,7 @@ class CreateEllipse_SVG_Indicator extends Shape_SVG_Indicator {
         super(container, 1, "Ellipse");
         new CreateSVGEllipse(this.svg_class, "10", "10", "9", "5", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
         this.svg_container.addEventListener("click", () => {
+            console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreateEllipse());
             _ObjectRendering.renderLocal();
@@ -113,6 +117,7 @@ class CreateCircle_SVG_Indicator extends Shape_SVG_Indicator {
         super(container, 1, "Circle");
         new CreateSVGCircle(this.svg_class, "10", "10", "9", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
         this.svg_container.addEventListener("click", () => {
+            console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreateCircle());
             _ObjectRendering.renderLocal();
@@ -129,6 +134,7 @@ class CreateRectangle_SVG_Indicator extends Shape_SVG_Indicator {
         new CreateSVGLine(this.svg_class, "1", "1", "1", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         new CreateSVGLine(this.svg_class, "19", "1", "19", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         this.svg_container.addEventListener("click", () => {
+            console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreateRectangle());
             _ObjectRendering.renderLocal();
@@ -149,6 +155,7 @@ class Pyramid_SVG_Indicator extends Shape_SVG_Indicator {
         new CreateSVGLine(this.svg_class, "10", "12", "19", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         new CreateSVGLine(this.svg_class, "1", "19", "19", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         this.svg_container.addEventListener("click", () => {
+            console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreatePyramid());
             _ObjectRendering.renderLocal();
@@ -164,6 +171,7 @@ class Cone_SVG_Indicator extends Shape_SVG_Indicator {
         new CreateSVGLine(this.svg_class, "10", "1", "19", "16", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         new CreateSVGEllipse(this.svg_class, "10", "16", "9", "3", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
         this.svg_container.addEventListener("click", () => {
+            console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreateCone());
             _ObjectRendering.renderLocal();
@@ -185,6 +193,7 @@ class Prism_SVG_Indicator extends Shape_SVG_Indicator {
         new CreateSVGLine(this.svg_class, "10", "12", "17", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         new CreateSVGLine(this.svg_class, "3", "19", "17", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         this.svg_container.addEventListener("click", () => {
+            console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreatePrism());
             _ObjectRendering.renderLocal();
@@ -201,6 +210,7 @@ class Cylinder_SVG_Indicator extends Shape_SVG_Indicator {
         new CreateSVGLine(this.svg_class, "3", "4", "3", "16", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         new CreateSVGLine(this.svg_class, "17", "4", "17", "16", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         this.svg_container.addEventListener("click", () => {
+            console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreateCylinder());
             _ObjectRendering.renderLocal();
@@ -242,6 +252,7 @@ class Sphere_SVG_Indicator extends Shape_SVG_Indicator {
         new CreateSVGPath(this.svg_class, "M 7 7, L 7 13", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         new CreateSVGPath(this.svg_class, "M 13 7, L 13 13", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         this.svg_container.addEventListener("click", () => {
+            console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreateSphere());
             _ObjectRendering.renderLocal();
@@ -264,6 +275,7 @@ class Torus_SVG_Indicator extends Shape_SVG_Indicator {
         new CreateSVGLine(this.svg_class, "19", "10", "15", "8", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         new CreateSVGLine(this.svg_class, "19", "10", "15", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         this.svg_container.addEventListener("click", () => {
+            console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreateTorus());
             _ObjectRendering.renderLocal();

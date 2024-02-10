@@ -1135,8 +1135,7 @@ class ObjectRendering extends Miscellanous {
             renderedObjectVertices[index] = rendered_vertex;
         }
 
-
-        console.log(Object.keys(renderedObjectVertices).length + " vertice(s) " ,"******************",MODIFIED_PARAMS._PROJ_TYPE,"*********************",MODIFIED_PARAMS._PROJECTION_MAT)
+        console.log(Object.keys(renderedObjectVertices).length + " vertice(s) " ,"******************",MODIFIED_PARAMS._PROJECTION_MAT)
 
         return {object : object, vertices : renderedObjectVertices};
     }
