@@ -288,7 +288,7 @@ class Miscellanous {
         }
         return list;
     }
-    generatePointsArray(minX = 0, maxX = 100, minY = 0, maxY = 100, n = 10, decimal = false) {
+    generatePointsArray2D(minX = 0, maxX = 100, minY = 0, maxY = 100, n = 10, decimal = false) {
         const _minX = Math.min(minX, maxX);
         const _maxX = Math.max(minX, maxX);
         const _minY = Math.min(minY, maxY);
@@ -303,15 +303,35 @@ class Miscellanous {
         }
         return xylist;
     }
+    generatePointsArray3D(minX = 0, maxX = 100, minY = 0, maxY = 100, minZ = 0, maxZ = 100, n = 10, decimal = false) {
+        const _minX = Math.min(minX, maxX);
+        const _maxX = Math.max(minX, maxX);
+        const _minY = Math.min(minY, maxY);
+        const _maxY = Math.max(minY, maxY);
+        const _minZ = Math.min(minZ, maxZ);
+        const _maxZ = Math.max(minZ, maxZ);
+        const diffX = _maxX - _minX;
+        const diffY = _maxY - _minY;
+        const diffZ = _maxZ - _minZ;
+        const xlist = this.genArray(_minX, n, diffX, decimal);
+        const ylist = this.genArray(_minY, n, diffY, decimal);
+        const zlist = this.genArray(_minZ, n, diffZ, decimal);
+        const xyzlist = [];
+        for (let i = 0; i < n; i++) {
+            xyzlist[i] = [xlist[i], ylist[i], zlist[i]];
+        }
+        return xyzlist;
+    }
     getRanHex = (size = 1) => [...Array(size)].map((elem) => elem = Math.floor(Math.random() * 16).toString(16)).join("");
     ranHexCol = (num = 100, size = 6, exclude_col = "black") => [...Array(num)].map((elem, index) => elem = index === 0 ? exclude_col : "#" + this.getRanHex(size));
 }
-class Quarternion {
+class Quarternion extends Miscellanous {
     theta;
     q_vector;
     q_quarternion;
     q_inv_quarternion;
     constructor() {
+        super();
         this.q_vector = DEFAULT_PARAMS._Q_VEC;
         this.q_quarternion = DEFAULT_PARAMS._Q_QUART;
         this.q_inv_quarternion = DEFAULT_PARAMS._Q_INV_QUART;
@@ -1093,12 +1113,12 @@ class CameraObject extends Vector {
         return this;
     }
     initializeBuffers() {
-        this.depthBuffer = new Miscellanous().initDepthBuffer();
-        this.frameBuffer = new Miscellanous().initFrameBuffer();
+        this.depthBuffer = this.initDepthBuffer();
+        this.frameBuffer = this.initFrameBuffer();
     }
     resetBuffers() {
-        new Miscellanous().resetDepthBuffer(this.depthBuffer);
-        new Miscellanous().resetFrameBuffer(this.frameBuffer);
+        this.resetDepthBuffer(this.depthBuffer);
+        this.resetFrameBuffer(this.frameBuffer);
     }
     prevHistory() {
         const id = this.instance.history_id;

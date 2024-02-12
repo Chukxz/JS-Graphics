@@ -33,6 +33,8 @@ class CreateMeshObject extends CreateObject {
     _is_degenerate_;
     vert_st;
     shape;
+    bounding_box;
+    bounding_sphere;
     constructor(width, height, depth, start_vertex) {
         super();
         this.mesh = new MeshDataStructure();
@@ -42,6 +44,7 @@ class CreateMeshObject extends CreateObject {
         this._is_degenerate_ = false;
         this.vert_st = start_vertex;
         this.shape = "Generic";
+        this.getMinMax();
     }
     reconstructMesh() { return this; }
     initMesh() { return this; }
@@ -102,6 +105,29 @@ class CreateMeshObject extends CreateObject {
     }
     calculatePoints() { return this; }
     editDimensions() { return this; }
+    getBoundingBox(indices) {
+        const vecs = [];
+        const keys = Object.keys(indices);
+        for (const key of keys) {
+            vecs.push(this.rendered_points_list[indices[`${key}`]]);
+        }
+        const bounding_box = [...this.vecs3DToPoints3D(vecs)];
+        this.bounding_box = bounding_box;
+    }
+    getBoundingSphere(center, radius) {
+        this.bounding_sphere = { center: center, radius: radius };
+    }
+    getMinMax() {
+        const points = this.vecs3DToPoints3D(this.rendered_points_list);
+        const minmax_n_indices = this.mesh.getMinMax(points);
+        const minmax = minmax_n_indices.min_max;
+        const indices = minmax_n_indices.indices;
+        const average_point = new Point3D((minmax.minX + minmax.maxX) * 0.5, (minmax.minY + minmax.maxY) * 0.5, (minmax.minZ + minmax.maxZ) * 0.5);
+        const [l, h, w] = [minmax.maxX - minmax.minX, minmax.maxY - minmax.minY, minmax.maxZ - minmax.minZ];
+        const half_diagonal_length = 0.5 * Math.sqrt((l ** 2) + (h ** 2) + (w ** 2));
+        this.getBoundingBox(indices);
+        this.getBoundingSphere(average_point, half_diagonal_length);
+    }
 }
 /* 1D Shapes */
 class CreatePoint extends CreateMeshObject {
@@ -381,7 +407,7 @@ class CreatePyramid extends CreatePyramidalBase {
         this.faces.push(this.base_class.face);
         for (let i = 0; i < base_vertex_number; i++) {
             const proposed_half_edge = `${0}-${this.half_edges[i]}`;
-            const permutations = new Miscellanous().getPermutationsArr(proposed_half_edge.split("-").map(value => Number(value)), 3);
+            const permutations = this.getPermutationsArr(proposed_half_edge.split("-").map(value => Number(value)), 3);
             this.initMeshHelper(permutations);
         }
         for (const face of this.faces)
@@ -1028,3 +1054,4 @@ class ObjectRendering extends Miscellanous {
     }
 }
 const _ObjectRendering = new ObjectRendering();
+console.log(new MeshDataStructure().getMinMax(new Miscellanous().vecs3DToPoints3D([])));

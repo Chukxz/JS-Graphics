@@ -34,6 +34,8 @@ class CreateMeshObject extends CreateObject {
     _is_degenerate_: boolean;
     vert_st: number;
     shape: string;
+    bounding_box : _BOUNDING_BOX_;
+    bounding_sphere : _BOUNDING_SPHERE_;
 
     constructor (width: number,height: number,depth: number,start_vertex: number) {
         super();
@@ -44,6 +46,7 @@ class CreateMeshObject extends CreateObject {
         this._is_degenerate_ = false;
         this.vert_st = start_vertex;
         this.shape = "Generic";
+        this.getMinMax();
     }
 
     reconstructMesh() { return this; }
@@ -110,6 +113,34 @@ class CreateMeshObject extends CreateObject {
     calculatePoints() { return this; }
 
     editDimensions() { return this; }
+
+    getBoundingBox(indices : _MIN_MAX_XYZ_INDEX_){
+        const vecs : _3D_VEC_[] = [];
+        const keys = Object.keys(indices);
+        for(const key of keys){
+            vecs.push( this.rendered_points_list[indices[`${key}`]]);
+        }
+        const bounding_box : Point3D[] = [...this.vecs3DToPoints3D(vecs)];
+
+        this.bounding_box = bounding_box as _BOUNDING_BOX_;
+    }
+
+    getBoundingSphere(center : Point3D, radius : number){
+        this.bounding_sphere =  {center : center, radius : radius};
+    }
+
+    getMinMax(){
+        const points = this.vecs3DToPoints3D(this.rendered_points_list);
+        const minmax_n_indices = this.mesh.getMinMax(points);
+        const minmax = minmax_n_indices.min_max;
+        const indices = minmax_n_indices.indices;
+        const average_point = new Point3D((minmax.minX + minmax.maxX) * 0.5,(minmax.minY + minmax.maxY) * 0.5,(minmax.minZ + minmax.maxZ) * 0.5);
+        const [l, h, w] = [minmax.maxX - minmax.minX, minmax.maxY - minmax.minY, minmax.maxZ - minmax.minZ];
+        const half_diagonal_length = 0.5 * Math.sqrt((l**2) + (h**2) + (w**2));
+
+        this.getBoundingBox(indices);
+        this.getBoundingSphere(average_point, half_diagonal_length);
+    }
 }
 
 /* 1D Shapes */
@@ -426,7 +457,7 @@ class CreatePyramid extends CreatePyramidalBase {
 
         for(let i = 0; i < base_vertex_number; i++) {
             const proposed_half_edge = `${0}-${this.half_edges[i]}`;
-            const permutations = new Miscellanous().getPermutationsArr(proposed_half_edge.split("-").map(value => Number(value)),3);
+            const permutations = this.getPermutationsArr(proposed_half_edge.split("-").map(value => Number(value)),3);
             this.initMeshHelper(permutations);
         }
 
@@ -1142,3 +1173,5 @@ class ObjectRendering extends Miscellanous {
 }
 
 const _ObjectRendering = new ObjectRendering();
+
+console.log(new MeshDataStructure().getMinMax(new Miscellanous().vecs3DToPoints3D([])))

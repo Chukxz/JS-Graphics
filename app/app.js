@@ -1171,21 +1171,48 @@ class MeshDataStructure {
         var maxY = -Infinity;
         var minZ = Infinity;
         var maxZ = -Infinity;
-        for (const point of points) {
-            if (minX > point.x)
+        const indices = { minXIndex: 0,
+            maxXIndex: 0,
+            minYIndex: 0,
+            maxYIndex: 0,
+            minZIndex: 0,
+            maxZIndex: 0 };
+        for (const _index in points) {
+            const index = Number(_index);
+            const point = points[index];
+            if (minX > point.x) {
                 minX = point.x;
-            if (maxX < point.x)
+                indices.minXIndex = index;
+            }
+            ;
+            if (maxX < point.x) {
                 maxX = point.x;
-            if (minY > point.y)
+                indices.maxXIndex = index;
+            }
+            ;
+            if (minY > point.y) {
                 minY = point.y;
-            if (maxY < point.y)
+                indices.minYIndex = index;
+            }
+            ;
+            if (maxY < point.y) {
                 maxY = point.y;
-            if (minZ > point.z)
+                indices.maxYIndex = index;
+            }
+            ;
+            if (minZ > point.z) {
                 minZ = point.z;
-            if (maxZ < point.z)
+                indices.minZIndex = index;
+            }
+            ;
+            if (maxZ < point.z) {
                 maxZ = point.z;
+                indices.maxZIndex = index;
+            }
+            ;
         }
-        return [minX, maxX, minY, maxY, minZ, maxZ];
+        const minmax = { minX: minX, maxX: maxX, minY: minY, maxY: maxY, minZ: minZ, maxZ: maxZ };
+        return { min_max: minmax, indices: indices };
     }
     triangulate(points_list = undefined) {
         const triangulated_points_list = [];
@@ -1202,8 +1229,8 @@ class MeshDataStructure {
             if (typeof points_list !== "undefined") {
                 const face_vertices = this.HalfEdgeDict[face_edges[0]].face_vertices;
                 const face_points = face_vertices.map(value => points_list[value]);
-                const [xmin, xmax, ymin, ymax, zmin, zmax] = this.getMinMax(face_points);
-                const average_point = new Point3D((xmin + xmax) * 0.5, (ymin + ymax) * 0.5, (zmin + zmax) * 0.5);
+                const minmax = this.getMinMax(face_points).min_max;
+                const average_point = new Point3D((minmax.minX + minmax.maxX) * 0.5, (minmax.minY + minmax.maxY) * 0.5, (minmax.minZ + minmax.maxZ) * 0.5);
                 triangulated_points_list.push(average_point);
             }
             for (const edge of face_edges) {

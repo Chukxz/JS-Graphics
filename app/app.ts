@@ -134,7 +134,7 @@ type _FULL_CDV = [_CONVEX_HULL,_DELAUNAY,_VORONOI,MeshDataStructure,string[],Poi
 
 type _RET = { ret_list: Ret[],list: string[] };
 
-type _MINMAX = { minX: number,maxX: number,minY: number,maxY: number };
+type _MIN_MAX_XY_ = { minX: number,maxX: number,minY: number,maxY: number };
 
 type _CROSS = { ph: Point2D,qh: Point2D,pv: Point2D,qv: Point2D };
 
@@ -159,6 +159,18 @@ type _VERT_TOOLTIP_HELPER_ = { before: number; after: number };
 type _TOOLTIP_POSITION_ = "top" | "bottom" | "left" | "right";
 
 type _PROJ_TYPE_ = "Orthographic" | "Perspective";
+
+type _MIN_MAX_XYZ_ = {minX : number, maxX : number, minY : number, maxY : number, minZ : number, maxZ : number};
+
+type _MIN_MAX_XYZ_INDEX_ = {minXIndex : number, maxXIndex : number, minYIndex : number, maxYIndex : number, minZIndex : number, maxZIndex : number};
+
+type _MINMAX_ = {min_max : _MIN_MAX_XYZ_, indices : _MIN_MAX_XYZ_INDEX_};
+
+type _TRIANGULATED_MESH_POINTS_ = { mesh: MeshDataStructure ,points: Point3D[] };
+
+type _BOUNDING_BOX_ = [Point3D,Point3D,Point3D,Point3D,Point3D,Point3D,Point3D,Point3D];
+
+type _BOUNDING_SPHERE_ = {center : Point3D, radius : number};
 
 enum Nav_list{
     Editing, 
@@ -1499,27 +1511,37 @@ class MeshDataStructure {
         return res;
     }
 
-    getMinMax(points: Point3D[]) {
+    getMinMax(points: Point3D[]) : _MINMAX_ {
         var minX = Infinity;
         var maxX = -Infinity;
         var minY = Infinity;
         var maxY = -Infinity;
         var minZ = Infinity;
         var maxZ = -Infinity;
+        const indices : _MIN_MAX_XYZ_INDEX_ = { minXIndex : 0, 
+                                                maxXIndex : 0,
+                                                minYIndex : 0,
+                                                maxYIndex : 0,
+                                                minZIndex : 0,
+                                                maxZIndex : 0 }
 
-        for(const point of points) {
-            if(minX > point.x) minX = point.x;
-            if(maxX < point.x) maxX = point.x;
-            if(minY > point.y) minY = point.y;
-            if(maxY < point.y) maxY = point.y;
-            if(minZ > point.z) minZ = point.z;
-            if(maxZ < point.z) maxZ = point.z;
+        for(const _index in points) {
+            const index = Number(_index);
+            const point = points[index];
+            if(minX > point.x) { minX = point.x; indices.minXIndex = index};
+            if(maxX < point.x) { maxX = point.x; indices.maxXIndex = index};
+            if(minY > point.y) { minY = point.y; indices.minYIndex = index};
+            if(maxY < point.y) { maxY = point.y; indices.maxYIndex = index};
+            if(minZ > point.z) { minZ = point.z; indices.minZIndex = index};
+            if(maxZ < point.z) { maxZ = point.z; indices.maxZIndex = index};
         }
 
-        return [minX,maxX,minY,maxY,minZ,maxZ];
+        const minmax : _MIN_MAX_XYZ_ = {minX : minX, maxX : maxX, minY : minY, maxY : maxY, minZ : minZ, maxZ : maxZ};
+
+        return {min_max : minmax, indices : indices};
     }
 
-    triangulate(points_list: Point3D[] | undefined = undefined) {
+    triangulate(points_list: Point3D[] | undefined = undefined) : _TRIANGULATED_MESH_POINTS_ {
         const triangulated_points_list: Point3D[] = [];
         if(typeof points_list !== "undefined") {
             triangulated_points_list.push(...points_list);
@@ -1537,8 +1559,8 @@ class MeshDataStructure {
             if(typeof points_list !== "undefined") {
                 const face_vertices = this.HalfEdgeDict[face_edges[0]].face_vertices;
                 const face_points = face_vertices.map(value => points_list[value]);
-                const [xmin,xmax,ymin,ymax,zmin,zmax] = this.getMinMax(face_points);
-                const average_point = new Point3D((xmin + xmax) * 0.5,(ymin + ymax) * 0.5,(zmin + zmax) * 0.5);
+                const minmax = this.getMinMax(face_points).min_max;
+                const average_point = new Point3D((minmax.minX + minmax.maxX) * 0.5,(minmax.minY + minmax.maxY) * 0.5,(minmax.minZ + minmax.maxZ) * 0.5);
                 triangulated_points_list.push(average_point);
             }
 
@@ -1553,7 +1575,7 @@ class MeshDataStructure {
         return { mesh: new_mesh,points: triangulated_points_list };
     }
 
-    quad_to_tri(points_list: Point3D[] | undefined = undefined) {
+    quad_to_tri(points_list: Point3D[] | undefined = undefined) : _TRIANGULATED_MESH_POINTS_ {
         const triangulated_points_list: Point3D[] = [];
         if(typeof points_list !== "undefined") {
             triangulated_points_list.push(...points_list);
@@ -1577,7 +1599,7 @@ class MeshDataStructure {
             else new_mesh.addFace(face);
         }
 
-        return { mesh: new_mesh,points: triangulated_points_list };
+        return {mesh : new_mesh, points : triangulated_points_list};
     }
 }
 
