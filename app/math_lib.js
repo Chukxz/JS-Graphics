@@ -1021,7 +1021,6 @@ class Projection extends Linear {
         const r = MODIFIED_PARAMS._CANVAS_WIDTH * Math.tan(a_h / 2);
         const l = -r;
         MODIFIED_PARAMS._T_B_R_L = [t, b, r, l];
-        console.log("t : ", t, "b : ", b, " r : ", r, " l : ", l, " n : ", n, " f : ", f);
         new Draw().drawOrthBounds(MODIFIED_PARAMS._T_B_R_L, "red");
         MODIFIED_PARAMS._PROJECTION_MAT = [2 / (r - l), 0, 0, 0, 0, 2 / (t - b), 0, 0, 0, 0, sgn * 2 / (f - n), 0, -(r + l) / (r - l), -(t + b) / (t - b), -(f + n) / (f - n), 1];
     }
@@ -1036,7 +1035,6 @@ class Projection extends Linear {
         const l = -r;
         MODIFIED_PARAMS._T_B_R_L = [t, b, r, l];
         new Draw().drawPersBounds(MODIFIED_PARAMS._T_B_R_L, n, f, "red");
-        console.log("t : ", t, "b : ", b, " r : ", r, " l : ", l, " n : ", n, " f : ", f);
         MODIFIED_PARAMS._PROJECTION_MAT = [2 * n / (r - l), 0, 0, 0, 0, 2 * n / (t - b), 0, 0, (r + l) / (r - l), (t + b) / (t - b), -(f + n) / (f - n), -1, 0, 0, sgn * 2 * f * n / (f - n), 0];
     }
     project(input_array) {

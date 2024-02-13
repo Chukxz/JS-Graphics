@@ -243,7 +243,7 @@ class Draw {
         const b = this.yToCanvas(_b);
         const r = this.xToCanvas(_r);
         const l = this.xToCanvas(_l);
-        console.log(t, b, r, l);
+        console.log(t, b, r, l, " orth t_b_r_l");
         this.drawBounds(l, t, l, b, _strokeStyle, line_Width);
         this.drawBounds(r, t, r, b, _strokeStyle, line_Width);
         this.drawBounds(l, t, r, t, _strokeStyle, line_Width);
@@ -272,8 +272,8 @@ class Draw {
         this.drawBounds(n_l, n_b, f_l, f_b, _strokeStyle, line_Width);
         this.drawBounds(n_r, n_t, f_r, f_t, _strokeStyle, line_Width);
         this.drawBounds(n_r, n_b, f_r, f_b, _strokeStyle, line_Width);
-        console.log(n_t, n_b, n_r, n_l);
-        console.log(f_t, f_b, f_r, f_l);
+        console.log(n_t, n_b, n_r, n_l, " pers near t_b_r_l");
+        console.log(f_t, f_b, f_r, f_l, " pers far t_b_r_l");
     }
     drawBounds(x1, y1, x2, y2, _strokeStyle = "black", _lineWidth = 2) {
         ctx.beginPath();
