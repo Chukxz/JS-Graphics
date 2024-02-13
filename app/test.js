@@ -1087,70 +1087,24 @@
     // console.log(n_diff_)
     // const n_c_ = _Matrix.matAdd([0,0,-3],n_diff_,true)
     // console.log(n_c_)
-    class Clip {
-        constructor() { }
-        homoVec(arr) {
-            return [...arr, 1];
-        }
-        revHomoVec(arr) {
-            return [...arr].splice(0, 3);
-        }
-        clipCoords(arr) {
-            const array = [...arr];
-            array[0] /= 50;
-            array[1] /= 50;
-            return array;
-        }
-        unclipCoords(arr) {
-            const array = [...arr];
-            array[0] *= 50;
-            array[1] *= 50;
-            return array;
-        }
-        clipCanvas(arr) {
-            const array = [...arr];
-            array[0] /= 50;
-            array[1] /= 50;
-            return array;
-        }
-        unclipCanvas(arr) {
-            const array = [...arr];
-            array[0] *= 50;
-            array[1] *= 50;
-            return array;
-        }
-        canvasTo(arr) {
-            const array = [...arr];
-            array[0] -= 50;
-            array[1] -= 50;
-            return array;
-        }
-        toCanvas(arr) {
-            const array = [...arr];
-            array[0] += 50;
-            array[1] += 50;
-            console.log(array, "canvas");
-            return array;
+    class Point2D {
+        x;
+        y;
+        r;
+        constructor(x, y, r = 0) {
+            this.x = x;
+            this.y = y;
+            this.r = r;
         }
     }
-    class LocalCoords extends Clip {
-        constructor() { super(); }
-        toLocal(point) {
-            const a = this.homoVec(point);
-            const b = this.canvasTo(a);
-            const c = this.clipCoords(b);
-            const d = this.revHomoVec(c);
-            return d;
+    class Point3D {
+        x;
+        y;
+        z;
+        constructor(x, y, z) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
         }
-        ;
-        fromLocal(point) {
-            const a = this.homoVec(point);
-            const b = this.unclipCoords(a);
-            const c = this.toCanvas(b);
-            const d = this.revHomoVec(c);
-            return d;
-        }
-        ;
     }
-    const _l = new LocalCoords();
 })();

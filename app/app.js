@@ -81,8 +81,8 @@ const DEFAULT_PARAMS = {
     _NZ: 0.1,
     _FZ: 500,
     _PROJ_TYPE: "Orthographic",
-    _VERT_PROJ_ANGLE: 80,
-    _HORI_PROJ_ANGLE: 80,
+    _VERT_PROJ_ANGLE: 60,
+    _HORI_PROJ_ANGLE: 60,
     _ASPECT_RATIO: 1,
     _HALF_X: 50,
     _HALF_Y: 50,
@@ -92,6 +92,7 @@ const DEFAULT_PARAMS = {
     _ACTIVE: "",
     _SIDE_BAR_WIDTH: 120,
     _T_B_R_L: [0, 0, 0, 0],
+    _EPSILON: 1e-10,
 };
 const MODIFIED_PARAMS = JSON.parse(JSON.stringify(DEFAULT_PARAMS));
 const sendMessage = (function_name) => window.parent.postMessage(function_name);
@@ -1286,6 +1287,14 @@ class Point3D {
         this.z = z;
     }
 }
+class Line {
+    p;
+    q;
+    constructor(p, q) {
+        this.p = p;
+        this.q = q;
+    }
+}
 class Ret {
     _ret;
     _color_code;
@@ -2117,6 +2126,7 @@ class DrawCanvas {
 // From math_lib.ts/mathlib.js file
 const _PROJ = new Projection();
 const _CAMERA = new CameraObjects();
+const _Quarternion = new Quarternion();
 window.addEventListener("load", () => {
     new BasicSettings();
     new DrawCanvas();

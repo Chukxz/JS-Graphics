@@ -248,6 +248,13 @@ class Miscellanous {
         }
         return retList;
     }
+    vecs3DToPoints2D(vecList) {
+        const retList = [];
+        for (let vec of vecList) {
+            retList.push(new Point2D(vec[0], vec[1]));
+        }
+        return retList;
+    }
     vecs4DToPoints3D(vecList) {
         const retList = [];
         for (let vec of vecList) {
@@ -325,13 +332,13 @@ class Miscellanous {
     getRanHex = (size = 1) => [...Array(size)].map((elem) => elem = Math.floor(Math.random() * 16).toString(16)).join("");
     ranHexCol = (num = 100, size = 6, exclude_col = "black") => [...Array(num)].map((elem, index) => elem = index === 0 ? exclude_col : "#" + this.getRanHex(size));
 }
-class Quarternion extends Miscellanous {
+const _Miscellanous = new Miscellanous();
+class Quarternion {
     theta;
     q_vector;
     q_quarternion;
     q_inv_quarternion;
     constructor() {
-        super();
         this.q_vector = DEFAULT_PARAMS._Q_VEC;
         this.q_quarternion = DEFAULT_PARAMS._Q_QUART;
         this.q_inv_quarternion = DEFAULT_PARAMS._Q_INV_QUART;
@@ -397,8 +404,8 @@ class Quarternion extends Miscellanous {
         return this.q_v_q_mult(_point);
     }
 }
-class Matrix extends Quarternion {
-    constructor() { super(); }
+class Matrix {
+    constructor() { }
     matMult(matA, matB, shapeA, shapeB) {
         if (shapeA[1] !== shapeB[0])
             return [];
@@ -559,8 +566,9 @@ class Matrix extends Quarternion {
         return this.scaMult(1 / det_result, adj_result);
     }
 }
-class Vector extends Matrix {
-    constructor() { super(); }
+const _Matrix = new Matrix();
+class Vector {
+    constructor() { }
     mag(vec) {
         if (typeof vec === "number")
             return vec;
@@ -630,10 +638,10 @@ class Vector extends Matrix {
         }
         if (same_shape === 0) { // All the vectors are the same dimension of n + 1.
             const matrix_array = [...matrix_array_top_row, ...other_rows_array];
-            const storeCofSgn = this.getCofSgnMat([proper_vec_len, 1]);
+            const storeCofSgn = _Matrix.getCofSgnMat([proper_vec_len, 1]);
             for (let i = 0; i < proper_vec_len; i++) {
-                const rest_matrix_array = this.getRestMat(matrix_array, proper_vec_len, 0, i);
-                cross_product[i] = storeCofSgn[i] * this.getDet(rest_matrix_array, vecs_len);
+                const rest_matrix_array = _Matrix.getRestMat(matrix_array, proper_vec_len, 0, i);
+                cross_product[i] = storeCofSgn[i] * _Matrix.getDet(rest_matrix_array, vecs_len);
             }
         }
         return cross_product;
@@ -658,7 +666,7 @@ class Vector extends Matrix {
             if (typeof unitVec === "undefined")
                 cross_product = magnitude * Math.sin(toRad);
             else if (typeof unitVec === "object")
-                cross_product = this.scaMult(magnitude * Math.sin(toRad), unitVec);
+                cross_product = _Matrix.scaMult(magnitude * Math.sin(toRad), unitVec);
         }
         return cross_product;
     }
@@ -689,12 +697,13 @@ class Vector extends Matrix {
         var cross_product_unit_vec = [];
         const cross_product = this.crossProduct(vecs);
         const cross_product_mag = this.mag(cross_product);
-        cross_product_unit_vec = this.scaMult(1 / cross_product_mag, cross_product);
+        cross_product_unit_vec = _Matrix.scaMult(1 / cross_product_mag, cross_product);
         return cross_product_unit_vec;
     }
 }
-class Linear extends Vector {
-    constructor() { super(); }
+const _Vector = new Vector();
+class Linear {
+    constructor() { }
     getSlope(A_, B_) {
         var numer = B_[1] - A_[1];
         var denum = B_[0] - A_[0];
@@ -850,10 +859,10 @@ class Linear extends Vector {
         const aRatio = triA / TotalArea;
         const bRatio = triB / TotalArea;
         const cRatio = triC / TotalArea;
-        const aPa = this.scaMult(aRatio, avec);
-        const bPb = this.scaMult(bRatio, bvec);
-        const cPc = this.scaMult(cRatio, cvec);
-        return this.matAdd(this.matAdd(aPa, bPb), cPc);
+        const aPa = _Matrix.scaMult(aRatio, avec);
+        const bPb = _Matrix.scaMult(bRatio, bvec);
+        const cPc = _Matrix.scaMult(cRatio, cvec);
+        return _Matrix.matAdd(_Matrix.matAdd(aPa, bPb), cPc);
     }
     interpolateTri(pvec, avec, bvec, cvec) {
         return this.interpolateTriCore3(pvec, avec, bvec, cvec);
@@ -910,6 +919,36 @@ class Linear extends Vector {
         if (o4 === 0 && this.onSegment(p2, q1, q2))
             return true;
         return false; // Doesnt't fall in any of the above cases
+    }
+    intersectionPoints(p1, q1, p2, q2) {
+        // Find the four orientations needed for general and 
+        //special cases
+        const o1 = this.findOrientation(p1, q1, p2);
+        const o2 = this.findOrientation(p1, q1, q2);
+        const o3 = this.findOrientation(p2, q2, p1);
+        const o4 = this.findOrientation(p2, q2, q1);
+        // General Case
+        if (o1 !== o2 && o3 !== o4) {
+            const intersectionX = ((p1.x * q1.y - p1.y * q1.x) * (p2.x - q2.x) - (p1.x - q1.x) * (p2.x * q2.y - p2.y * q2.x)) /
+                ((p1.x - q1.x) * (p2.y - q2.y) - (p1.y - q1.y) * (p2.x - q2.x));
+            const intersectionY = ((p1.x * q1.y - p1.y * q1.x) * (p2.y - q2.y) - (p1.y - q1.y) * (p2.x * q2.y - p2.y - q2.x)) /
+                ((p1.x - q1.x) * (p2.y - q2.y) - (p1.y - q1.y) * (p2.x - q2.x));
+            return { x: intersectionX, y: intersectionY, r: 1 };
+        }
+        // Special Cases
+        // p1,q1 and p2 are collinear and p2 lies on segment p1q1
+        if (o1 === 0 && this.onSegment(p1, p2, q1))
+            return p2;
+        // p1,q1 and q2 are collinear and q2 lies on segment p1q1
+        if (o2 === 0 && this.onSegment(p1, q2, q1))
+            return q2;
+        // p2,q2 and p1 are collinear and p1 lies on segment p2q2
+        if (o3 === 0 && this.onSegment(p2, p1, q2))
+            return p1;
+        // p2,q2 and q1 are collinear and q1 lies on segment p2q2
+        if (o4 === 0 && this.onSegment(p2, q1, q2))
+            return q1;
+        return null; // Doesnt't fall in any of the above cases
     }
     mostCWPoint(p, q, points) {
         var orientation = 0;
@@ -980,9 +1019,181 @@ class Linear extends Vector {
         const q2 = this.doIntersect(p1, q1, p2, q2_a) ? q2_a : q2_b;
         return q2;
     }
+    lineSegmentIntersectsPlane(start, end, plane_normal, plane_point) {
+        const direction = _Matrix.matAdd(end, start, true);
+        const dotProduct = _Vector.dotProduct(direction, plane_normal);
+        if (Math.abs(dotProduct) < MODIFIED_PARAMS._EPSILON)
+            return null; // line segment is almost or exactly parallel to the plane
+        const t = ((plane_point[0] - start[0]) * plane_normal[0] +
+            (plane_point[1] - start[1]) * plane_normal[1] +
+            (plane_point[2] - start[2]) * plane_normal[2]) / dotProduct;
+        return t >= 0 && t <= 1;
+    }
+    getPlaneNormal(a, b, c) {
+        const vec_1 = _Matrix.matAdd(b, a, true);
+        const vec_2 = _Matrix.matAdd(c, a, true);
+        const normal = _Vector.crossProduct([vec_1, vec_2]);
+        _Vector.crossProduct([vec_1, vec_2]);
+        if (Math.abs(normal[0]) < MODIFIED_PARAMS._EPSILON && Math.abs(normal[1]) < MODIFIED_PARAMS._EPSILON && Math.abs(normal[2]) < MODIFIED_PARAMS._EPSILON)
+            return null; // points on plane are almost or exactly collinear
+        return normal;
+    }
 }
-class Projection extends Linear {
-    constructor() { super(); }
+const _Linear = new Linear();
+class ViewSpace {
+    constructor() { }
+    homoVec(arr, type = "point") {
+        const res = [...arr];
+        if (type === "vector")
+            res[3] = 0;
+        if (type === "point")
+            res[3] = 1;
+        return res;
+    }
+    revHomoVec(arr) {
+        return [...arr].splice(0, 3);
+    }
+    NDCToCanvas(arr) {
+        const array = [...arr];
+        array[0] = (array[0] * MODIFIED_PARAMS._HALF_X) + MODIFIED_PARAMS._HALF_X;
+        array[1] = (array[1] * -MODIFIED_PARAMS._HALF_Y) + MODIFIED_PARAMS._HALF_Y;
+        return array;
+    }
+    canvasToNDC(arr) {
+        const array = [...arr];
+        array[0] = (array[0] - MODIFIED_PARAMS._HALF_X) / MODIFIED_PARAMS._HALF_X;
+        array[1] = (array[1] - MODIFIED_PARAMS._HALF_X) / -MODIFIED_PARAMS._HALF_Y;
+        return array;
+    }
+}
+const _ViewSpace = new ViewSpace();
+class Clip {
+    object;
+    projection_type;
+    constructor() {
+        this.object = null;
+        this.projection_type = null;
+    }
+    initiate(_object, _projection_type) {
+        this.object = _object;
+        this.projection_type = _projection_type;
+    }
+    isLineSegmentInsideFrustrum(start, end) {
+        if (start[2] < -1 && end[2] < -1 || start[2] > 1 && end[2] > 1)
+            return false; // check n and f planes
+        const [t, b, r, l] = _Draw.frustrum_to_canvas(MODIFIED_PARAMS._T_B_R_L);
+        if (start[1] < b && end[1] < b || start[1] > t && end[1] > t)
+            return false; // check t and b planes
+        if (start[0] < l && end[0] < l || start[0] > r && end[0] > r)
+            return false; // check l and r planes
+        else
+            return true;
+    }
+    clip() {
+        if (!this.object)
+            return null;
+        const half_edges = this.object.mesh.HalfEdgeDict;
+        const rendered_points = this.object.rendered_points_list;
+        for (const half_edge in half_edges) {
+            const [a, b] = half_edge.split("-");
+            const twin_half_edge = b + "-" + a;
+            const point_a = this.object.rendered_points_list[Number(a)];
+            const point_b = this.object.rendered_points_list[Number(b)];
+            if (!this.isLineSegmentInsideFrustrum(point_a, point_b)) {
+                delete this.object.mesh.HalfEdgeDict[half_edge];
+                delete this.object.mesh.HalfEdgeDict[twin_half_edge];
+            }
+            if (half_edges[twin_half_edge]) { }
+        }
+        return null;
+    }
+    liang_barsky(point_a, point_b, [t, b, r, l]) {
+        let t_min = 0;
+        let t_max = 1;
+        const delta_x = point_b[0] - point_a[0];
+        const delta_y = point_b[1] - point_a[1];
+        const delta_z = point_b[2] - point_a[2];
+    }
+    check_window_edge(point_a, point_b, window_edge, [t, b, r, l]) {
+        let continue_update = true;
+        let update_t_max = true;
+        let edge = 0;
+        let m = null;
+        let n = null;
+        let p = null;
+        let q = null;
+        switch (window_edge) {
+            case "top":
+                edge = t;
+                if (point_a[1] > edge)
+                    update_t_max = false;
+                m = new Point2D(l, edge);
+                n = new Point2D(r, edge);
+                p = new Point2D(point_a[0], point_a[1]);
+                q = new Point2D(point_a[0], point_b[1]);
+                break;
+            case "bottom":
+                edge = b;
+                if (point_a[1] < edge)
+                    update_t_max = false;
+                m = new Point2D(l, edge);
+                n = new Point2D(r, edge);
+                p = new Point2D(point_a[0], point_a[1]);
+                q = new Point2D(point_a[0], point_b[1]);
+                break;
+            case "left":
+                edge = l;
+                if (point_a[0] < edge)
+                    update_t_max = false;
+                m = new Point2D(edge, t);
+                n = new Point2D(edge, b);
+                p = new Point2D(point_a[0], point_a[1]);
+                q = new Point2D(point_a[0], point_b[1]);
+                break;
+            case "right":
+                edge = r;
+                if (point_a[0] > edge)
+                    update_t_max = false;
+                m = new Point2D(edge, t);
+                n = new Point2D(edge, b);
+                p = new Point2D(point_a[0], point_a[1]);
+                q = new Point2D(point_a[0], point_b[1]);
+                break;
+            case "near":
+                edge = MODIFIED_PARAMS._NZ;
+                if (point_a[1] < edge)
+                    update_t_max = false;
+                m = new Point2D(l, edge);
+                n = new Point2D(r, edge);
+                p = new Point2D(point_a[0], point_a[2]);
+                q = new Point2D(point_a[0], point_b[2]);
+                break;
+            case "far":
+                edge = MODIFIED_PARAMS._FZ;
+                if (point_a[1] > edge)
+                    update_t_max = false;
+                m = new Point2D(l, edge);
+                n = new Point2D(r, edge);
+                p = new Point2D(point_a[0], point_a[2]);
+                q = new Point2D(point_a[0], point_b[2]);
+                break;
+            default:
+                return null;
+        }
+        const line_1 = new Line(p, q);
+        const line_2 = new Line(m, n);
+        while (continue_update) {
+            const res_up = _Linear.intersectionPoints(line_1.p, line_1.q, line_2.p, line_2.q);
+            if (res_up) {
+                //
+            }
+            else
+                continue_update = false;
+        }
+    }
+}
+class Projection {
+    constructor() { }
     changeNearZ(val) {
         MODIFIED_PARAMS._NZ = val;
         this.setProjectionParam();
@@ -1004,7 +1215,7 @@ class Projection extends Linear {
             this.perspectiveProjection();
         else
             return;
-        const inverse_res = this.getInvMat(MODIFIED_PARAMS._PROJECTION_MAT, 4);
+        const inverse_res = _Matrix.getInvMat(MODIFIED_PARAMS._PROJECTION_MAT, 4);
         if (typeof inverse_res === "undefined")
             return;
         if (inverse_res.length !== 16)
@@ -1012,20 +1223,18 @@ class Projection extends Linear {
         MODIFIED_PARAMS._INV_PROJECTION_MAT = inverse_res;
     }
     orthographicProjection() {
-        const sgn = MODIFIED_PARAMS._HANDEDNESS;
         const a_v = MODIFIED_PARAMS._VERT_PROJ_ANGLE * MODIFIED_PARAMS._ANGLE_CONSTANT;
         const a_h = MODIFIED_PARAMS._HORI_PROJ_ANGLE * MODIFIED_PARAMS._ANGLE_CONSTANT;
         const [n, f] = [MODIFIED_PARAMS._NZ, MODIFIED_PARAMS._FZ];
-        const t = MODIFIED_PARAMS._CANVAS_HEIGHT * Math.tan(a_v / 2);
+        const t = f * Math.tan(a_v / 2);
         const b = -t;
-        const r = MODIFIED_PARAMS._CANVAS_WIDTH * Math.tan(a_h / 2);
+        const r = f * Math.tan(a_h / 2) * MODIFIED_PARAMS._ASPECT_RATIO;
         const l = -r;
         MODIFIED_PARAMS._T_B_R_L = [t, b, r, l];
-        new Draw().drawOrthBounds(MODIFIED_PARAMS._T_B_R_L, "red");
-        MODIFIED_PARAMS._PROJECTION_MAT = [2 / (r - l), 0, 0, 0, 0, 2 / (t - b), 0, 0, 0, 0, sgn * 2 / (f - n), 0, -(r + l) / (r - l), -(t + b) / (t - b), -(f + n) / (f - n), 1];
+        new Draw().drawProjBounds(MODIFIED_PARAMS._T_B_R_L, "red");
+        MODIFIED_PARAMS._PROJECTION_MAT = [2 / (r - l), 0, 0, 0, 0, 2 / (t - b), 0, 0, 0, 0, -2 / (f - n), 0, -(r + l) / (r - l), -(t + b) / (t - b), -(f + n) / (f - n), 1];
     }
     perspectiveProjection() {
-        const sgn = MODIFIED_PARAMS._HANDEDNESS;
         const a_v = MODIFIED_PARAMS._VERT_PROJ_ANGLE * MODIFIED_PARAMS._ANGLE_CONSTANT;
         const a_h = MODIFIED_PARAMS._HORI_PROJ_ANGLE * MODIFIED_PARAMS._ANGLE_CONSTANT;
         const [n, f] = [MODIFIED_PARAMS._NZ, MODIFIED_PARAMS._FZ];
@@ -1034,55 +1243,17 @@ class Projection extends Linear {
         const r = n * Math.tan(a_h / 2) * MODIFIED_PARAMS._ASPECT_RATIO;
         const l = -r;
         MODIFIED_PARAMS._T_B_R_L = [t, b, r, l];
-        new Draw().drawPersBounds(MODIFIED_PARAMS._T_B_R_L, n, f, "red");
-        MODIFIED_PARAMS._PROJECTION_MAT = [2 * n / (r - l), 0, 0, 0, 0, 2 * n / (t - b), 0, 0, (r + l) / (r - l), (t + b) / (t - b), -(f + n) / (f - n), -1, 0, 0, sgn * 2 * f * n / (f - n), 0];
+        new Draw().drawProjBounds(MODIFIED_PARAMS._T_B_R_L, "red");
+        MODIFIED_PARAMS._PROJECTION_MAT = [2 * n / (r - l), 0, 0, 0, 0, 2 * n / (t - b), 0, 0, (r + l) / (r - l), (t + b) / (t - b), -(f + n) / (f - n), -1, 0, 0, -2 * f * n / (f - n), 0];
     }
     project(input_array) {
-        return this.matMult(input_array, MODIFIED_PARAMS._PROJECTION_MAT, [1, 4], [4, 4]);
+        return _Matrix.matMult(input_array, MODIFIED_PARAMS._PROJECTION_MAT, [1, 4], [4, 4]);
     }
     invProject(input_array) {
-        return this.matMult(input_array, MODIFIED_PARAMS._INV_PROJECTION_MAT, [1, 4], [4, 4]);
+        return _Matrix.matMult(input_array, MODIFIED_PARAMS._INV_PROJECTION_MAT, [1, 4], [4, 4]);
     }
 }
-class Clip {
-    constructor() { }
-    homoVec(arr, type = "point") {
-        const res = [...arr];
-        if (type === "vector")
-            res[3] = 0;
-        if (type === "point")
-            res[3] = 1;
-        return res;
-    }
-    revHomoVec(arr) {
-        return [...arr].splice(0, 3);
-    }
-    // camToNDC(arr : _4D_VEC_) : _4D_VEC_{
-    //     const array : _4D_VEC_ = [...arr];
-    //     array[0] /= MODIFIED_PARAMS._HALF_X;
-    //     array[1] /= MODIFIED_PARAMS._HALF_Y;
-    //     return array;
-    // }
-    // NDCToCam(arr : _4D_VEC_) : _4D_VEC_{
-    //     const array: _4D_VEC_ = [...arr];
-    //     array[0] *= MODIFIED_PARAMS._HALF_X;
-    //     array[1] *= MODIFIED_PARAMS._HALF_Y;
-    //     return array;
-    // }
-    NDCToCanvas(arr) {
-        const array = [...arr];
-        array[0] = (array[0] * MODIFIED_PARAMS._HALF_X) + MODIFIED_PARAMS._HALF_X;
-        array[1] = (array[1] * -MODIFIED_PARAMS._HALF_Y) + MODIFIED_PARAMS._HALF_Y;
-        return array;
-    }
-    canvasToNDC(arr) {
-        const array = [...arr];
-        array[0] = (array[0] - MODIFIED_PARAMS._HALF_X) / MODIFIED_PARAMS._HALF_X;
-        array[1] = (array[1] - MODIFIED_PARAMS._HALF_X) / -MODIFIED_PARAMS._HALF_Y;
-        return array;
-    }
-}
-class CameraObject extends Vector {
+class CameraObject extends Quarternion {
     instance = {
         history_id: 0,
         time_id: 0,
@@ -1115,12 +1286,12 @@ class CameraObject extends Vector {
         return this;
     }
     initializeBuffers() {
-        this.depthBuffer = this.initDepthBuffer();
-        this.frameBuffer = this.initFrameBuffer();
+        this.depthBuffer = _Miscellanous.initDepthBuffer();
+        this.frameBuffer = _Miscellanous.initFrameBuffer();
     }
     resetBuffers() {
-        this.resetDepthBuffer(this.depthBuffer);
-        this.resetFrameBuffer(this.frameBuffer);
+        _Miscellanous.resetDepthBuffer(this.depthBuffer);
+        _Miscellanous.resetFrameBuffer(this.frameBuffer);
     }
     prevHistory() {
         const id = this.instance.history_id;
@@ -1173,9 +1344,9 @@ class CameraObject extends Vector {
         // camera coordinate system is always left handed but world may be right or left handed
         // negate the forward (N) vector in right handed world coordinate systems
         const sgn = MODIFIED_PARAMS._HANDEDNESS;
-        const neg_N = this.scaMult(-1, this.instance._N);
+        const neg_N = _Matrix.scaMult(-1, this.instance._N);
         this.instance._MATRIX = [...this.instance._U, sgn * this.instance._C[0], ...this.instance._V, sgn * this.instance._C[1], ...neg_N, sgn * this.instance._C[2], ...[0, 0, 0, 1]];
-        this.instance._INV_MATRIX = this.getInvMat(this.instance._MATRIX, 4);
+        this.instance._INV_MATRIX = _Matrix.getInvMat(this.instance._MATRIX, 4);
         this.instance.theta = this.theta;
         this.instance.q_vector = this.q_vector;
         this.instance.q_quarternion = this.q_quarternion;
@@ -1183,12 +1354,12 @@ class CameraObject extends Vector {
         this.addHistory();
     }
     getQuartenions(start, end) {
-        const angle = this.getDotProductAngle(start, end);
+        const angle = _Vector.getDotProductAngle(start, end);
         if (!Number.isFinite(angle))
             return false;
         const check = Math.abs(angle / 90) % 1;
         if (check > 0.05 && check < 0.95) {
-            const cross_product = this.crossProduct([start, end]);
+            const cross_product = _Vector.crossProduct([start, end]);
             this.theta = MODIFIED_PARAMS._ANGLE_CONSTANT * angle;
             this.vector(cross_product);
             this.quarternion();
@@ -1205,15 +1376,15 @@ class CameraObject extends Vector {
         }
         else {
             this.instance._N = normal;
-            this.instance._U = this.normalizeVec(this.crossProduct([this.instance._V, this.instance._N]));
-            this.instance._V = this.normalizeVec(this.crossProduct([this.instance._N, this.instance._U]));
+            this.instance._U = _Vector.normalizeVec(_Vector.crossProduct([this.instance._V, this.instance._N]));
+            this.instance._V = _Vector.normalizeVec(_Vector.crossProduct([this.instance._N, this.instance._U]));
         }
     }
     translateHelper() {
-        const DIFF = this.matAdd(this.instance._LOOK_AT_POINT, this.instance._C, true);
-        if (this.mag(DIFF) === 0)
+        const DIFF = _Matrix.matAdd(this.instance._LOOK_AT_POINT, this.instance._C, true);
+        if (_Vector.mag(DIFF) === 0)
             DIFF[2] = 1;
-        const NORMAL = this.normalizeVec(DIFF);
+        const NORMAL = _Vector.normalizeVec(DIFF);
         const got_quarternions = this.getQuartenions(this.instance._N, NORMAL);
         this.applyQuartenions(got_quarternions, NORMAL);
         this.setConversionMatrices();
@@ -1230,65 +1401,62 @@ class CameraObject extends Vector {
     setAxisY() { }
     setAxisZ() { }
     rotateCamera_incremental(axis, angle) {
-        const DIFF = this.matAdd(this.instance._LOOK_AT_POINT, this.instance._C, true);
+        const DIFF = _Matrix.matAdd(this.instance._LOOK_AT_POINT, this.instance._C, true);
         const NEW_DIFF = this.q_rot(angle, axis, DIFF);
-        this.instance._LOOK_AT_POINT = this.matAdd(this.instance._C, NEW_DIFF);
+        this.instance._LOOK_AT_POINT = _Matrix.matAdd(this.instance._C, NEW_DIFF);
         this.instance._U = this.q_rot(angle, axis, this.instance._U);
         this.instance._V = this.q_rot(angle, axis, this.instance._V);
         this.instance._N = this.q_rot(angle, axis, this.instance._N);
         this.setConversionMatrices();
     }
     revolveCamera_incremental(axis, angle) {
-        const DIFF = this.matAdd(this.instance._LOOK_AT_POINT, this.instance._C, true);
+        const DIFF = _Matrix.matAdd(this.instance._LOOK_AT_POINT, this.instance._C, true);
         const NEW_DIFF = this.q_rot(angle, axis, DIFF);
-        this.instance._C = this.matAdd(this.instance._LOOK_AT_POINT, NEW_DIFF, true);
+        this.instance._C = _Matrix.matAdd(this.instance._LOOK_AT_POINT, NEW_DIFF, true);
         this.instance._U = this.q_rot(angle, axis, this.instance._U);
         this.instance._V = this.q_rot(angle, axis, this.instance._V);
         this.instance._N = this.q_rot(angle, axis, this.instance._N);
         this.setConversionMatrices();
     }
     translateObject_incremental(translation_array) {
-        this.instance._C = this.matAdd(this.instance._C, translation_array);
+        this.instance._C = _Matrix.matAdd(this.instance._C, translation_array);
         this.translateHelper();
     }
     worldToCamera(arr) {
-        const toHomoVec = new Clip().homoVec(arr);
-        const camSpace = this.matMult(this.instance._MATRIX, toHomoVec, [4, 4], [4, 1]);
+        const toHomoVec = _ViewSpace.homoVec(arr);
+        const camSpace = _Matrix.matMult(this.instance._MATRIX, toHomoVec, [4, 4], [4, 1]);
         return camSpace;
     }
     cameraToWorld(arr) {
-        const camSpace = this.matMult(this.instance._INV_MATRIX, arr, [4, 4], [4, 1]);
-        const fromHomoVec = new Clip().revHomoVec(camSpace);
+        const camSpace = _Matrix.matMult(this.instance._INV_MATRIX, arr, [4, 4], [4, 1]);
+        const fromHomoVec = _ViewSpace.revHomoVec(camSpace);
         return fromHomoVec;
     }
 }
-class NDCSpace extends Matrix {
-    projection_type;
-    constructor(_projection_type) {
-        super();
-        this.projection_type = _projection_type;
-    }
-    project(arr) {
+class NDCSpace {
+    constructor() { }
+    project(arr, projection_type) {
         if (typeof arr === "undefined")
             return undefined;
-        if (this.projection_type === "Orthographic")
-            return this.matMult(arr, MODIFIED_PARAMS._PROJECTION_MAT, [1, 4], [4, 4]);
-        else if (this.projection_type === "Perspective") {
-            const proj = this.matMult(arr, MODIFIED_PARAMS._PROJECTION_MAT, [1, 4], [4, 4]);
-            return this.scaMult(1 / proj[3], proj, true);
+        if (projection_type === "Orthographic")
+            return _Matrix.matMult(arr, MODIFIED_PARAMS._PROJECTION_MAT, [1, 4], [4, 4]);
+        else if (projection_type === "Perspective") {
+            const proj = _Matrix.matMult(arr, MODIFIED_PARAMS._PROJECTION_MAT, [1, 4], [4, 4]);
+            return _Matrix.scaMult(1 / proj[3], proj, true);
         }
     }
-    unProject(arr) {
-        if (this.projection_type === "Orthographic")
-            return this.matMult(arr, MODIFIED_PARAMS._INV_PROJECTION_MAT, [1, 4], [4, 4]);
-        else if (this.projection_type === "Perspective") {
-            const rev_proj_div = this.scaMult(arr[3], arr, true);
-            return this.matMult(rev_proj_div, MODIFIED_PARAMS._INV_PROJECTION_MAT, [1, 4], [4, 4]);
+    unProject(arr, projection_type) {
+        if (projection_type === "Orthographic")
+            return _Matrix.matMult(arr, MODIFIED_PARAMS._INV_PROJECTION_MAT, [1, 4], [4, 4]);
+        else if (projection_type === "Perspective") {
+            const rev_proj_div = _Matrix.scaMult(arr[3], arr, true);
+            return _Matrix.matMult(rev_proj_div, MODIFIED_PARAMS._INV_PROJECTION_MAT, [1, 4], [4, 4]);
             ;
         }
     }
 }
-class CameraObjects extends Clip {
+const _NDCSpace = new NDCSpace();
+class CameraObjects extends ViewSpace {
     camera_objects_array;
     instance_number;
     arrlen;
@@ -1403,7 +1571,7 @@ class CameraObjects extends Clip {
         const current_camera = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]];
         const world_to_camera_space = current_camera.worldToCamera(vertex);
         // console.log(world_to_camera_space,"camera");
-        const proj_div = new NDCSpace(current_camera.instance._PROJ_TYPE).project(world_to_camera_space);
+        const proj_div = _NDCSpace.project(world_to_camera_space, current_camera.instance._PROJ_TYPE);
         // console.log(proj_div,"projection space")
         if (typeof proj_div === "undefined")
             return undefined;

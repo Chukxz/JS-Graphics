@@ -172,6 +172,8 @@ type _BOUNDING_BOX_ = [Point3D,Point3D,Point3D,Point3D,Point3D,Point3D,Point3D,P
 
 type _BOUNDING_SPHERE_ = {center : Point3D, radius : number};
 
+type _WINDOW_EDGE_ = "top" | "bottom" | "left" | "right" | "near" | "far";
+
 enum Nav_list{
     Editing, 
     Animation,
@@ -229,6 +231,7 @@ interface _BASIC_PARAMS_ {
     _ACTIVE: string,
     _SIDE_BAR_WIDTH: number,
     _T_B_R_L : _4D_VEC_,
+    _EPSILON : number,
 }
 
 const DEFAULT_PARAMS: _BASIC_PARAMS_ =
@@ -254,8 +257,8 @@ const DEFAULT_PARAMS: _BASIC_PARAMS_ =
     _NZ: 0.1,
     _FZ: 500,
     _PROJ_TYPE : "Orthographic",
-    _VERT_PROJ_ANGLE: 80,
-    _HORI_PROJ_ANGLE : 80,
+    _VERT_PROJ_ANGLE: 60,
+    _HORI_PROJ_ANGLE : 60,
     _ASPECT_RATIO: 1,
     _HALF_X: 50,
     _HALF_Y: 50,
@@ -265,6 +268,7 @@ const DEFAULT_PARAMS: _BASIC_PARAMS_ =
     _ACTIVE: "",
     _SIDE_BAR_WIDTH: 120,
     _T_B_R_L : [0,0,0,0],
+    _EPSILON : 1e-10,
 }
 
 const MODIFIED_PARAMS: _BASIC_PARAMS_ = JSON.parse(JSON.stringify(DEFAULT_PARAMS));
@@ -1627,6 +1631,16 @@ class Point3D {
     }
 }
 
+class Line{
+    p : Point2D;
+    q : Point2D;
+
+    constructor(p : Point2D, q : Point2D){
+        this.p = p;
+        this.q = q;
+    }
+}
+
 class Ret {
     public _ret: string;
     public _color_code: string;
@@ -2541,6 +2555,7 @@ class DrawCanvas {
 // From math_lib.ts/mathlib.js file
 const _PROJ: Projection = new Projection();
 const _CAMERA: CameraObjects = new CameraObjects();
+const _Quarternion = new Quarternion();
 
 window.addEventListener("load",()=>{
     new BasicSettings();

@@ -290,56 +290,35 @@ class Draw {
         ctx.closePath();
     }
 
-    xToCanvas(val : number){return (val * MODIFIED_PARAMS._HALF_X) + MODIFIED_PARAMS._HALF_X};
+    xToCanvas(val : number){return ((val/Math.abs(val)) * MODIFIED_PARAMS._HALF_X) + MODIFIED_PARAMS._HALF_X};
 
-    yToCanvas(val : number){ return (val * -MODIFIED_PARAMS._HALF_Y) + MODIFIED_PARAMS._HALF_Y}
+    yToCanvas(val : number){ return ((val/Math.abs(val)) * -MODIFIED_PARAMS._HALF_Y) + MODIFIED_PARAMS._HALF_Y};
 
-    drawOrthBounds(t_b_r_l : _4D_VEC_,  _strokeStyle = "black",line_Width = 2){
+    frustrum_to_canvas(t_b_r_l : _4D_VEC_) : _4D_VEC_{
+        const [_t, _b, _r, _l] = t_b_r_l;
+        return [
+            this.yToCanvas(_t),
+            this.yToCanvas(_b),
+            this.xToCanvas(_r),
+            this.xToCanvas(_l)
+        ];
+    }
+
+    drawProjBounds(t_b_r_l : _4D_VEC_,  _strokeStyle = "black",line_Width = 2){
         const [_t, _b, _r, _l] = t_b_r_l;
         const t = this.yToCanvas(_t);
         const b = this.yToCanvas(_b);
         const r = this.xToCanvas(_r);
         const l = this.xToCanvas(_l);
 
-        console.log(t,b,r,l," orth t_b_r_l");
+        const projection_type = _CAMERA.camera_objects_array[_CAMERA.instance_number_to_list_map[_CAMERA.current_camera_instance]].instance._PROJ_TYPE;
+        if (projection_type === "Orthographic") console.log(t,b,r,l,"orth t_b_r_l");
+        if (projection_type === "Perspective") console.log(t,b,r,l,"pers t_b_r_l");
 
         this.drawBounds(l, t, l, b, _strokeStyle, line_Width);
         this.drawBounds(r, t, r, b, _strokeStyle, line_Width);
         this.drawBounds(l, t, r, t, _strokeStyle, line_Width);
         this.drawBounds(l, b, r, b, _strokeStyle, line_Width);
-    }
-
-    drawPersBounds(t_b_r_l : _4D_VEC_, n : number, f : number, _strokeStyle = "black",line_Width = 2){
-        const [_n_t, _n_b, _n_r, _n_l] = t_b_r_l;
-        const n_t = this.yToCanvas(_n_t);
-        const n_b = this.yToCanvas(_n_b);
-        const n_r = this.xToCanvas(_n_r);
-        const n_l = this.xToCanvas(_n_l);
-
-        this.drawBounds(n_l, n_t, n_l, n_b, _strokeStyle, line_Width);
-        this.drawBounds(n_r, n_t, n_r, n_b, _strokeStyle, line_Width);
-        this.drawBounds(n_l, n_t, n_r, n_t, _strokeStyle, line_Width);
-        this.drawBounds(n_l, n_b, n_r, n_b, _strokeStyle, line_Width);
-
-        const [_f_t, _f_b, _f_r, _f_l] = [(_n_t/n)*f, (_n_b/n)*f, (_n_r/n)*f, (_n_l/n)*f];
-        const f_t = this.yToCanvas(_f_t);
-        const f_b = this.yToCanvas(_f_b);
-        const f_r = this.xToCanvas(_f_r);
-        const f_l = this.xToCanvas(_f_l);
-        
-        this.drawBounds(f_l, f_t, f_l, f_b, _strokeStyle, line_Width);
-        this.drawBounds(f_r, f_t, f_r, f_b, _strokeStyle, line_Width);
-        this.drawBounds(f_l, f_t, f_r, f_t, _strokeStyle, line_Width);
-        this.drawBounds(f_l, f_b, f_r, f_b, _strokeStyle, line_Width);
-
-        this.drawBounds(n_l, n_t, f_l, f_t, _strokeStyle, line_Width);
-        this.drawBounds(n_l, n_b, f_l, f_b, _strokeStyle, line_Width);
-        this.drawBounds(n_r, n_t, f_r, f_t, _strokeStyle, line_Width);
-        this.drawBounds(n_r, n_b, f_r, f_b, _strokeStyle, line_Width);
-
-        console.log(n_t,n_b,n_r,n_l," pers near t_b_r_l")
-        console.log(f_t,f_b,f_r,f_l, " pers far t_b_r_l")
-
     }
 
     drawBounds(x1 : number, y1 : number, x2 : number, y2 : number, _strokeStyle = "black",_lineWidth = 2){
@@ -373,3 +352,5 @@ class Draw {
         }
     }
 }
+
+const _Draw = new Draw();

@@ -72,7 +72,7 @@ class CreatePoint_SVG_Indicator extends Shape_SVG_Indicator {
             _ObjectRendering.addObjects(new CreatePoint());
             _ObjectRendering.renderLocal();
             const rendered_object = _ObjectRendering.renderObject();
-            new Draw().drawObject(rendered_object);
+            _Draw.drawObject(rendered_object);
         })
     }
 }
@@ -87,7 +87,7 @@ class CreateLine_SVG_Indicator extends Shape_SVG_Indicator {
             _ObjectRendering.addObjects(new CreateLine());
             _ObjectRendering.renderLocal();
             const rendered_object = _ObjectRendering.renderObject();
-            new Draw().drawObject(rendered_object);
+            _Draw.drawObject(rendered_object);
         })
     }
 }
@@ -108,7 +108,7 @@ class CreatePolygon_SVG_Indicator extends Shape_SVG_Indicator {
             _ObjectRendering.addObjects(new CreatePolygon());
             _ObjectRendering.renderLocal();
             const rendered_object = _ObjectRendering.renderObject();
-            new Draw().drawObject(rendered_object);
+            _Draw.drawObject(rendered_object);
         })
     }
 }
@@ -124,7 +124,7 @@ class CreateEllipse_SVG_Indicator extends Shape_SVG_Indicator {
             _ObjectRendering.addObjects(new CreateEllipse());
             _ObjectRendering.renderLocal();
             const rendered_object = _ObjectRendering.renderObject();
-            new Draw().drawObject(rendered_object);
+            _Draw.drawObject(rendered_object);
         })
     }
 }
@@ -140,7 +140,7 @@ class CreateCircle_SVG_Indicator extends Shape_SVG_Indicator {
             _ObjectRendering.addObjects(new CreateCircle());
             _ObjectRendering.renderLocal();
             const rendered_object = _ObjectRendering.renderObject();
-            new Draw().drawObject(rendered_object);
+            _Draw.drawObject(rendered_object);
         })
     }
 }
@@ -158,7 +158,7 @@ class CreateRectangle_SVG_Indicator extends Shape_SVG_Indicator {
             _ObjectRendering.addObjects(new CreateRectangle());
             _ObjectRendering.renderLocal();
             const rendered_object = _ObjectRendering.renderObject();
-            new Draw().drawObject(rendered_object);
+            _Draw.drawObject(rendered_object);
         })
     }
 }
@@ -182,7 +182,7 @@ class Pyramid_SVG_Indicator extends Shape_SVG_Indicator {
             _ObjectRendering.addObjects(new CreatePyramid());
             _ObjectRendering.renderLocal();
             const rendered_object = _ObjectRendering.renderObject();
-            new Draw().drawObject(rendered_object);
+            _Draw.drawObject(rendered_object);
         })
     }
 }
@@ -200,7 +200,7 @@ class Cone_SVG_Indicator extends Shape_SVG_Indicator {
             _ObjectRendering.addObjects(new CreateCone());
             _ObjectRendering.renderLocal();
             const rendered_object = _ObjectRendering.renderObject();
-            new Draw().drawObject(rendered_object);
+            _Draw.drawObject(rendered_object);
         })
     }
 }
@@ -227,7 +227,7 @@ class Prism_SVG_Indicator extends Shape_SVG_Indicator {
             _ObjectRendering.addObjects(new CreatePrism());
             _ObjectRendering.renderLocal();
             const rendered_object = _ObjectRendering.renderObject();
-            new Draw().drawObject(rendered_object);
+            _Draw.drawObject(rendered_object);
         })
     }
 }
@@ -246,7 +246,7 @@ class Cylinder_SVG_Indicator extends Shape_SVG_Indicator {
             _ObjectRendering.addObjects(new CreateCylinder());
             _ObjectRendering.renderLocal();
             const rendered_object = _ObjectRendering.renderObject();
-            new Draw().drawObject(rendered_object);
+            _Draw.drawObject(rendered_object);
         })
     }
 }
@@ -274,7 +274,7 @@ class Cuboid_SVG_Indicator extends Shape_SVG_Indicator {
             _ObjectRendering.addObjects(new CreateCuboid());
             _ObjectRendering.renderLocal();
             const rendered_object = _ObjectRendering.renderObject();
-            new Draw().drawObject(rendered_object);
+            _Draw.drawObject(rendered_object);
         })
     }
 }
@@ -295,7 +295,7 @@ class Sphere_SVG_Indicator extends Shape_SVG_Indicator {
             _ObjectRendering.addObjects(new CreateSphere());
             _ObjectRendering.renderLocal();
             const rendered_object = _ObjectRendering.renderObject();
-            new Draw().drawObject(rendered_object);
+            _Draw.drawObject(rendered_object);
         })
     }
 }
@@ -322,7 +322,7 @@ class Torus_SVG_Indicator extends Shape_SVG_Indicator {
             _ObjectRendering.addObjects(new CreateTorus());
             _ObjectRendering.renderLocal();
             const rendered_object = _ObjectRendering.renderObject();
-            new Draw().drawObject(rendered_object);
+            _Draw.drawObject(rendered_object);
         })
     }
 }

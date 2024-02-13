@@ -2491,81 +2491,30 @@
 
 // console.log(n_c_)
 
-class Clip {
-    constructor () {}
 
-    homoVec(arr : _3D_VEC_) : _4D_VEC_{
-        return [...arr,1];
-    }
-
-    revHomoVec(arr : _4D_VEC_) : _3D_VEC_ {
-        return [...arr].splice(0, 3) as _3D_VEC_;
-    }
-
-    clipCoords(arr: _4D_VEC_): _4D_VEC_ {
-        const array: _4D_VEC_ = [...arr];
-        array[0] /= 50;
-        array[1] /= 50;
-        return array;
-    }
-
-    unclipCoords(arr: _4D_VEC_): _4D_VEC_ {
-        const array: _4D_VEC_ = [...arr];
-        array[0] *= 50;
-        array[1] *= 50;
-        return array;
-    }
-
-    clipCanvas(arr: _4D_VEC_): _4D_VEC_ {
-        const array: _4D_VEC_ = [...arr];
-        array[0] /= 50;
-        array[1] /= 50;
-        return array;
-    }
-
-    unclipCanvas(arr: _4D_VEC_): _4D_VEC_ {
-        const array: _4D_VEC_ = [...arr];
-        array[0] *= 50;
-        array[1] *= 50;
-        return array;
-    }
-
-    canvasTo(arr: _4D_VEC_): _4D_VEC_ {
-        const array: _4D_VEC_ = [...arr];
-        array[0] -= 50;
-        array[1] -= 50;
-        return array;
-    }
-
-    toCanvas(arr: _4D_VEC_): _4D_VEC_ {
-        const array: _4D_VEC_ = [...arr];
-        array[0] += 50;
-        array[1] += 50;
-        console.log(array,"canvas");
-        return array;
+class Point2D {
+    x: number;
+    y: number;
+    r: number;
+    constructor (x: number,y: number,r = 0) {
+        this.x = x;
+        this.y = y;
+        this.r = r;
     }
 }
 
-class LocalCoords extends Clip{
-    constructor(){super();}
-
-    toLocal(point : _3D_VEC_) : _3D_VEC_{
-        const a = this.homoVec(point);
-        const b = this.canvasTo(a);
-        const c = this.clipCoords(b);
-        const d = this.revHomoVec(c);
-        return d;
-    };
-    fromLocal(point : _3D_VEC_) : _3D_VEC_{
-        const a = this.homoVec(point);
-        const b = this.unclipCoords(a);
-        const c = this.toCanvas(b);
-        const d = this.revHomoVec(c);
-        return d;
-    };
+class Point3D {
+    x: number;
+    y: number;
+    z: number;
+    constructor (x: number,y: number,z: number) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
 }
 
-const _l = new LocalCoords();
+
 
 
 })()
