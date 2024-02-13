@@ -228,6 +228,7 @@ interface _BASIC_PARAMS_ {
     _GRID_VERT_THETA: number,
     _ACTIVE: string,
     _SIDE_BAR_WIDTH: number,
+    _T_B_R_L : _4D_VEC_,
 }
 
 const DEFAULT_PARAMS: _BASIC_PARAMS_ =
@@ -253,8 +254,8 @@ const DEFAULT_PARAMS: _BASIC_PARAMS_ =
     _NZ: 0.1,
     _FZ: 500,
     _PROJ_TYPE : "Orthographic",
-    _VERT_PROJ_ANGLE: 60,
-    _HORI_PROJ_ANGLE : 60,
+    _VERT_PROJ_ANGLE: 80,
+    _HORI_PROJ_ANGLE : 80,
     _ASPECT_RATIO: 1,
     _HALF_X: 50,
     _HALF_Y: 50,
@@ -263,6 +264,7 @@ const DEFAULT_PARAMS: _BASIC_PARAMS_ =
     _GRID_VERT_THETA: 15,
     _ACTIVE: "",
     _SIDE_BAR_WIDTH: 120,
+    _T_B_R_L : [0,0,0,0],
 }
 
 const MODIFIED_PARAMS: _BASIC_PARAMS_ = JSON.parse(JSON.stringify(DEFAULT_PARAMS));

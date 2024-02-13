@@ -1010,7 +1010,6 @@ class Projection extends Linear {
         if (inverse_res.length !== 16)
             return;
         MODIFIED_PARAMS._INV_PROJECTION_MAT = inverse_res;
-        console.log(MODIFIED_PARAMS._PROJECTION_MAT);
     }
     orthographicProjection() {
         const sgn = MODIFIED_PARAMS._HANDEDNESS;
@@ -1021,6 +1020,9 @@ class Projection extends Linear {
         const b = -t;
         const r = MODIFIED_PARAMS._CANVAS_WIDTH * Math.tan(a_h / 2);
         const l = -r;
+        MODIFIED_PARAMS._T_B_R_L = [t, b, r, l];
+        console.log("t : ", t, "b : ", b, " r : ", r, " l : ", l, " n : ", n, " f : ", f);
+        new Draw().drawOrthBounds(MODIFIED_PARAMS._T_B_R_L, "red");
         MODIFIED_PARAMS._PROJECTION_MAT = [2 / (r - l), 0, 0, 0, 0, 2 / (t - b), 0, 0, 0, 0, sgn * 2 / (f - n), 0, -(r + l) / (r - l), -(t + b) / (t - b), -(f + n) / (f - n), 1];
     }
     perspectiveProjection() {
@@ -1032,6 +1034,9 @@ class Projection extends Linear {
         const b = -t;
         const r = n * Math.tan(a_h / 2) * MODIFIED_PARAMS._ASPECT_RATIO;
         const l = -r;
+        MODIFIED_PARAMS._T_B_R_L = [t, b, r, l];
+        new Draw().drawPersBounds(MODIFIED_PARAMS._T_B_R_L, n, f, "red");
+        console.log("t : ", t, "b : ", b, " r : ", r, " l : ", l, " n : ", n, " f : ", f);
         MODIFIED_PARAMS._PROJECTION_MAT = [2 * n / (r - l), 0, 0, 0, 0, 2 * n / (t - b), 0, 0, (r + l) / (r - l), (t + b) / (t - b), -(f + n) / (f - n), -1, 0, 0, sgn * 2 * f * n / (f - n), 0];
     }
     project(input_array) {
@@ -1109,7 +1114,6 @@ class CameraObject extends Vector {
         this.next_h = false;
         this.initializeBuffers();
         this.setCameraPos_nonIncremental([0, 10, -400]);
-        MODIFIED_PARAMS._PROJ_TYPE = this.instance._PROJ_TYPE;
         return this;
     }
     initializeBuffers() {
@@ -1261,22 +1265,25 @@ class CameraObject extends Vector {
     }
 }
 class NDCSpace extends Matrix {
-    constructor() { super(); }
-    ;
+    projection_type;
+    constructor(_projection_type) {
+        super();
+        this.projection_type = _projection_type;
+    }
     project(arr) {
         if (typeof arr === "undefined")
             return undefined;
-        if (MODIFIED_PARAMS._PROJ_TYPE === "Orthographic")
+        if (this.projection_type === "Orthographic")
             return this.matMult(arr, MODIFIED_PARAMS._PROJECTION_MAT, [1, 4], [4, 4]);
-        else if (MODIFIED_PARAMS._PROJ_TYPE === "Perspective") {
+        else if (this.projection_type === "Perspective") {
             const proj = this.matMult(arr, MODIFIED_PARAMS._PROJECTION_MAT, [1, 4], [4, 4]);
             return this.scaMult(1 / proj[3], proj, true);
         }
     }
     unProject(arr) {
-        if (MODIFIED_PARAMS._PROJ_TYPE === "Orthographic")
+        if (this.projection_type === "Orthographic")
             return this.matMult(arr, MODIFIED_PARAMS._INV_PROJECTION_MAT, [1, 4], [4, 4]);
-        else if (MODIFIED_PARAMS._PROJ_TYPE === "Perspective") {
+        else if (this.projection_type === "Perspective") {
             const rev_proj_div = this.scaMult(arr[3], arr, true);
             return this.matMult(rev_proj_div, MODIFIED_PARAMS._INV_PROJECTION_MAT, [1, 4], [4, 4]);
             ;
@@ -1395,9 +1402,10 @@ class CameraObjects extends Clip {
         // const isBehindCamera = this.camera_objects_array[this.selected_camera_instances[this.current_camera_instance]].isInBetween(lookat, camera, vertex);
         // if (isBehindCamera) {console.log("vertex is behind camera"); return undefined;}
         // console.log("vertex is not behind camera");
-        const world_to_camera_space = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]].worldToCamera(vertex);
+        const current_camera = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]];
+        const world_to_camera_space = current_camera.worldToCamera(vertex);
         // console.log(world_to_camera_space,"camera");
-        const proj_div = new NDCSpace().project(world_to_camera_space);
+        const proj_div = new NDCSpace(current_camera.instance._PROJ_TYPE).project(world_to_camera_space);
         // console.log(proj_div,"projection space")
         if (typeof proj_div === "undefined")
             return undefined;

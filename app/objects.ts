@@ -46,7 +46,6 @@ class CreateMeshObject extends CreateObject {
         this._is_degenerate_ = false;
         this.vert_st = start_vertex;
         this.shape = "Generic";
-        this.getMinMax();
     }
 
     reconstructMesh() { return this; }
@@ -412,7 +411,6 @@ class CreatePyramidalBase extends CreateMeshObject {
     }
 
     calculatePoints() {
-        console.log(this.height)
         this.base_class.points_list[0] = new Point3D(0,this.height / 2,0);
         this.base_class.calculatePoints();
         this.points_list = [...this.base_class.points_list];
@@ -1000,7 +998,6 @@ class ObjectRendering extends Miscellanous {
 
     addObjects(object: CreateMeshObject) {
         object.calculatePoints();
-        console.log(object)
         this.objects.push(object);
         this.instance_number_to_list_map[this.instance] = this.instance;
         this.instance++;
@@ -1159,6 +1156,8 @@ class ObjectRendering extends Miscellanous {
         const object = this.getCurrentObjectInstance();
         if(typeof object === "undefined") return undefined;
 
+        object.getMinMax();
+
         const renderedObjectVertices : _OBJ_VERT_ = {};
         for(const index in object.rendered_points_list) {
             const vertex = object.rendered_points_list[index];
@@ -1166,12 +1165,29 @@ class ObjectRendering extends Miscellanous {
             renderedObjectVertices[index] = rendered_vertex;
         }
 
-        console.log(Object.keys(renderedObjectVertices).length + " vertice(s) " ,"******************",MODIFIED_PARAMS._PROJECTION_MAT)
+        console.log(Object.keys(renderedObjectVertices).length + " vertice(s) " ,"******************")
 
         return {object : object, vertices : renderedObjectVertices};
     }
 }
 
-const _ObjectRendering = new ObjectRendering();
+class LiangBarsky extends Miscellanous{
+    object : CreateMeshObject;
+    constructor(_object : CreateMeshObject){
+        super();
+        this.object = _object;
+    }
 
-console.log(new MeshDataStructure().getMinMax(new Miscellanous().vecs3DToPoints3D([])))
+    clip(){
+        const half_edges = this.object.mesh.HalfEdgeDict;
+        const rendered_points = this.object.rendered_points_list;
+        for(const half_edge in half_edges){
+            const [a,b] = half_edge.split("-");
+            const [x_1, y_1, _] = rendered_points[a];
+            const t_min = 0;
+            const t_max = 1;
+        }
+    }
+}
+
+const _ObjectRendering = new ObjectRendering();

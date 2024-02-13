@@ -194,9 +194,9 @@ function gridRender() {
 // }
 class Draw {
     constructor() { }
-    drawPoint(point, _strokeStyle = "black", line_1Width = 1, _fillStyle = "black") {
+    drawPoint(point, _strokeStyle = "black", _lineWidth = 1, _fillStyle = "black") {
         ctx.beginPath();
-        ctx.lineWidth = line_1Width;
+        ctx.lineWidth = _lineWidth;
         ctx.strokeStyle = _strokeStyle;
         ctx.arc(point.x, point.y, 3, 0, 2 * Math.PI);
         ctx.fillStyle = _fillStyle;
@@ -204,9 +204,9 @@ class Draw {
         ctx.fill();
         ctx.closePath();
     }
-    drawVertex(vertex, _strokeStyle = "black", line_1Width = 1, _fillStyle = "black") {
+    drawVertex(vertex, _strokeStyle = "black", _lineWidth = 1, _fillStyle = "black") {
         ctx.beginPath();
-        ctx.lineWidth = line_1Width;
+        ctx.lineWidth = _lineWidth;
         ctx.strokeStyle = _strokeStyle;
         ctx.arc(vertex[0], vertex[1], 3, 0, 2 * Math.PI);
         ctx.fillStyle = _fillStyle;
@@ -214,28 +214,77 @@ class Draw {
         ctx.fill();
         ctx.closePath();
     }
-    lineDraw(a, b, _strokeStyle = "black", line_1Width = 2) {
+    lineDraw(a, b, _strokeStyle = "black", _lineWidth = 2) {
         ctx.beginPath();
-        ctx.lineWidth = line_1Width;
+        ctx.lineWidth = _lineWidth;
         ctx.strokeStyle = _strokeStyle;
         ctx.moveTo(a.x, a.y);
         ctx.lineTo(b.x, b.y);
         ctx.stroke();
         ctx.closePath();
     }
-    drawLine(a, b, _strokeStyle = "black", line_1Width = 2) {
+    drawLine(a, b, _strokeStyle = "black", _lineWidth = 2) {
         if (typeof a === "undefined" || typeof b === "undefined")
             return;
         ctx.beginPath();
-        ctx.lineWidth = line_1Width;
+        ctx.lineWidth = _lineWidth;
         ctx.strokeStyle = _strokeStyle;
         ctx.moveTo(a[0], a[1]);
         ctx.lineTo(b[0], b[1]);
         ctx.stroke();
         ctx.closePath();
     }
+    xToCanvas(val) { return (val * MODIFIED_PARAMS._HALF_X) + MODIFIED_PARAMS._HALF_X; }
+    ;
+    yToCanvas(val) { return (val * -MODIFIED_PARAMS._HALF_Y) + MODIFIED_PARAMS._HALF_Y; }
+    drawOrthBounds(t_b_r_l, _strokeStyle = "black", line_Width = 2) {
+        const [_t, _b, _r, _l] = t_b_r_l;
+        const t = this.yToCanvas(_t);
+        const b = this.yToCanvas(_b);
+        const r = this.xToCanvas(_r);
+        const l = this.xToCanvas(_l);
+        console.log(t, b, r, l);
+        this.drawBounds(l, t, l, b, _strokeStyle, line_Width);
+        this.drawBounds(r, t, r, b, _strokeStyle, line_Width);
+        this.drawBounds(l, t, r, t, _strokeStyle, line_Width);
+        this.drawBounds(l, b, r, b, _strokeStyle, line_Width);
+    }
+    drawPersBounds(t_b_r_l, n, f, _strokeStyle = "black", line_Width = 2) {
+        const [_n_t, _n_b, _n_r, _n_l] = t_b_r_l;
+        const n_t = this.yToCanvas(_n_t);
+        const n_b = this.yToCanvas(_n_b);
+        const n_r = this.xToCanvas(_n_r);
+        const n_l = this.xToCanvas(_n_l);
+        this.drawBounds(n_l, n_t, n_l, n_b, _strokeStyle, line_Width);
+        this.drawBounds(n_r, n_t, n_r, n_b, _strokeStyle, line_Width);
+        this.drawBounds(n_l, n_t, n_r, n_t, _strokeStyle, line_Width);
+        this.drawBounds(n_l, n_b, n_r, n_b, _strokeStyle, line_Width);
+        const [_f_t, _f_b, _f_r, _f_l] = [(_n_t / n) * f, (_n_b / n) * f, (_n_r / n) * f, (_n_l / n) * f];
+        const f_t = this.yToCanvas(_f_t);
+        const f_b = this.yToCanvas(_f_b);
+        const f_r = this.xToCanvas(_f_r);
+        const f_l = this.xToCanvas(_f_l);
+        this.drawBounds(f_l, f_t, f_l, f_b, _strokeStyle, line_Width);
+        this.drawBounds(f_r, f_t, f_r, f_b, _strokeStyle, line_Width);
+        this.drawBounds(f_l, f_t, f_r, f_t, _strokeStyle, line_Width);
+        this.drawBounds(f_l, f_b, f_r, f_b, _strokeStyle, line_Width);
+        this.drawBounds(n_l, n_t, f_l, f_t, _strokeStyle, line_Width);
+        this.drawBounds(n_l, n_b, f_l, f_b, _strokeStyle, line_Width);
+        this.drawBounds(n_r, n_t, f_r, f_t, _strokeStyle, line_Width);
+        this.drawBounds(n_r, n_b, f_r, f_b, _strokeStyle, line_Width);
+        console.log(n_t, n_b, n_r, n_l);
+        console.log(f_t, f_b, f_r, f_l);
+    }
+    drawBounds(x1, y1, x2, y2, _strokeStyle = "black", _lineWidth = 2) {
+        ctx.beginPath();
+        ctx.lineWidth = _lineWidth;
+        ctx.strokeStyle = _strokeStyle;
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        ctx.closePath();
+    }
     drawObject(object) {
-        console.log(typeof object);
         if (typeof object === "undefined")
             return;
         for (const vertex in object.vertices) {

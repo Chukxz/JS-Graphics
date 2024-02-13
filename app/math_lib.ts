@@ -1138,8 +1138,6 @@ class Projection extends Linear {
         if(typeof inverse_res === "undefined") return;
         if(inverse_res.length !== 16) return;
         MODIFIED_PARAMS._INV_PROJECTION_MAT = inverse_res as _16D_VEC_;
-
-        console.log(MODIFIED_PARAMS._PROJECTION_MAT)
     }
 
 orthographicProjection(){
@@ -1152,6 +1150,11 @@ orthographicProjection(){
     const b = -t;
     const r = MODIFIED_PARAMS._CANVAS_WIDTH * Math.tan(a_h/2);
     const l = -r;
+    MODIFIED_PARAMS._T_B_R_L = [t,b,r,l];
+
+    console.log("t : ",t,"b : ",b," r : ",r," l : ",l," n : ",n," f : ",f);
+
+    new Draw().drawOrthBounds(MODIFIED_PARAMS._T_B_R_L,"red");
 
     MODIFIED_PARAMS._PROJECTION_MAT = [2/(r-l), 0, 0, 0, 0, 2/(t-b), 0, 0, 0, 0, sgn*2/(f-n), 0, -(r+l)/(r-l), -(t+b)/(t-b), -(f+n)/(f-n), 1];
 }
@@ -1166,6 +1169,11 @@ perspectiveProjection() {
     const b = -t;
     const r = n * Math.tan(a_h/2) * MODIFIED_PARAMS._ASPECT_RATIO;
     const l = -r;
+    MODIFIED_PARAMS._T_B_R_L = [t,b,r,l];
+
+    new Draw().drawPersBounds(MODIFIED_PARAMS._T_B_R_L, n, f,"red");
+
+    console.log("t : ",t,"b : ",b," r : ",r," l : ",l," n : ",n," f : ",f);
 
     MODIFIED_PARAMS._PROJECTION_MAT = [2*n/(r-l), 0, 0, 0, 0, 2*n/(t-b), 0, 0, (r+l)/(r-l), (t+b)/(t-b), -(f+n)/(f-n), -1, 0, 0, sgn*2*f*n/(f-n), 0];
 }
@@ -1274,7 +1282,6 @@ class CameraObject extends Vector {
         this.next_h = false;
         this.initializeBuffers();
         this.setCameraPos_nonIncremental([0,10,-400]);
-        MODIFIED_PARAMS._PROJ_TYPE = this.instance._PROJ_TYPE;
         return this;
     }
     
@@ -1449,20 +1456,24 @@ class CameraObject extends Vector {
 }
 
 class NDCSpace extends Matrix{
-    constructor () {super();};
+    projection_type : _PROJ_TYPE_
+    constructor (_projection_type : _PROJ_TYPE_) {
+        super();
+        this.projection_type = _projection_type;
+    }
 
     project(arr : _4D_VEC_ | undefined) : _4D_VEC_ | undefined{
         if(typeof arr === "undefined") return undefined;
-        if(MODIFIED_PARAMS._PROJ_TYPE === "Orthographic") return this.matMult(arr,MODIFIED_PARAMS._PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
-        else if(MODIFIED_PARAMS._PROJ_TYPE === "Perspective") {
+        if(this.projection_type === "Orthographic") return this.matMult(arr,MODIFIED_PARAMS._PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
+        else if(this.projection_type === "Perspective") {
             const proj = this.matMult(arr,MODIFIED_PARAMS._PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
             return this.scaMult(1/proj[3],proj,true) as _4D_VEC_;
         }
     }
 
     unProject(arr : _4D_VEC_) : _4D_VEC_ | undefined{
-        if(MODIFIED_PARAMS._PROJ_TYPE === "Orthographic") return this.matMult(arr,MODIFIED_PARAMS._INV_PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
-        else if(MODIFIED_PARAMS._PROJ_TYPE === "Perspective")
+        if(this.projection_type === "Orthographic") return this.matMult(arr,MODIFIED_PARAMS._INV_PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
+        else if(this.projection_type === "Perspective")
         {
             const rev_proj_div: _4D_VEC_ = this.scaMult(arr[3],arr,true) as _4D_VEC_;
             return this.matMult(rev_proj_div,MODIFIED_PARAMS._INV_PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;;
@@ -1602,10 +1613,12 @@ class CameraObjects extends Clip {
 
         // console.log("vertex is not behind camera");
 
-        const world_to_camera_space :  _4D_VEC_ = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]].worldToCamera(vertex); 
+        const current_camera = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]];
+        const world_to_camera_space :  _4D_VEC_ = current_camera.worldToCamera(vertex); 
+
         // console.log(world_to_camera_space,"camera");
 
-        const proj_div : _4D_VEC_ | undefined = new NDCSpace().project(world_to_camera_space);
+        const proj_div : _4D_VEC_ | undefined = new NDCSpace(current_camera.instance._PROJ_TYPE).project(world_to_camera_space);
         // console.log(proj_div,"projection space")
 
         if(typeof proj_div === "undefined") return undefined;
