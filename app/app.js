@@ -53,7 +53,7 @@ var Nav_list;
     Nav_list[Nav_list["Lighting"] = 3] = "Lighting";
     Nav_list[Nav_list["Rendering"] = 4] = "Rendering";
 })(Nav_list || (Nav_list = {}));
-const start_nav = Nav_list.Rendering;
+const start_nav = Nav_list.Editing;
 var Handedness;
 (function (Handedness) {
     Handedness[Handedness["left"] = 1] = "left";
@@ -79,7 +79,7 @@ const DEFAULT_PARAMS = {
     _Q_QUART: [1, 0, 0, 0],
     _Q_INV_QUART: [1, 0, 0, 0],
     _NZ: 0.1,
-    _FZ: 500,
+    _FZ: 600,
     _PROJ_TYPE: "Orthographic",
     _VERT_PROJ_ANGLE: 60,
     _HORI_PROJ_ANGLE: 60,
@@ -93,6 +93,8 @@ const DEFAULT_PARAMS = {
     _SIDE_BAR_WIDTH: 120,
     _T_B_R_L: [0, 0, 0, 0],
     _EPSILON: 1e-10,
+    _MIN_Z: -1,
+    _MAX_Z: 1,
 };
 const MODIFIED_PARAMS = JSON.parse(JSON.stringify(DEFAULT_PARAMS));
 const sendMessage = (function_name) => window.parent.postMessage(function_name);
@@ -294,7 +296,7 @@ const basicDrawFunction = (set_last_canvas_width = true) => {
     svg_main_menu_divider.svg.style.position = "absolute";
     svg_main_menu_divider_line_drag = new CreateSVGLineDrag(svg_main_menu_divider, "0", "0", `${main_menu_width - 2 * main_menu_border_width}`, `0`, svg_vert_bar_color, "14", svg_hover_color);
     svg_main_menu_divider_line_drag.dragFunction(main_menu_divider_drag_function);
-    svg_main_menu_divider_line_drag.changeAcceleration(15);
+    svg_main_menu_divider_line_drag.changeAcceleration(10);
     if (svg_main_menu_divider_top < 0)
         svg_main_menu_divider_top = main_menu_height + svg_main_menu_divider_top;
     svg_main_menu_divider.svg.style.top = `${svg_main_menu_divider_top}px`;
@@ -2072,7 +2074,6 @@ class DrawCanvas {
             MODIFIED_PARAMS._CANVAS_WIDTH = process_modify ? MODIFIED_PARAMS._CANVAS_WIDTH : Math.max(DEFAULT_PARAMS._CANVAS_WIDTH, window.innerWidth - MODIFIED_PARAMS._SIDE_BAR_WIDTH - 15);
             MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(window.innerHeight - 50 - nav_height);
             main_nav.style.width = `${window.innerWidth - 15}px`;
-            // main_nav.style.width = `${window.innerWidth - 15}px`;
             this.drawCanvas(false);
             console.log(MODIFIED_PARAMS);
         });
@@ -2092,10 +2093,12 @@ class DrawCanvas {
         const canvas_border_width = Number(window.getComputedStyle(canvas).borderWidth.split("px")[0]);
         const main_menu_height = MODIFIED_PARAMS._CANVAS_HEIGHT + 2 * canvas_border_width;
         main_menu.style.height = `${main_menu_height}px`;
-        const svg_canvas_main_menu = new CreateSVG(svg_container, "10", `${main_menu_height}`);
-        const svg_canvas_main_menu_line_drag = new CreateSVGLineDrag(svg_canvas_main_menu, "0", "0", "0", `${main_menu_height}`, svg_vert_bar_color, "14", svg_hover_color);
-        svg_canvas_main_menu_line_drag.dragFunction(this.canvas_main_menu_drag_function);
-        svg_canvas_main_menu_line_drag.changeAcceleration(10);
+        if (!isTouchDevice) {
+            const svg_canvas_main_menu = new CreateSVG(svg_container, "10", `${main_menu_height}`);
+            const svg_canvas_main_menu_line_drag = new CreateSVGLineDrag(svg_canvas_main_menu, "0", "0", "0", `${main_menu_height}`, svg_vert_bar_color, "14", svg_hover_color);
+            svg_canvas_main_menu_line_drag.dragFunction(this.canvas_main_menu_drag_function);
+            svg_canvas_main_menu_line_drag.changeAcceleration(10);
+        }
         basicDrawFunction(set_last_canvas_width);
         DrawCanvas.drawCount++;
         // console.log("Screen Orientation : ",screen.orientation)

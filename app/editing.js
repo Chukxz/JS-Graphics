@@ -60,7 +60,7 @@ class CreatePoint_SVG_Indicator extends Shape_SVG_Indicator {
             console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreatePoint());
-            _ObjectRendering.renderLocal();
+            _ObjectRendering.renderWorld();
             const rendered_object = _ObjectRendering.renderObject();
             _Draw.drawObject(rendered_object);
         });
@@ -74,7 +74,7 @@ class CreateLine_SVG_Indicator extends Shape_SVG_Indicator {
             console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreateLine());
-            _ObjectRendering.renderLocal();
+            _ObjectRendering.renderWorld();
             const rendered_object = _ObjectRendering.renderObject();
             _Draw.drawObject(rendered_object);
         });
@@ -92,7 +92,7 @@ class CreatePolygon_SVG_Indicator extends Shape_SVG_Indicator {
             console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreatePolygon());
-            _ObjectRendering.renderLocal();
+            _ObjectRendering.renderWorld();
             const rendered_object = _ObjectRendering.renderObject();
             _Draw.drawObject(rendered_object);
         });
@@ -106,7 +106,7 @@ class CreateEllipse_SVG_Indicator extends Shape_SVG_Indicator {
             console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreateEllipse());
-            _ObjectRendering.renderLocal();
+            _ObjectRendering.renderWorld();
             const rendered_object = _ObjectRendering.renderObject();
             _Draw.drawObject(rendered_object);
         });
@@ -120,7 +120,7 @@ class CreateCircle_SVG_Indicator extends Shape_SVG_Indicator {
             console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreateCircle());
-            _ObjectRendering.renderLocal();
+            _ObjectRendering.renderWorld();
             const rendered_object = _ObjectRendering.renderObject();
             _Draw.drawObject(rendered_object);
         });
@@ -137,7 +137,7 @@ class CreateRectangle_SVG_Indicator extends Shape_SVG_Indicator {
             console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreateRectangle());
-            _ObjectRendering.renderLocal();
+            _ObjectRendering.renderWorld();
             const rendered_object = _ObjectRendering.renderObject();
             _Draw.drawObject(rendered_object);
         });
@@ -158,7 +158,7 @@ class Pyramid_SVG_Indicator extends Shape_SVG_Indicator {
             console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreatePyramid());
-            _ObjectRendering.renderLocal();
+            _ObjectRendering.renderWorld();
             const rendered_object = _ObjectRendering.renderObject();
             _Draw.drawObject(rendered_object);
         });
@@ -174,7 +174,7 @@ class Cone_SVG_Indicator extends Shape_SVG_Indicator {
             console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreateCone());
-            _ObjectRendering.renderLocal();
+            _ObjectRendering.renderWorld();
             const rendered_object = _ObjectRendering.renderObject();
             _Draw.drawObject(rendered_object);
         });
@@ -196,7 +196,7 @@ class Prism_SVG_Indicator extends Shape_SVG_Indicator {
             console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreatePrism());
-            _ObjectRendering.renderLocal();
+            _ObjectRendering.renderWorld();
             const rendered_object = _ObjectRendering.renderObject();
             _Draw.drawObject(rendered_object);
         });
@@ -213,7 +213,7 @@ class Cylinder_SVG_Indicator extends Shape_SVG_Indicator {
             console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreateCylinder());
-            _ObjectRendering.renderLocal();
+            _ObjectRendering.renderWorld();
             const rendered_object = _ObjectRendering.renderObject();
             _Draw.drawObject(rendered_object);
         });
@@ -237,7 +237,7 @@ class Cuboid_SVG_Indicator extends Shape_SVG_Indicator {
         this.svg_container.addEventListener("click", () => {
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreateCuboid());
-            _ObjectRendering.renderLocal();
+            _ObjectRendering.renderWorld();
             const rendered_object = _ObjectRendering.renderObject();
             _Draw.drawObject(rendered_object);
         });
@@ -255,7 +255,7 @@ class Sphere_SVG_Indicator extends Shape_SVG_Indicator {
             console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreateSphere());
-            _ObjectRendering.renderLocal();
+            _ObjectRendering.renderWorld();
             const rendered_object = _ObjectRendering.renderObject();
             _Draw.drawObject(rendered_object);
         });
@@ -278,7 +278,7 @@ class Torus_SVG_Indicator extends Shape_SVG_Indicator {
             console.log(_ObjectRendering.instance, "###################");
             _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
             _ObjectRendering.addObjects(new CreateTorus());
-            _ObjectRendering.renderLocal();
+            _ObjectRendering.renderWorld();
             const rendered_object = _ObjectRendering.renderObject();
             _Draw.drawObject(rendered_object);
         });

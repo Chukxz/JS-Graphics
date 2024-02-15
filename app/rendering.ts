@@ -253,6 +253,8 @@ class Draw {
     }
 
     drawVertex(vertex: _4D_VEC_,_strokeStyle = "black",_lineWidth = 1,_fillStyle = "black") {
+        const z = vertex[2];
+        if(z < MODIFIED_PARAMS._MIN_Z || z > MODIFIED_PARAMS._MAX_Z) return;
         ctx.beginPath();
         ctx.lineWidth = _lineWidth;
         ctx.strokeStyle = _strokeStyle;
@@ -333,22 +335,14 @@ class Draw {
         ctx.closePath();
     }
 
-    drawObject(object: _CAM_RENDERED_OBJ_ | undefined) {
-        if(typeof object === "undefined") return;
-        for(const vertex in object.vertices) {
-            const vertexes = object.vertices[vertex];
-            if(typeof vertexes === "undefined") continue;
-            this.drawVertex(vertexes);
-        }
-        const half_edges = structuredClone(object.object.mesh.HalfEdgeDict);
-        for(const half_edge in half_edges) {
-            const twin = half_edges[half_edge].twin;
-            if(half_edges[twin]) delete half_edges[twin];
-        }
+    drawObject(object_vertices : _CAM_RENDERED_OBJ_ | null) {
+        if(!object_vertices) return;
+        for(const vertex in object_vertices.vertices) this.drawVertex(_ViewSpace.NDCToCanvas(object_vertices.vertices[vertex]));
 
+        const half_edges = structuredClone(object_vertices.object.mesh.HalfEdgeDict);
         for(const edge in half_edges) {
-            const [a,b] = edge.split("-").map((value) => object.vertices[value]);
-            this.drawLine(a,b)
+            const [a,b] = edge.split("-").map((value) => _ViewSpace.NDCToCanvas(object_vertices.vertices[value]));
+            this.drawLine(a,b);
         }
     }
 }

@@ -150,7 +150,7 @@ type _CONNECTIVITY_ = {
 
 type _HALFEDGEDICT_ = { [halfedge: string]: _HALFEDGE_ };
 
-type _OBJ_VERT_ = { [index: string]: _4D_VEC_ | undefined };
+type _OBJ_VERT_ = { [index: string]: _4D_VEC_ };
 
 type _CAM_RENDERED_OBJ_ = { object: CreateMeshObject,vertices: _OBJ_VERT_ };
 
@@ -168,11 +168,19 @@ type _MINMAX_ = {min_max : _MIN_MAX_XYZ_, indices : _MIN_MAX_XYZ_INDEX_};
 
 type _TRIANGULATED_MESH_POINTS_ = { mesh: MeshDataStructure ,points: Point3D[] };
 
-type _BOUNDING_BOX_ = [Point3D,Point3D,Point3D,Point3D,Point3D,Point3D,Point3D,Point3D];
+type _BOUNDING_BOX_ = { d_l_f : Point3D;
+                        d_l_b : Point3D;
+                        d_r_f : Point3D;
+                        d_r_b : Point3D;
+                        t_l_f : Point3D;
+                        t_l_b : Point3D;
+                        t_r_f : Point3D;
+                        t_r_b : Point3D;
+                        };
 
 type _BOUNDING_SPHERE_ = {center : Point3D, radius : number};
 
-type _WINDOW_EDGE_ = "top" | "bottom" | "left" | "right" | "near" | "far";
+type _WINDOW_EDGE_ = "top" | "bottom" | "left" | "right";
 
 enum Nav_list{
     Editing, 
@@ -182,7 +190,7 @@ enum Nav_list{
     Rendering
 }
 
-const start_nav = Nav_list.Rendering;
+const start_nav = Nav_list.Editing;
 
 enum Handedness{
     left = 1,
@@ -232,6 +240,8 @@ interface _BASIC_PARAMS_ {
     _SIDE_BAR_WIDTH: number,
     _T_B_R_L : _4D_VEC_,
     _EPSILON : number,
+    _MIN_Z : number,
+    _MAX_Z : number,
 }
 
 const DEFAULT_PARAMS: _BASIC_PARAMS_ =
@@ -255,7 +265,7 @@ const DEFAULT_PARAMS: _BASIC_PARAMS_ =
     _Q_QUART: [1,0,0,0],
     _Q_INV_QUART: [1,0,0,0],
     _NZ: 0.1,
-    _FZ: 500,
+    _FZ: 600,
     _PROJ_TYPE : "Orthographic",
     _VERT_PROJ_ANGLE: 60,
     _HORI_PROJ_ANGLE : 60,
@@ -269,6 +279,8 @@ const DEFAULT_PARAMS: _BASIC_PARAMS_ =
     _SIDE_BAR_WIDTH: 120,
     _T_B_R_L : [0,0,0,0],
     _EPSILON : 1e-10,
+    _MIN_Z : -1,
+    _MAX_Z : 1,
 }
 
 const MODIFIED_PARAMS: _BASIC_PARAMS_ = JSON.parse(JSON.stringify(DEFAULT_PARAMS));
@@ -533,7 +545,7 @@ const basicDrawFunction = (set_last_canvas_width = true) => {
     svg_main_menu_divider.svg.style.position = "absolute";
     svg_main_menu_divider_line_drag = new CreateSVGLineDrag(svg_main_menu_divider,"0","0",`${main_menu_width - 2*main_menu_border_width}`,`0`,svg_vert_bar_color,"14",svg_hover_color);
     svg_main_menu_divider_line_drag.dragFunction(main_menu_divider_drag_function);
-    svg_main_menu_divider_line_drag.changeAcceleration(15);
+    svg_main_menu_divider_line_drag.changeAcceleration(10);
     if(svg_main_menu_divider_top < 0) svg_main_menu_divider_top = main_menu_height + svg_main_menu_divider_top;
     svg_main_menu_divider.svg.style.top = `${svg_main_menu_divider_top}px`;
 
@@ -2488,8 +2500,6 @@ class DrawCanvas {
 
                 main_nav.style.width = `${window.innerWidth - 15}px`;
 
-                // main_nav.style.width = `${window.innerWidth - 15}px`;
-
                 this.drawCanvas(false);
                 console.log(MODIFIED_PARAMS)
         });
@@ -2514,10 +2524,12 @@ class DrawCanvas {
         const main_menu_height = MODIFIED_PARAMS._CANVAS_HEIGHT + 2 * canvas_border_width;
         main_menu.style.height = `${main_menu_height}px`;
 
+        if(!isTouchDevice){
         const svg_canvas_main_menu = new CreateSVG(svg_container,"10",`${main_menu_height}`);
         const svg_canvas_main_menu_line_drag = new CreateSVGLineDrag(svg_canvas_main_menu,"0","0","0",`${main_menu_height}`,svg_vert_bar_color,"14",svg_hover_color);
         svg_canvas_main_menu_line_drag.dragFunction(this.canvas_main_menu_drag_function);
         svg_canvas_main_menu_line_drag.changeAcceleration(10);
+        }
 
         basicDrawFunction(set_last_canvas_width);
 

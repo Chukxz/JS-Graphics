@@ -34,6 +34,7 @@ class CreateMeshObject extends CreateObject {
     shape;
     bounding_box;
     bounding_sphere;
+    indices;
     constructor(width, height, depth, start_vertex) {
         super();
         this.mesh = new MeshDataStructure();
@@ -104,13 +105,23 @@ class CreateMeshObject extends CreateObject {
     calculatePoints() { return this; }
     editDimensions() { return this; }
     getBoundingBox(indices) {
-        const vecs = [];
-        const keys = Object.keys(indices);
-        for (const key of keys) {
-            vecs.push(this.rendered_points_list[indices[`${key}`]]);
-        }
-        const bounding_box = [..._Miscellanous.vecs3DToPoints3D(vecs)];
+        const df = new Point3D(0, 0, 0);
+        const bounding_box = { d_l_f: df, d_l_b: df, d_r_f: df, d_r_b: df, t_l_f: df, t_l_b: df, t_r_f: df, t_r_b: df };
+        bounding_box.d_l_f = this.generatePointsFromIndex(indices, "minYIndex", "minXIndex", "minZIndex");
+        bounding_box.d_l_b = this.generatePointsFromIndex(indices, "minYIndex", "minXIndex", "maxZIndex");
+        bounding_box.d_r_f = this.generatePointsFromIndex(indices, "minYIndex", "maxXIndex", "minZIndex");
+        bounding_box.d_r_b = this.generatePointsFromIndex(indices, "minYIndex", "maxXIndex", "maxZIndex");
+        bounding_box.t_l_f = this.generatePointsFromIndex(indices, "maxYIndex", "minXIndex", "minZIndex");
+        bounding_box.t_l_b = this.generatePointsFromIndex(indices, "maxYIndex", "minXIndex", "maxZIndex");
+        bounding_box.t_r_f = this.generatePointsFromIndex(indices, "maxYIndex", "maxXIndex", "minZIndex");
+        bounding_box.t_r_b = this.generatePointsFromIndex(indices, "maxYIndex", "maxXIndex", "maxZIndex");
         this.bounding_box = bounding_box;
+    }
+    generatePointsFromIndex(indices, key_y, key_x, key_z) {
+        const point_x = this.rendered_points_list[Number(indices[key_x])][0];
+        const point_y = this.rendered_points_list[Number(indices[key_y])][1];
+        const point_z = this.rendered_points_list[Number(indices[key_z])][2];
+        return new Point3D(point_x, point_y, point_z);
     }
     getBoundingSphere(center, radius) {
         this.bounding_sphere = { center: center, radius: radius };
@@ -123,6 +134,7 @@ class CreateMeshObject extends CreateObject {
         const average_point = new Point3D((minmax.minX + minmax.maxX) * 0.5, (minmax.minY + minmax.maxY) * 0.5, (minmax.minZ + minmax.maxZ) * 0.5);
         const [l, h, w] = [minmax.maxX - minmax.minX, minmax.maxY - minmax.minY, minmax.maxZ - minmax.minZ];
         const half_diagonal_length = 0.5 * Math.sqrt((l ** 2) + (h ** 2) + (w ** 2));
+        this.indices = indices;
         this.getBoundingBox(indices);
         this.getBoundingSphere(average_point, half_diagonal_length);
     }
@@ -550,7 +562,6 @@ class CreatePrism extends CreatePrismBases {
             const mod_edge = other_edge.split("-").reverse().join("-");
             this.addFace(edge + "-" + mod_edge);
         }
-        console.log(this.mesh);
         return this;
     }
     calculatePoints() {
@@ -1028,6 +1039,7 @@ class ObjectRendering extends Miscellanous {
         object.object_revolution_angle = object.object_revolution_angle_backup;
         object.object_translation_array = object.object_translation_array_backup;
         this.revolveObject(object.object_revolution_axis, object.object_revolution_angle);
+        this.translateObject([0, 0, -450]);
     }
     configureObjectSpace(space) {
         if (space === "local")
@@ -1038,7 +1050,7 @@ class ObjectRendering extends Miscellanous {
     renderObject() {
         const object = this.getCurrentObjectInstance();
         if (typeof object === "undefined")
-            return undefined;
+            return null;
         object.getMinMax();
         const renderedObjectVertices = {};
         for (const index in object.rendered_points_list) {
@@ -1046,8 +1058,8 @@ class ObjectRendering extends Miscellanous {
             const rendered_vertex = _CAMERA.render(vertex);
             renderedObjectVertices[index] = rendered_vertex;
         }
-        console.log(Object.keys(renderedObjectVertices).length + " vertice(s) ", "******************", renderedObjectVertices);
-        return { object: object, vertices: renderedObjectVertices };
+        const object_vertices = _Clip.clip({ object: object, vertices: renderedObjectVertices });
+        return object_vertices;
     }
 }
 const _ObjectRendering = new ObjectRendering();

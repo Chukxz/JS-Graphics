@@ -239,6 +239,14 @@ class Miscellanous {
         return retList;
     }
 
+    points2DToVec3D(pointList: Point2D[]) : _3D_VEC_[]{
+        const retList: _3D_VEC_[] = [];
+        for(let point of pointList){
+            retList.push([point.x,point.y,point.r]);
+        }
+        return retList;
+    }
+
     points3DToVec3D(pointList: Point3D[]) : _3D_VEC_[]{
     const retList: _3D_VEC_[] = [];
     for(let point of pointList){
@@ -1038,6 +1046,26 @@ class Linear {
         return false; // Doesnt't fall in any of the above cases
     }
 
+    lineLineIntersection(p1: Point2D,q1: Point2D,p2: Point2D,q2: Point2D) : Point2D | null{
+        // line p1 q1 represented as a1x + b1y = c1
+        const a1 = q1.y - p1.y;
+        const b1 = p1.x - q1.x;
+        const c1 = a1 * (p1.x) + b1 * (p1.y);
+
+        // line p2 q2 represented as a2x + b2y = c2
+        const a2 = q2.y - p2.y;
+        const b2 = p2.x - q2.x;
+        const c2 = a2 * (p2.x) + b2 * (p2.y);
+
+        const determinant = a1 * b2 - a2 * b1;
+        if(determinant === 0) return null
+        else{
+            const x = (b2 * c1 - b1 * c2) / determinant;
+            const y = (a1 * c2 - a2 * c1) / determinant;
+            return new Point2D(x,y);
+        }
+    }
+
     intersectionPoints(p1: Point2D,q1: Point2D,p2: Point2D,q2: Point2D) : Point2D | null {
         // Find the four orientations needed for general and 
         //special cases
@@ -1048,13 +1076,9 @@ class Linear {
 
         // General Case
         if(o1 !== o2 && o3 !== o4){
-            const intersectionX = ( (p1.x * q1.y - p1.y * q1.x) * (p2.x - q2.x) - (p1.x - q1.x) * (p2.x * q2.y - p2.y * q2.x) ) /
-                                  ( (p1.x - q1.x) * (p2.y - q2.y) - (p1.y - q1.y) * (p2.x - q2.x));
-            
-            const intersectionY = ( (p1.x * q1.y - p1.y * q1.x) * (p2.y - q2.y) - (p1.y - q1.y) * (p2.x * q2.y - p2.y - q2.x) ) /
-                                  ( (p1.x - q1.x) * (p2.y - q2.y) - (p1.y - q1.y) * (p2.x - q2.x));
-                
-            return {x : intersectionX, y : intersectionY, r:1};
+            const intersection = this.lineLineIntersection(p1,q1,p2,q2);
+            if(!intersection) return null;
+            return intersection;
         }
         // Special Cases
         // p1,q1 and p2 are collinear and p2 lies on segment p1q1
@@ -1151,7 +1175,6 @@ class Linear {
         return q2;
     }
 
-
     lineSegmentIntersectsPlane(start : _3D_VEC_, end : _3D_VEC_, plane_normal : _3D_VEC_, plane_point : _3D_VEC_) : boolean | null{
         const direction = _Matrix.matAdd(end,start,true);
         const dotProduct = _Vector.dotProduct(direction, plane_normal);
@@ -1212,128 +1235,57 @@ class ViewSpace {
 const _ViewSpace = new ViewSpace();
 
 class Clip{
-    object : CreateMeshObject | null;
-    projection_type : _PROJ_TYPE_ | null;
-    constructor(){
-        this.object = null;
-        this.projection_type = null;
+    constructor(){ }
+
+    clip(object_vertices : _CAM_RENDERED_OBJ_) : _CAM_RENDERED_OBJ_ | null {  
+        const half_edges = object_vertices.object.mesh.HalfEdgeDict;
+        const [t,b,r,l] = [1,-1,1,-1];
+
+        const is_bounding_box_contained = this.checkBoundingBox(object_vertices,[t,b,r,l]);
+        if(!is_bounding_box_contained) return null;
+        
+        for(const half_edge in half_edges){
+            const [_a, _b] = half_edge.split("-");
+            const twin_half_edge = _b + "-" + _a;
+            const point_a = object_vertices.vertices[Number(_a)];
+            const point_b = object_vertices.vertices[Number(_b)];
+
+            const is_window_contained = this.isLineSegmentInsideWindow(point_a, point_b,[t,b,r,l]);
+            delete object_vertices.object.mesh.HalfEdgeDict[twin_half_edge];
+            if (!is_window_contained){
+                delete object_vertices.object.mesh.HalfEdgeDict[half_edge];
+            }
+        }
+
+        return object_vertices;
     }
 
-    initiate(_object : CreateMeshObject, _projection_type : _PROJ_TYPE_ | null){
-        this.object = _object;
-        this.projection_type = _projection_type;
+    checkBoundingBox(object_vertices : _CAM_RENDERED_OBJ_ ,[t,b,r,l] : number[]){
+        const [n, f] = [MODIFIED_PARAMS._MIN_Z, MODIFIED_PARAMS._MAX_Z];
+
+        const min_x = object_vertices.vertices[object_vertices.object.indices["minXIndex"]];
+        const max_x = object_vertices.vertices[object_vertices.object.indices["maxXIndex"]];
+        const min_y = object_vertices.vertices[object_vertices.object.indices["minYIndex"]];
+        const max_y = object_vertices.vertices[object_vertices.object.indices["maxYIndex"]];
+        const min_z = object_vertices.vertices[object_vertices.object.indices["minZIndex"]];
+        const max_z = object_vertices.vertices[object_vertices.object.indices["maxZIndex"]];
+
+        if (min_x[0] < l && max_x[0] < l || min_x[0] > r && max_x[0] > r) return false;
+        if (min_y[1] < b && max_y[1] < b || min_y[1] > t && max_y[1] > t) return false;
+        if (min_z[2] < n && max_z[2] < n || min_z[2] > f && max_z[2] > f) return false;
+
+        return true;
     }
 
-    isLineSegmentInsideFrustrum(start : _3D_VEC_, end : _3D_VEC_) : boolean {
-        if(start[2] < -1 && end[2] < -1 || start[2] > 1 && end[2] > 1) return false; // check n and f planes
-        const [t,b,r,l] = _Draw.frustrum_to_canvas(MODIFIED_PARAMS._T_B_R_L);
+    isLineSegmentInsideWindow(start : _4D_VEC_, end : _4D_VEC_,[t,b,r,l] : number[]) : boolean {
+        if(start[2] < MODIFIED_PARAMS._MIN_Z && end[2] < MODIFIED_PARAMS._MIN_Z || start[2] > MODIFIED_PARAMS._MAX_Z && end[2] > MODIFIED_PARAMS._MAX_Z) return false; // check n and f planes
         if(start[1] < b && end[1] < b || start[1] > t && end[1] > t) return false; // check t and b planes
         if(start[0] < l && end[0] < l || start[0] > r && end[0] > r) return false; // check l and r planes
         else return true;
     }
-
-    clip() : CreateMeshObject | null{        
-        if (!this.object) return null;
-        const half_edges = this.object.mesh.HalfEdgeDict;
-        const rendered_points = this.object.rendered_points_list;
-        
-        for(const half_edge in half_edges){
-            const [a, b] = half_edge.split("-");
-            const twin_half_edge = b + "-" + a;
-            const point_a = this.object.rendered_points_list[Number(a)];
-            const point_b = this.object.rendered_points_list[Number(b)];
-            if (!this.isLineSegmentInsideFrustrum(point_a, point_b)){
-                delete this.object.mesh.HalfEdgeDict[half_edge];
-                delete this.object.mesh.HalfEdgeDict[twin_half_edge];
-            }
-            if(half_edges[twin_half_edge]){}
-        }
-        return null;
-    }
-
-    liang_barsky(point_a : _3D_VEC_, point_b : _3D_VEC_,[t,b,r,l] : number[]){
-        let t_min = 0;
-        let t_max = 1;
-        const delta_x = point_b[0] - point_a[0];
-        const delta_y = point_b[1] - point_a[1];
-        const delta_z = point_b[2] - point_a[2];
-    }
-
-    check_window_edge(point_a : _3D_VEC_, point_b : _3D_VEC_, window_edge : _WINDOW_EDGE_,[t,b,r,l] : number[]){
-        let continue_update = true;
-        let update_t_max = true;
-        let edge = 0;
-        let m : Point2D | null = null;
-        let n : Point2D | null = null;
-        let p : Point2D | null = null;
-        let q : Point2D | null = null;
-
-        switch(window_edge){
-            case "top" :
-                edge = t;
-                if(point_a[1] > edge) update_t_max = false;
-                m = new Point2D(l,edge);
-                n = new Point2D(r,edge);
-                p = new Point2D(point_a[0], point_a[1]);
-                q = new Point2D(point_a[0], point_b[1]);
-                break;
-            case "bottom":
-                edge = b;
-                if(point_a[1] < edge) update_t_max = false;
-                m = new Point2D(l,edge);
-                n = new Point2D(r,edge);
-                p = new Point2D(point_a[0], point_a[1]);
-                q = new Point2D(point_a[0], point_b[1]);
-                break;
-            case "left" : 
-                edge = l;
-                if(point_a[0] < edge) update_t_max = false;
-                m = new Point2D(edge,t);
-                n = new Point2D(edge,b);
-                p = new Point2D(point_a[0], point_a[1]);
-                q = new Point2D(point_a[0], point_b[1]);
-                break;
-            case "right" :
-                edge = r;
-                if(point_a[0] > edge) update_t_max = false;
-                m = new Point2D(edge,t);
-                n = new Point2D(edge,b);
-                p = new Point2D(point_a[0], point_a[1]);
-                q = new Point2D(point_a[0], point_b[1]);
-                break;
-            case "near" : 
-                edge = MODIFIED_PARAMS._NZ;
-                if(point_a[1] < edge) update_t_max = false;
-                m = new Point2D(l,edge);
-                n = new Point2D(r,edge);
-                p = new Point2D(point_a[0], point_a[2]);
-                q = new Point2D(point_a[0], point_b[2]);
-                break;
-            case "far" : 
-                edge = MODIFIED_PARAMS._FZ;
-                if(point_a[1] > edge) update_t_max = false;
-                m = new Point2D(l,edge);
-                n = new Point2D(r,edge);
-                p = new Point2D(point_a[0], point_a[2]);
-                q = new Point2D(point_a[0], point_b[2]);
-                break;
-            default :
-                return null;
-        }
-
-        const line_1 = new Line(p,q);
-        const line_2 = new Line(m,n);
-
-        while(continue_update){
-            const res_up = _Linear.intersectionPoints(line_1.p, line_1.q, line_2.p, line_2.q)
-            if(res_up){
-                //
-            }
-            else continue_update = false;
-        }
-    }
-
 }
+
+const _Clip = new Clip();
 
 class Projection {
 
@@ -1378,9 +1330,6 @@ orthographicProjection(){
     const r = f * Math.tan(a_h/2) * MODIFIED_PARAMS._ASPECT_RATIO;
     const l = -r;
     MODIFIED_PARAMS._T_B_R_L = [t,b,r,l];
-
-    new Draw().drawProjBounds(MODIFIED_PARAMS._T_B_R_L,"red");
-
     MODIFIED_PARAMS._PROJECTION_MAT = [2/(r-l), 0, 0, 0, 0, 2/(t-b), 0, 0, 0, 0, -2/(f-n), 0, -(r+l)/(r-l), -(t+b)/(t-b), -(f+n)/(f-n), 1];
 }
 
@@ -1393,10 +1342,7 @@ perspectiveProjection() {
     const b = -t;
     const r = n * Math.tan(a_h/2) * MODIFIED_PARAMS._ASPECT_RATIO;
     const l = -r;
-    MODIFIED_PARAMS._T_B_R_L = [t,b,r,l];
-
-    new Draw().drawProjBounds(MODIFIED_PARAMS._T_B_R_L,"red");
-
+    MODIFIED_PARAMS._T_B_R_L = [t/n*f,b/n*f,r/n*f,l/n*f];
     MODIFIED_PARAMS._PROJECTION_MAT = [2*n/(r-l), 0, 0, 0, 0, 2*n/(t-b), 0, 0, (r+l)/(r-l), (t+b)/(t-b), -(f+n)/(f-n), -1, 0, 0, -2*f*n/(f-n), 0];
 }
 
@@ -1637,22 +1583,23 @@ class CameraObject extends Quarternion {
 class NDCSpace{
     constructor () {}
 
-    project(arr : _4D_VEC_ | undefined, projection_type : _PROJ_TYPE_) : _4D_VEC_ | undefined{
-        if(typeof arr === "undefined") return undefined;
+    project(arr : _4D_VEC_, projection_type : _PROJ_TYPE_) : _4D_VEC_{
         if(projection_type === "Orthographic") return _Matrix.matMult(arr,MODIFIED_PARAMS._PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
         else if(projection_type === "Perspective") {
             const proj = _Matrix.matMult(arr,MODIFIED_PARAMS._PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
             return _Matrix.scaMult(1/proj[3],proj,true) as _4D_VEC_;
         }
+        return arr;
     }
 
-    unProject(arr : _4D_VEC_, projection_type : _PROJ_TYPE_) : _4D_VEC_ | undefined{
+    unProject(arr : _4D_VEC_, projection_type : _PROJ_TYPE_) : _4D_VEC_ {
         if(projection_type === "Orthographic") return _Matrix.matMult(arr,MODIFIED_PARAMS._INV_PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;
         else if(projection_type === "Perspective")
         {
             const rev_proj_div: _4D_VEC_ = _Matrix.scaMult(arr[3],arr,true) as _4D_VEC_;
             return _Matrix.matMult(rev_proj_div,MODIFIED_PARAMS._INV_PROJECTION_MAT,[1,4],[4,4]) as _4D_VEC_;;
         }
+        return arr;
     }
 }
 
@@ -1772,40 +1719,16 @@ class CameraObjects extends ViewSpace {
             if(instance_number_input in this.selected_camera_instances) {
                 delete this.selected_camera_instances[instance_number_input];
             }
-        }  
+        }
     }
 
-    render(vertex: _3D_VEC_): _4D_VEC_ | undefined {
-        // MODIFIED_PARAMS._PROJ_TYPE = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]].instance._PROJ_TYPE;
-        // const camera = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]].instance._C;
-        // const lookat = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]].instance._LOOK_AT_POINT;
-
-        // console.log(vertex,"vertex")
-        // console.log("camera lookat point", this.camera_objects_array[0].isInBetween(camera, lookat, vertex))
-        // console.log("camera point lookat", this.camera_objects_array[0].isInBetween(camera, vertex, lookat))
-        // console.log("lookat camera point", this.camera_objects_array[0].isInBetween(lookat, camera, vertex))
-
-        // const isBehindCamera = this.camera_objects_array[this.selected_camera_instances[this.current_camera_instance]].isInBetween(lookat, camera, vertex);
-        // if (isBehindCamera) {console.log("vertex is behind camera"); return undefined;}
-
-        // console.log("vertex is not behind camera");
-
+    render(vertex: _3D_VEC_): _4D_VEC_ {
         const current_camera = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]];
         const world_to_camera_space :  _4D_VEC_ = current_camera.worldToCamera(vertex); 
-
-        // console.log(world_to_camera_space,"camera");
-
-        const proj_div : _4D_VEC_ | undefined = _NDCSpace.project(world_to_camera_space,current_camera.instance._PROJ_TYPE);
-        // console.log(proj_div,"projection space")
-
-        if(typeof proj_div === "undefined") return undefined;
-        const proj_div_to_canvas = this.NDCToCanvas(proj_div);
-        // console.log(proj_div_to_canvas, "canvas")
-
-        return proj_div_to_canvas;
+        const proj_div : _4D_VEC_ = _NDCSpace.project(world_to_camera_space,current_camera.instance._PROJ_TYPE);
+        return proj_div;
     }
 }
-
 
 /*
 Projection and CameraObjects classes are initiated in the app.ts/app.js file and used through this program as a single long-lived instance by composition;
