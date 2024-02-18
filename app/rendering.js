@@ -85,7 +85,7 @@ class CameraIndicator extends CreateSubMenuContent {
         const cam = document.createElement("p");
         cam.className = "camera";
         const instance = camera.instance.instance_number;
-        cam.id = `${instance}`;
+        cam.id = `camera-para_${instance}`;
         cam.textContent = "";
         cam.style.color = "#fff";
         cam.style.padding = "5px";
@@ -103,36 +103,33 @@ class CameraIndicator extends CreateSubMenuContent {
         }
         cam.addEventListener("click", () => { this.clickCamera(instance); });
         const projection_type = _CAMERA.camera_objects_array[index].instance._PROJ_TYPE;
-        const instance_number_input = Number(cam.id);
-        const svg_class_rm = new CreateSVG(cam_div, "20", "20", "svg_remove_" + instance, 6);
+        const svg_class_rm = new CreateSVG(cam_div, "20", "20", "svg-remove_" + instance, 6);
         svg_class_rm.svg.style.marginTop = "18px";
         svg_class_rm.svg.style.float = "right";
-        const remove = new CreateSVGDelete(svg_class_rm, "M 3 3, L 17 17", "M 3 17, L 17 3", _col, svg_objects_strokeWidth, _h_col);
-        remove.clickFunction(instance_number_input, this);
-        const svg_class_proj = new CreateSVG(cam_div, "20", "20", "svg_proj_" + instance, 6);
+        new CreateSVGDelete(svg_class_rm, "M 3 3, L 17 17", "M 3 17, L 17 3", _col, svg_objects_strokeWidth, _h_col);
+        const svg_class_proj = new CreateSVG(cam_div, "20", "20", "svg-proj_" + instance, 6);
         svg_class_proj.svg.style.marginTop = "18px";
         svg_class_proj.svg.style.float = "right";
         svg_class_proj.svg.style.marginRight = "2px";
-        let projection = undefined;
         if (projection_type === "Orthographic") {
-            projection = new CreateSVGCameraProjection(svg_class_proj, "M 7 2, L 18 2, L 18 12, L 7 12, Z", "M 2 8, L 13 8, L 13 18, L 2 18, Z", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
+            new CreateSVGCameraProjection(svg_class_proj, "M 7 2, L 18 2, L 18 12, L 7 12, Z", "M 2 8, L 13 8, L 13 18, L 2 18, Z", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         }
         else if (projection_type === "Perspective") {
-            projection = new CreateSVGCameraProjection(svg_class_proj, "M 9 3, L 17 3, L 17 10, L 9 10, Z", "M 1 8, L 13 8, L 13 19, L 1 19, Z", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
+            new CreateSVGCameraProjection(svg_class_proj, "M 9 3, L 17 3, L 17 10, L 9 10, Z", "M 1 8, L 13 8, L 13 19, L 1 19, Z", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         }
-        // if(typeof projection !== "undefined") projection.clickFunction(instance_number_input, projection_type, this);
-        const svg_class_cam_icon = new CreateSVG(cam_div, "20", "20", "svg_icon_" + instance, 1);
+        const svg_class_cam_icon = new CreateSVG(cam_div, "20", "20", "camera-icon_" + instance, 1);
         svg_class_cam_icon.svg.style.marginTop = "18px";
         svg_class_cam_icon.svg.style.float = "right";
         svg_class_cam_icon.svg.style.marginRight = "2px";
         svg_class_cam_icon.svg.style.display = "none";
-        const cam_icon = new CreateSVGCameraIcon(svg_class_cam_icon, svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
+        new CreateSVGCameraIcon(svg_class_cam_icon, svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
     }
     removeCamera(instance) {
         _CAMERA.deleteCameraObject(instance);
     }
-    changeProjType(instance, projection_type) {
+    toggleProjType(instance) {
         const index = _CAMERA.instance_number_to_list_map[instance];
+        const projection_type = _CAMERA.camera_objects_array[index].instance._PROJ_TYPE;
         if (projection_type === "Orthographic") {
             _CAMERA.camera_objects_array[index].instance._PROJ_TYPE = "Perspective";
         }

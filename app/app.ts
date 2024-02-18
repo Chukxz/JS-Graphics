@@ -462,13 +462,13 @@ const camera_ui_handler = () =>{
         if(main_menu_width >= accom_1){
             camera_elem.style.display = "block";
             camera_icon_elem.style.display = "none";
-            camera_elem.textContent = `Camera ${camera_elem.id}`;
+            camera_elem.textContent = `Camera ${camera_elem.id.split("_")[1]}`;
         }
 
         else if(main_menu_width < accom_1 && main_menu_width >= accom_2){
             camera_elem.style.display = "block";
             camera_icon_elem.style.display = "none";
-            camera_elem.textContent = `Cam ${camera_elem.id}`;
+            camera_elem.textContent = `Cam ${camera_elem.id.split("_")[1]}`;
         }
 
         else if(main_menu_width < accom_2) {
@@ -1697,10 +1697,8 @@ class BasicSettings {
     private pre_selected_vertices_array: [];
     private selected_vertices_array: [];
     private _last_active: HTMLLIElement;
-    last_id : string;
 
     constructor () {
-        this.last_id = "";
         this.setCanvas();
         const start_child = document.getElementById(start_nav) as HTMLLIElement;
         this.modifyState(start_child,true);
@@ -1739,7 +1737,8 @@ class BasicSettings {
 
         main_menu.addEventListener("click",(event)=>{
             const elem = event.target as Element;
-            const id = elem.id.split("_")[0];
+            const full_id = elem.id.split("_");
+            const id = full_id[0];
 
             if(id === "gen-proj"){
                 if(general_projection){
@@ -1757,6 +1756,34 @@ class BasicSettings {
                 if(camera_indicator) camera_indicator.showCameras();
             }
 
+            if(id === "svg-proj"){
+                if(camera_indicator){
+                    const instance = Number(full_id[1]);
+                    camera_indicator.toggleProjType(instance);
+                    camera_indicator.showCameras();
+
+                    const svg = document.getElementById(`svg-proj_${instance}_svg`);
+                    if(svg){
+                        console.log(svg.children);
+                    }
+                }
+            }
+
+            if(id === "svg-remove"){
+                if(camera_indicator){
+                    const instance = Number(full_id[1]);
+                    camera_indicator.removeCamera(instance);
+                    camera_indicator.showCameras();
+                }
+            }
+
+            if(id === "camera-icon" || id === "camera-para"){
+                if(camera_indicator){
+                    const instance = Number(full_id[1]);
+                    camera_indicator.clickCamera(instance);
+                }
+            }
+
             if(id === "undo"){}
 
             if(id === "redo"){}
@@ -1766,103 +1793,137 @@ class BasicSettings {
         main_menu.addEventListener("mouseover",(event)=>{
             const elem = event.target as Element;
             const id = elem.id.split("_")[0];
-            console.log(event.target,"******************",id); 
 
-            if(id === "gen-proj" && this.last_id !== "gen_proj"){
+            if(id === "gen-proj"){
                 if(general_projection){
-                    general_projection.tooltip_class.call_function_in();
-                    general_projection.start_event();
+                    if(!general_projection.hovered)
+                    {
+                        general_projection.tooltip_class.call_function_in();
+                        general_projection.start_event();
+                        general_projection.hovered = true;
+                    }
                 }
             }
 
-            if(id === "cross" && this.last_id !== "cross") {
+            if(id === "cross") {
                 if(cross_indicator) {
-                    cross_indicator.tooltip_class.call_function_in();
-                    cross_indicator.start_event();
+                    if(!cross_indicator.hovered)
+                    {
+                        cross_indicator.tooltip_class.call_function_in();
+                        cross_indicator.start_event();
+                        cross_indicator.hovered = true;
+                    }
                 }
             }
             
-            if(id === "undo" && this.last_id !== "undo"){
+            if(id === "undo"){
                 if(undo){
-                    undo.tooltip_class.call_function_in();
-                    undo.start_event();
+                    if(!undo.hovered)
+                    {
+                        undo.tooltip_class.call_function_in();
+                        undo.start_event();
+                        undo.hovered = true;
+                    }
+
                 }
             }
 
-            if(id === "redo" && this.last_id !== "redo"){
+            if(id === "redo"){
                 if(redo){
-                    redo.tooltip_class.call_function_in();
-                    redo.start_event();
+                    if(!redo.hovered)
+                    {
+                        redo.tooltip_class.call_function_in();
+                        redo.start_event();
+                        redo.hovered = true;
+                    }
                 }
             }
-
-            this.last_id = id;
         });
 
         main_menu.addEventListener("mouseout",(event)=>{
             const elem = event.target as Element;
             const id = elem.id.split("_")[0];
 
-            if(id === "gen-proj" && this.last_id !== "gen-proj"){
-                if(general_projection){
+            if(general_projection){
+                if(general_projection.hovered && id !== "gen-proj"){
+                    general_projection.hovered = false;
                     general_projection.tooltip_class.call_function_out();
                     general_projection.end_event();
                 }
             }
 
-            if(id === "cross" && this.last_id !== "cross") {
-                if(cross_indicator) {
+            if(cross_indicator){
+                if(cross_indicator.hovered && id !== "cross"){
+                    cross_indicator.hovered = false;
                     cross_indicator.tooltip_class.call_function_out();
                     cross_indicator.end_event();
                 }
             }
             
-            if(id === "undo" && this.last_id !== "undo"){
-                if(undo){
+            if(undo){
+                if(undo.hovered && id !== "undo"){
+                    undo.hovered = false;
                     undo.tooltip_class.call_function_out();
                     undo.end_event();
                 }
             }
 
-            if(id === "redo" && this.last_id !== "redo"){
-                if(redo){
+            if(redo){
+                if(redo.hovered && id !== "redo"){
+                    redo.hovered = false;
                     redo.tooltip_class.call_function_out();
                     redo.end_event();
                 }
-            }
-            
-            this.last_id = id;
+            }            
         });
         
         main_menu.addEventListener("touchstart",(event)=>{
             const elem = event.target as Element;
             const id = elem.id.split("_")[0];
+            console.log(event.target,"******************",id); 
 
             if(id === "gen-proj"){
                 if(general_projection){
-                    general_projection.tooltip_class.call_function_in();
-                    general_projection.start_event();
+                    if(!general_projection.hovered)
+                    {
+                        general_projection.tooltip_class.call_function_in();
+                        general_projection.start_event();
+                        general_projection.hovered = true;
+                    }
                 }
             }
 
             if(id === "cross") {
                 if(cross_indicator) {
-                    cross_indicator.tooltip_class.call_function_in();
-                    cross_indicator.start_event();
+                    if(!cross_indicator.hovered)
+                    {
+                        cross_indicator.tooltip_class.call_function_in();
+                        cross_indicator.start_event();
+                        cross_indicator.hovered = true;
+                    }
                 }
             }
             
             if(id === "undo"){
                 if(undo){
-                    undo.tooltip_class.call_function_in();
-                    undo.start_event();
+                    if(!undo.hovered)
+                    {
+                        undo.tooltip_class.call_function_in();
+                        undo.start_event();
+                        undo.hovered = true;
+                    }
+
                 }
             }
 
             if(id === "redo"){
                 if(redo){
-                    redo.tooltip_class.call_function_in();
-                    redo.start_event();
+                    if(!redo.hovered)
+                    {
+                        redo.tooltip_class.call_function_in();
+                        redo.start_event();
+                        redo.hovered = true;
+                    }
                 }
             }
 
@@ -1872,33 +1933,37 @@ class BasicSettings {
             const elem = event.target as Element;
             const id = elem.id.split("_")[0];
 
-            if(id === "gen-proj"){
-                if(general_projection){
+            if(general_projection){
+                if(general_projection.hovered && id !== "gen-proj"){
+                    general_projection.hovered = false;
                     general_projection.tooltip_class.call_function_out();
                     general_projection.end_event();
                 }
             }
 
-            if(id === "cross") {
-                if(cross_indicator) {
+            if(cross_indicator){
+                if(cross_indicator.hovered && id !== "cross"){
+                    cross_indicator.hovered = false;
                     cross_indicator.tooltip_class.call_function_out();
                     cross_indicator.end_event();
                 }
             }
             
-            if(id === "undo"){
-                if(undo){
+            if(undo){
+                if(undo.hovered && id !== "undo"){
+                    undo.hovered = false;
                     undo.tooltip_class.call_function_out();
                     undo.end_event();
                 }
             }
 
-            if(id === "redo"){
-                if(redo){
+            if(redo){
+                if(redo.hovered && id !== "redo"){
+                    redo.hovered = false;
                     redo.tooltip_class.call_function_out();
                     redo.end_event();
                 }
-            }
+            }        
 
         },{"passive":true});
     }
@@ -2001,7 +2066,7 @@ class CreateSVG {
 
         _svg.setAttribute("width",width);
         _svg.setAttribute("height",height);
-        _svg.id = `${id}_svg_`;
+        _svg.id = `${id}_svg`;
 
         container.appendChild(_svg);
     }
@@ -2063,7 +2128,7 @@ class CreateSVGPath {
         _path.setAttribute("stroke",stroke);
         _path.setAttribute("stroke-width",strokeWidth);
         _path.setAttribute("fill",fill);
-        _path.id = `${svg_class.svg.id}${svg_class.svg.childElementCount}`;
+        _path.id = `${svg_class.svg.id}_${svg_class.svg.childElementCount}`;
         this.path = _path;
 
         if(svg_class.svg.childElementCount < svg_class.max_child_elem_count) svg_class.svg.appendChild(this.path);
@@ -2071,12 +2136,12 @@ class CreateSVGPath {
 
     event_in(){
         if(this.hover_fill_) this.path.setAttribute("fill",this.hover_color_);
-        else this.path.setAttribute("stroke",this.hover_color_);
+        this.path.setAttribute("stroke",this.hover_color_);
     }
 
     event_out(){
         if(this.hover_fill_) this.path.setAttribute("fill",this.fill_);
-        else this.path.setAttribute("stroke",this.stroke_);
+        this.path.setAttribute("stroke",this.stroke_);
     }
 }
 
@@ -2091,6 +2156,7 @@ class CreateSVGLine {
         const _line = document.createElementNS(svg_class.svg_ns,"line");
         this.line_ns = svg_class.svg_ns;
         this.svg_class_ = svg_class;
+        this.stroke_ = stroke;
         this.hover_color_ = hover_color;
 
         _line.setAttribute("x1",x1);
@@ -2099,7 +2165,7 @@ class CreateSVGLine {
         _line.setAttribute("y2",y2);
         _line.setAttribute("stroke",stroke);
         _line.setAttribute("stroke-width",strokeWidth);
-        _line.id = `${svg_class.svg.id}${svg_class.svg.childElementCount}`;
+        _line.id = `${svg_class.svg.id}_${svg_class.svg.childElementCount}`;
         this.line = _line;
 
         if(svg_class.svg.childElementCount < svg_class.max_child_elem_count) svg_class.svg.appendChild(_line);
@@ -2138,7 +2204,7 @@ class CreateSVGCircle {
         _circle.setAttribute("stroke",stroke);
         _circle.setAttribute("stroke-width",strokeWidth);
         _circle.setAttribute("fill",fill);
-        _circle.id = `${svg_class.svg.id}${svg_class.svg.childElementCount}`;
+        _circle.id = `${svg_class.svg.id}_${svg_class.svg.childElementCount}`;
         this.circle = _circle;
 
 
@@ -2147,12 +2213,12 @@ class CreateSVGCircle {
 
     event_in(){
         if(this.hover_fill_) this.circle.setAttribute("fill",this.hover_color_);
-        else this.circle.setAttribute("stroke",this.hover_color_);
+        this.circle.setAttribute("stroke",this.hover_color_);
     }
 
     event_out(){
         if(this.hover_fill_) this.circle.setAttribute("fill",this.fill_);
-        else this.circle.setAttribute("stroke",this.stroke_);
+        this.circle.setAttribute("stroke",this.stroke_);
     }
 }
 
@@ -2181,7 +2247,7 @@ class CreateSVGEllipse {
         _ellipse.setAttribute("stroke",stroke);
         _ellipse.setAttribute("stroke-width",strokeWidth);
         _ellipse.setAttribute("fill",fill);
-        _ellipse.id = `${svg_class.svg.id}${svg_class.svg.childElementCount}`;
+        _ellipse.id = `${svg_class.svg.id}_${svg_class.svg.childElementCount}`;
         this.ellipse = _ellipse;
 
 
@@ -2190,12 +2256,12 @@ class CreateSVGEllipse {
 
     event_in(){
         if(this.hover_fill_) this.ellipse.setAttribute("fill",this.hover_color_);
-        else this.ellipse.setAttribute("stroke",this.hover_color_);
+        this.ellipse.setAttribute("stroke",this.hover_color_);
     }
 
     event_out(){
         if(this.hover_fill_) this.ellipse.setAttribute("fill",this.fill_);
-        else this.ellipse.setAttribute("stroke",this.stroke_);
+        this.ellipse.setAttribute("stroke",this.stroke_);
     }
 }
 
@@ -2228,13 +2294,6 @@ class CreateSVGDelete {
         this.svg_class_ = svg_class;
         this.path_1 = new CreateSVGPath(svg_class, d_1, stroke, strokeWidth, hover_color, fill, hover_fill);
         this.path_2 = new CreateSVGPath(svg_class, d_2, stroke, strokeWidth, hover_color, fill, hover_fill)
-    }
-
-    clickFunction(instance : number,self : CameraIndicator) {
-        // this.svg_class_.svg.addEventListener("click",()=>{
-        //     self.removeCamera(instance);
-        //     self.showCameras();
-        // });
     }
 }
 
@@ -2322,13 +2381,6 @@ class CreateSVGCameraProjection{
         this.path_1.event_out();
         this.path_2.event_out();
     }
-    
-    // clickFunction(instance : number,projection_type : _PROJ_TYPE_,self : CameraIndicator) {
-    //     this.svg_class_.svg.addEventListener("click",()=>{
-    //         self.changeProjType(instance, projection_type);
-    //         self.showCameras();
-    //     });
-    // }
 
     remove(){
         this.svg_class_.svg.removeChild(this.path_1.path);
@@ -2345,6 +2397,7 @@ class SVG_Indicator {
     tooltip_class: CreateToolTip;
     svg_container: HTMLDivElement;
     tooltip_container: HTMLDivElement;
+    hovered : boolean;
 
     constructor (container: HTMLDivElement,id :string, max_child_elem_count: number,tooltip_text = "Generic",respect_animate = true) {
         const sub_container = document.createElement("div");
@@ -2354,6 +2407,7 @@ class SVG_Indicator {
         this.tooltip_class = new CreateToolTip(container,sub_container,tooltip_text,5,100,respect_animate);
         this.svg_container = sub_container;
         this.tooltip_container = container;
+        this.hovered = false;
     }
 }
 
