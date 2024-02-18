@@ -1,18 +1,17 @@
 window.parent.addEventListener("message",(e) => { if(e.data === "Rendering") render(); });
 
+let general_projection : CreateCameraProjection_SVG_Indicator | null = null;
+let cross_indicator : CreateCross_SVG_Indicator | null = null;
+let undo : CreateUndo_SVG_Indicator | null = null;
+let redo : CreateRedo_SVG_Indicator | null = null;
+let camera_indicator : CameraIndicator | null = null;
+
 function render() {
     while(main_menu.firstChild)main_menu.removeChild(main_menu.firstChild);
     create_main_menu_divider = true;
-
-    const svg_class_proj = new CreateSVG(main_menu, "20","20",6);
-    svg_class_proj.svg.style.marginTop = "18px";
-    svg_class_proj.svg.style.float = "right";
-    svg_class_proj.svg.style.marginRight = "5px";
-    
-    const general_projection = new CreateCameraProjection_SVG_Indicator(main_menu);
-    general_projection.clickFunction();
-
-    const cross_indicator = new CreateCross_SVG_Indicator(main_menu,"Add Camera");
+  
+    general_projection = new CreateCameraProjection_SVG_Indicator(main_menu,"gen-proj");
+    cross_indicator = new CreateCross_SVG_Indicator(main_menu,"cross","Add Camera",);
 
     const menu_header = document.createElement("p");
     menu_header.className = "custom_menu_header with_cross_hairs";
@@ -24,46 +23,31 @@ function render() {
     overall_camera_div.id = "overall_camera_div";
     overall_camera_div.className = "container_div";
     overall_camera_div.style.zIndex = "inherit";
+    
     if(svg_main_menu_divider_top < 0) svg_main_menu_divider_top = main_menu_height + svg_main_menu_divider_top;
-    console.log(svg_main_menu_divider_top)
     root.style.setProperty("--container-div-height",`${svg_main_menu_divider_top - 80}px`);
     overall_camera_div.style.overflowX = "hidden";
     overall_camera_div.style.overflowY = "auto";
     main_menu.appendChild(overall_camera_div);
 
     sub_menu = new CreateSubMenu().submenu;
+    undo = new CreateUndo_SVG_Indicator(sub_menu, "undo", "Undo","left_2px","top_0px","right")
+    redo = new CreateRedo_SVG_Indicator(sub_menu, "redo", "Redo", "right_2px","top_0px", "left");
+    camera_indicator = new CameraIndicator(overall_camera_div, sub_menu);    
 
-    const undo = new CreateUndo_SVG_Indicator(sub_menu, "Undo","left_2px","top_0px","right")
-    const redo = new CreateRedo_SVG_Indicator(sub_menu, "Redo", "right_2px","top_0px", "left");
-
-    const camera_indicator = new CameraIndicator(overall_camera_div, sub_menu);    
-
-    const crossClick = () => {
-        _CAMERA.createNewCameraObject();
-        camera_indicator.showCameras();
-    }
-
-    cross_indicator.clickFunction(crossClick);
-
-    basicDrawFunction()
+    basicDrawFunction();
 }
 
 class CreateSubMenuContent{
-    instance_para : HTMLParagraphElement;
     sub_menu_container : HTMLDivElement;
+    input_form : CreateForm;
 
     constructor(container : HTMLDivElement){
         this.sub_menu_container = document.createElement("div");
         this.sub_menu_container.style.margin = "40px 0 0 10px";
         container.appendChild(this.sub_menu_container);
 
-        this.instance_para = document.createElement("p");
-        this.sub_menu_container.appendChild(this.instance_para);
-    }
-
-    refreshInstance(instance : number){
-        this.instance_para.innerHTML = `Current Camera Instance : ${instance}`;
-        _CAMERA.current_camera_instance = instance;
+        this.input_form = new CreateForm(container, main_menu_width);
     }
 }
 
@@ -71,12 +55,22 @@ class CameraIndicator extends CreateSubMenuContent {
     camera_objects: CameraObject[];
     camera_container: HTMLDivElement;
     menu_container : HTMLDivElement;
+    instance_para : HTMLParagraphElement;
+    look_at_pos : CreateXYZInputField;
+    cam_pos : CreateXYZInputField;
 
     constructor (container: HTMLDivElement, menu_container : HTMLDivElement) {
         super(menu_container);
         this.camera_container = container;
-        this.menu_container = container;
+        this.menu_container = menu_container;
+        this.instance_para = document.createElement("p");
+        this.sub_menu_container.appendChild(this.instance_para);
         this.showCameras();
+    }
+
+    refreshInstance(instance : number){
+        this.instance_para.innerHTML = `Camera : ${instance}`;
+        _CAMERA.current_camera_instance = instance;
     }
 
     showCameras() {
@@ -94,6 +88,7 @@ class CameraIndicator extends CreateSubMenuContent {
 
         camera_ui_handler();
         this.refreshInstance(_CAMERA.current_camera_instance);
+        
         //this.svg_class.svg.addEventListener("click", (()=>console.log(tooltip_text)))
     }
 
@@ -129,13 +124,13 @@ class CameraIndicator extends CreateSubMenuContent {
         const projection_type : _PROJ_TYPE_ = _CAMERA.camera_objects_array[index].instance._PROJ_TYPE;
         const instance_number_input = Number(cam.id);
 
-        const svg_class_rm = new CreateSVG(cam_div, "20","20",6);
+        const svg_class_rm = new CreateSVG(cam_div, "20","20","svg_remove_"+instance,6);
         svg_class_rm.svg.style.marginTop = "18px";
         svg_class_rm.svg.style.float = "right";
         const remove = new CreateSVGDelete(svg_class_rm, "M 3 3, L 17 17", "M 3 17, L 17 3", _col, svg_objects_strokeWidth, _h_col);
         remove.clickFunction(instance_number_input,this);
 
-        const svg_class_proj = new CreateSVG(cam_div, "20","20",6);
+        const svg_class_proj = new CreateSVG(cam_div, "20","20","svg_proj_"+instance,6);
         svg_class_proj.svg.style.marginTop = "18px";
         svg_class_proj.svg.style.float = "right";
         svg_class_proj.svg.style.marginRight = "2px";
@@ -148,14 +143,14 @@ class CameraIndicator extends CreateSubMenuContent {
             projection = new CreateSVGCameraProjection(svg_class_proj,"M 9 3, L 17 3, L 17 10, L 9 10, Z","M 1 8, L 13 8, L 13 19, L 1 19, Z",svg_objects_color,svg_objects_strokeWidth,svg_hover_color);
         }
 
-        if(typeof projection !== "undefined") projection.clickFunction(instance_number_input, projection_type, this);
+        // if(typeof projection !== "undefined") projection.clickFunction(instance_number_input, projection_type, this);
 
-        const svg_class_cam_icon = new CreateSVG(cam_div, "20","20",1);
+        const svg_class_cam_icon = new CreateSVG(cam_div, "20","20","svg_icon_"+instance,1);
         svg_class_cam_icon.svg.style.marginTop = "18px";
         svg_class_cam_icon.svg.style.float = "right";
         svg_class_cam_icon.svg.style.marginRight = "2px";
         svg_class_cam_icon.svg.style.display = "none";
-        const cam_icon = new CreateSVGCameraIcon(svg_class_cam_icon,svg_objects_color,svg_objects_strokeWidth,svg_hover_color)
+        const cam_icon = new CreateSVGCameraIcon(svg_class_cam_icon,svg_objects_color,svg_objects_strokeWidth,svg_hover_color);
     }
 
     removeCamera(instance : number){
@@ -246,7 +241,6 @@ class Draw {
 
         ctx.arc(point.x,point.y,3,0,2 * Math.PI);
         ctx.fillStyle = _fillStyle;
-
         ctx.stroke();
         ctx.fill();
         ctx.closePath();
@@ -261,7 +255,6 @@ class Draw {
 
         ctx.arc(vertex[0],vertex[1],3,0,2 * Math.PI);
         ctx.fillStyle = _fillStyle;
-
         ctx.stroke();
         ctx.fill();
         ctx.closePath();

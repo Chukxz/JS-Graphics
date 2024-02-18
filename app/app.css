@@ -173,24 +173,24 @@ canvas {
     content: " ";
     position: absolute;
     top: 50%;
-    right: 100%;
-    /* To the left of the tooltip */
-    margin-top: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: transparent black transparent transparent;
-}
-
-.tooltiptext_right::after {
-    content: " ";
-    position: absolute;
-    top: 50%;
     left: 100%;
     /* To the right of the tooltip */
     margin-top: -5px;
     border-width: 5px;
     border-style: solid;
     border-color: transparent transparent transparent black;
+}
+
+.tooltiptext_right::after {
+    content: " ";
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    /* To the left of the tooltip */
+    margin-top: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent black transparent transparent;
 }
 
 #hoveredColor {
@@ -310,4 +310,20 @@ canvas {
     border-bottom-left-radius: 8px;
     border-bottom-right-radius: 8px;
     /* box-shadow: 0 4px 6px 2px #111111cc; */
+}
+
+.sub_menu_label {
+    width: var(--custom-sub-menu-label-width);
+}
+
+.sub_menu_input {
+    width: var(--custom-sub-menu-input-width);
+}
+
+.sub_menu_xyz_para {
+    width: var(--custom-sub-menu-xyz-para-width);
+}
+
+.sub_menu_xyz_input {
+    width: var(--custom-sub-menu-xyz-input-width);
 }

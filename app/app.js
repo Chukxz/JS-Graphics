@@ -34,7 +34,6 @@ const svg_hover_color = "#ccc";
 const svg_objects_strokeWidth = "2";
 const svg_del_color = "#eee";
 const nav_height = Number(window.getComputedStyle(nav).height.split("px")[0]);
-console.log(nav_height);
 var main_menu_width = 0;
 var main_menu_height = 0;
 var isTouchDevice = "ontouchstart" in window;
@@ -44,16 +43,16 @@ var sub_menu = undefined;
 var create_main_menu_divider = false;
 let svg_main_menu_divider = undefined;
 let svg_main_menu_divider_line_drag = undefined;
-let svg_main_menu_divider_top = -100;
+let svg_main_menu_divider_top = Math.min(-100, -window.innerHeight / 3);
 var Nav_list;
 (function (Nav_list) {
-    Nav_list[Nav_list["Editing"] = 0] = "Editing";
-    Nav_list[Nav_list["Animation"] = 1] = "Animation";
-    Nav_list[Nav_list["Sculpting"] = 2] = "Sculpting";
-    Nav_list[Nav_list["Lighting"] = 3] = "Lighting";
-    Nav_list[Nav_list["Rendering"] = 4] = "Rendering";
+    Nav_list["Editing"] = "Editing";
+    Nav_list["Animation"] = "Animation";
+    Nav_list["Sculpting"] = "Sculpting";
+    Nav_list["Lighting"] = "Lighting";
+    Nav_list["Rendering"] = "Rendering";
 })(Nav_list || (Nav_list = {}));
-const start_nav = Nav_list.Editing;
+const start_nav = Nav_list.Rendering;
 var Handedness;
 (function (Handedness) {
     Handedness[Handedness["left"] = 1] = "left";
@@ -220,13 +219,11 @@ const camera_ui_handler = () => {
         if (main_menu_width >= accom_1) {
             camera_elem.style.display = "block";
             camera_icon_elem.style.display = "none";
-            const camera_object = _CAMERA.camera_objects_array[Number(camera_elem.id)];
             camera_elem.textContent = `Camera ${camera_elem.id}`;
         }
         else if (main_menu_width < accom_1 && main_menu_width >= accom_2) {
             camera_elem.style.display = "block";
             camera_icon_elem.style.display = "none";
-            const camera_object = _CAMERA.camera_objects_array[Number(camera_elem.id)];
             camera_elem.textContent = `Cam ${camera_elem.id}`;
         }
         else if (main_menu_width < accom_2) {
@@ -284,15 +281,21 @@ const basicDrawFunction = (set_last_canvas_width = true) => {
         else
             elem.style.visibility = "visible";
     }
+    camera_ui_handler();
+    // const l_width = Math.min(Math.max((main_menu_width - 40) / 2, 30),200);
+    // root.style.setProperty("--custom-sub-menu-label-width",`${l_width}px`);
+    // root.style.setProperty("--custom-sub-menu-input-width",`${main_menu_width - 40 - l_width}px`);
+    const l_xyz_width = Math.min(Math.max((main_menu_width - 40) / 3, 20), 150);
+    root.style.setProperty("--custom-sub-menu-xyz-para-width", `${l_xyz_width}px`);
+    root.style.setProperty("--custom-sub-menu-xyz-input-width", `${(main_menu_width - 70 - l_xyz_width) / 3}px`);
     if (create_main_menu_divider === true) {
-        svg_main_menu_divider = new CreateSVG(main_menu, `${main_menu_width - 2 * main_menu_border_width}`, "10");
+        svg_main_menu_divider = new CreateSVG(main_menu, `${main_menu_width - 2 * main_menu_border_width}`, "10", "main_menu_divider_", 1);
         create_main_menu_divider = false;
     }
-    camera_ui_handler();
     if (typeof svg_main_menu_divider === "undefined")
         return;
     svg_main_menu_divider.remove();
-    svg_main_menu_divider.init(main_menu, `${main_menu_width - 2 * main_menu_border_width}`, "10");
+    svg_main_menu_divider.init(main_menu, `${main_menu_width - 2 * main_menu_border_width}`, "10", "main_menu_divider_", 1);
     svg_main_menu_divider.svg.style.position = "absolute";
     svg_main_menu_divider_line_drag = new CreateSVGLineDrag(svg_main_menu_divider, "0", "0", `${main_menu_width - 2 * main_menu_border_width}`, `0`, svg_vert_bar_color, "14", svg_hover_color);
     svg_main_menu_divider_line_drag.dragFunction(main_menu_divider_drag_function);
@@ -1331,67 +1334,188 @@ class BasicSettings {
     pre_selected_vertices_array;
     selected_vertices_array;
     _last_active;
+    last_id;
     constructor() {
-        // (drop as HTMLElement).style.top = `${-(drop as HTMLElement).offsetTop + canvas.offsetTop}px`;
+        this.last_id = "";
         this.setCanvas();
-        this.displayMouseTouchEvent();
-        // drop.onclick = function () {
-        //     if(drop_v === true) {
-        //         drop_content.style.display = "none";
-        //         drop_v = false;
-        //     }
-        //     else if(drop_v === false) {
-        //         drop_content.style.display = "inline-block";
-        //         drop_v = true;
-        //     }
-        // }
-        // drop.addEventListener("mouseover",() => { if(drop_v === false) drop_content.style.display = "inline-block" });
-        // drop.addEventListener("mouseout",() => { if(drop_v === false) drop_content.style.display = "none" });
-        // drop_content.addEventListener("click",(ev) => {
-        //     ev.stopPropagation();
-        // });
-        // canvas.addEventListener("click",() => {
-        //     if(drop_v === true) {
-        //         drop_content.style.display = "none";
-        //         drop_v = false;
-        //     }
-        // });
-        var numero = 0;
-        for (let child of main_nav.children) {
-            const _child = document.getElementById(child.id);
-            if (_child.id !== TouchMouseEventId) {
-                if (numero === start_nav)
-                    this.modifyState(child.id, _child, true);
-                _child.addEventListener("mouseenter", () => { this.hoverState(child.id, _child); });
-                _child.addEventListener("mouseout", () => { this.unhoverState(child.id, _child); });
-                _child.addEventListener("click", () => { this.modifyState(child.id, _child); });
-            }
-            else
-                _child.addEventListener("click", () => this.toggleMouseTouchEvent());
-            numero++;
-        }
-    }
-    toggleMouseTouchEvent() {
-        if (isTouchDeviceToggleable) {
-            const elem = document.getElementById(TouchMouseEventId);
-            elem.style.backgroundColor = elem_active_col;
-            if (isTouchDevice === true) {
-                isTouchDevice = false;
-                setTimeout((() => {
-                    elem.style.backgroundColor = elem_col;
-                }), 500);
-            }
-            else {
-                isTouchDevice = true;
-                setTimeout((() => {
-                    elem.style.backgroundColor = elem_col;
-                }), 500);
-            }
-            this.displayMouseTouchEvent();
-        }
-    }
-    displayMouseTouchEvent() {
+        const start_child = document.getElementById(start_nav);
+        this.modifyState(start_child, true);
         const elem = document.getElementById(TouchMouseEventId);
+        this.displayMouseTouchEvent(elem);
+        main_nav.addEventListener("click", (event) => {
+            const child = event.target;
+            if (child.id !== TouchMouseEventId && child.id !== main_nav.id) {
+                this.modifyState(child);
+                event.stopPropagation();
+            }
+            if (child.id === TouchMouseEventId && child.id !== main_nav.id) {
+                if (isTouchDeviceToggleable)
+                    isTouchDevice = !isTouchDevice;
+                this.displayMouseTouchEvent(child);
+                event.stopPropagation();
+            }
+        });
+        main_nav.addEventListener("mouseover", (event) => {
+            const child = event.target;
+            if (child.id !== TouchMouseEventId && child.id !== main_nav.id) {
+                this.hoverState(child);
+                event.stopPropagation();
+            }
+        });
+        main_nav.addEventListener("mouseout", (event) => {
+            const child = event.target;
+            if (child.id !== TouchMouseEventId && child.id !== main_nav.id) {
+                this.unhoverState(child);
+                event.stopPropagation();
+            }
+        });
+        main_menu.addEventListener("click", (event) => {
+            const elem = event.target;
+            const id = elem.id.split("_")[0];
+            if (id === "gen-proj") {
+                if (general_projection) {
+                    if (typeof general_projection.projection === "undefined")
+                        return;
+                    general_projection.remove();
+                    if (MODIFIED_PARAMS._PROJ_TYPE === "Orthographic")
+                        MODIFIED_PARAMS._PROJ_TYPE = "Perspective";
+                    else if (MODIFIED_PARAMS._PROJ_TYPE === "Perspective")
+                        MODIFIED_PARAMS._PROJ_TYPE = "Orthographic";
+                    general_projection.loadCameraIcon();
+                }
+            }
+            if (id === "cross") {
+                _CAMERA.createNewCameraObject();
+                if (camera_indicator)
+                    camera_indicator.showCameras();
+            }
+            if (id === "undo") { }
+            if (id === "redo") { }
+            console.log(event.target, "******************", id);
+        });
+        main_menu.addEventListener("mouseover", (event) => {
+            const elem = event.target;
+            const id = elem.id.split("_")[0];
+            console.log(event.target, "******************", id);
+            if (id === "gen-proj" && this.last_id !== "gen_proj") {
+                if (general_projection) {
+                    general_projection.tooltip_class.call_function_in();
+                    general_projection.start_event();
+                }
+                this.last_id = "gen-proj";
+            }
+            if (id === "cross" && this.last_id !== "cross") {
+                if (cross_indicator) {
+                    cross_indicator.tooltip_class.call_function_in();
+                    cross_indicator.start_event();
+                }
+                this.last_id = "cross";
+            }
+            if (id === "undo" && this.last_id !== "undo") {
+                if (undo) {
+                    undo.tooltip_class.call_function_in();
+                    undo.start_event();
+                }
+                this.last_id = "undo";
+            }
+            if (id === "redo" && this.last_id !== "redo") {
+                if (redo) {
+                    redo.tooltip_class.call_function_in();
+                    redo.start_event();
+                }
+                this.last_id = "redo";
+            }
+        });
+        main_menu.addEventListener("mouseout", (event) => {
+            const elem = event.target;
+            const id = elem.id.split("_")[0];
+            if (id === "gen-proj" && this.last_id !== "gen-proj") {
+                if (general_projection) {
+                    general_projection.tooltip_class.call_function_out();
+                    general_projection.end_event();
+                }
+                this.last_id = "gen-proj";
+            }
+            if (id === "cross" && this.last_id !== "cross") {
+                if (cross_indicator) {
+                    cross_indicator.tooltip_class.call_function_out();
+                    cross_indicator.end_event();
+                }
+                this.last_id = "cross";
+            }
+            if (id === "undo" && this.last_id !== "undo") {
+                if (undo) {
+                    undo.tooltip_class.call_function_out();
+                    undo.end_event();
+                }
+                this.last_id = "redo";
+            }
+            if (id === "redo" && this.last_id !== "redo") {
+                if (redo) {
+                    redo.tooltip_class.call_function_out();
+                    redo.end_event();
+                }
+                this.last_id = "redo";
+            }
+        });
+        main_menu.addEventListener("touchstart", (event) => {
+            const elem = event.target;
+            const id = elem.id.split("_")[0];
+            if (id === "gen-proj") {
+                if (general_projection) {
+                    general_projection.tooltip_class.call_function_in();
+                    general_projection.start_event();
+                }
+            }
+            if (id === "cross") {
+                if (cross_indicator) {
+                    cross_indicator.tooltip_class.call_function_in();
+                    cross_indicator.start_event();
+                }
+            }
+            if (id === "undo") {
+                if (undo) {
+                    undo.tooltip_class.call_function_in();
+                    undo.start_event();
+                }
+            }
+            if (id === "redo") {
+                if (redo) {
+                    redo.tooltip_class.call_function_in();
+                    redo.start_event();
+                }
+            }
+        }, { "passive": true });
+        main_menu.addEventListener("touchend", (event) => {
+            const elem = event.target;
+            const id = elem.id.split("_")[0];
+            if (id === "gen-proj") {
+                if (general_projection) {
+                    general_projection.tooltip_class.call_function_out();
+                    general_projection.end_event();
+                }
+            }
+            if (id === "cross") {
+                if (cross_indicator) {
+                    cross_indicator.tooltip_class.call_function_out();
+                    cross_indicator.end_event();
+                }
+            }
+            if (id === "undo") {
+                if (undo) {
+                    undo.tooltip_class.call_function_out();
+                    undo.end_event();
+                }
+            }
+            if (id === "redo") {
+                if (redo) {
+                    redo.tooltip_class.call_function_out();
+                    redo.end_event();
+                }
+            }
+        }, { "passive": true });
+    }
+    displayMouseTouchEvent(elem) {
         if (isTouchDevice === true)
             elem.innerHTML = "Touch";
         else
@@ -1441,24 +1565,30 @@ class BasicSettings {
         else
             return 1; // rad to rad
     }
-    unhoverState(value, elem) {
-        if (value !== MODIFIED_PARAMS._ACTIVE) {
+    unhoverState(elem) {
+        if (elem.id === main_nav.id)
+            return;
+        if (elem.id !== MODIFIED_PARAMS._ACTIVE) {
             elem.style.backgroundColor = elem_col;
         }
     }
-    hoverState(value, elem) {
-        if (value !== MODIFIED_PARAMS._ACTIVE) {
+    hoverState(elem) {
+        if (elem.id === main_nav.id)
+            return;
+        if (elem.id !== MODIFIED_PARAMS._ACTIVE) {
             elem.style.backgroundColor = elem_hover_col;
         }
     }
-    modifyState(value, elem, first = false) {
-        if (value !== MODIFIED_PARAMS._ACTIVE) {
-            MODIFIED_PARAMS._ACTIVE = value;
+    modifyState(elem, first = false) {
+        if (elem.id === main_nav.id)
+            return;
+        if (elem.id !== MODIFIED_PARAMS._ACTIVE) {
+            MODIFIED_PARAMS._ACTIVE = elem.id;
             elem.style.backgroundColor = elem_active_col;
             if (first === false)
                 this._last_active.style.backgroundColor = elem_col;
             this._last_active = elem;
-            sendMessage(value);
+            sendMessage(elem.id);
         }
     }
 }
@@ -1467,10 +1597,10 @@ class CreateSVG {
     svg_ns;
     max_child_elem_count;
     container_;
-    constructor(container, width, height, max_child_element_count = 1) {
-        this.init(container, width, height, max_child_element_count);
+    constructor(container, width, height, id, max_child_element_count = 1) {
+        this.init(container, width, height, id, max_child_element_count);
     }
-    init(container, width, height, max_child_element_count = 1) {
+    init(container, width, height, id, max_child_element_count = 1) {
         const svgNS = "http://www.w3.org/2000/svg";
         const _svg = document.createElementNS(svgNS, "svg");
         this.svg = _svg;
@@ -1479,11 +1609,16 @@ class CreateSVG {
         this.container_ = container;
         _svg.setAttribute("width", width);
         _svg.setAttribute("height", height);
+        _svg.id = `${id}_svg_`;
         container.appendChild(_svg);
     }
     remove() {
         this.container_.removeChild(this.svg);
     }
+    event_in() { }
+    ;
+    event_out() { }
+    ;
 }
 class CreateSVGHelper {
     constructor() { }
@@ -1521,7 +1656,6 @@ class CreateSVGPath {
     hover_fill_;
     constructor(svg_class, d, stroke, strokeWidth, hover_color, fill = "none", hover_fill = false) {
         const _path = document.createElementNS(svg_class.svg_ns, "path");
-        this.path = _path;
         this.path_ns = svg_class.svg_ns;
         this.svg_class_ = svg_class;
         this.stroke_ = stroke;
@@ -1532,27 +1666,22 @@ class CreateSVGPath {
         _path.setAttribute("stroke", stroke);
         _path.setAttribute("stroke-width", strokeWidth);
         _path.setAttribute("fill", fill);
-        if (svg_class.svg.childElementCount < svg_class.max_child_elem_count) {
-            svg_class.svg.appendChild(_path);
-            svg_class.svg.addEventListener("mousemove", () => { if (!isTouchDevice)
-                _path.setAttribute("stroke", hover_color); });
-            svg_class.svg.addEventListener("mouseout", () => { if (!isTouchDevice)
-                _path.setAttribute("stroke", stroke); });
-            svg_class.svg.addEventListener("touchstart", () => { if (isTouchDevice)
-                _path.setAttribute("stroke", hover_color); }, { "passive": true });
-            svg_class.svg.addEventListener("touchend", () => { if (isTouchDevice)
-                _path.setAttribute("stroke", stroke); }, { "passive": true });
-            if (hover_fill)
-                svg_class.svg.addEventListener("mousemove", () => { if (!isTouchDevice)
-                    _path.setAttribute("fill", hover_color); });
-            svg_class.svg.addEventListener("mouseout", () => { if (!isTouchDevice)
-                _path.setAttribute("fill", fill); });
-            if (hover_fill)
-                svg_class.svg.addEventListener("touchstart", () => { if (isTouchDevice)
-                    _path.setAttribute("fill", hover_color); }, { "passive": true });
-            svg_class.svg.addEventListener("touchend", () => { if (isTouchDevice)
-                _path.setAttribute("fill", fill); }, { "passive": true });
-        }
+        _path.id = `${svg_class.svg.id}${svg_class.svg.childElementCount}`;
+        this.path = _path;
+        if (svg_class.svg.childElementCount < svg_class.max_child_elem_count)
+            svg_class.svg.appendChild(this.path);
+    }
+    event_in() {
+        if (this.hover_fill_)
+            this.path.setAttribute("fill", this.hover_color_);
+        else
+            this.path.setAttribute("stroke", this.hover_color_);
+    }
+    event_out() {
+        if (this.hover_fill_)
+            this.path.setAttribute("fill", this.fill_);
+        else
+            this.path.setAttribute("stroke", this.stroke_);
     }
 }
 class CreateSVGLine {
@@ -1563,7 +1692,6 @@ class CreateSVGLine {
     hover_color_;
     constructor(svg_class, x1, y1, x2, y2, stroke, strokeWidth, hover_color) {
         const _line = document.createElementNS(svg_class.svg_ns, "line");
-        this.line = _line;
         this.line_ns = svg_class.svg_ns;
         this.svg_class_ = svg_class;
         this.hover_color_ = hover_color;
@@ -1573,17 +1701,16 @@ class CreateSVGLine {
         _line.setAttribute("y2", y2);
         _line.setAttribute("stroke", stroke);
         _line.setAttribute("stroke-width", strokeWidth);
-        if (svg_class.svg.childElementCount < svg_class.max_child_elem_count) {
+        _line.id = `${svg_class.svg.id}${svg_class.svg.childElementCount}`;
+        this.line = _line;
+        if (svg_class.svg.childElementCount < svg_class.max_child_elem_count)
             svg_class.svg.appendChild(_line);
-            svg_class.svg.addEventListener("mousemove", () => { if (!isTouchDevice)
-                _line.setAttribute("stroke", hover_color); });
-            svg_class.svg.addEventListener("mouseout", () => { if (!isTouchDevice)
-                _line.setAttribute("stroke", stroke); });
-            svg_class.svg.addEventListener("touchstart", () => { if (isTouchDevice)
-                _line.setAttribute("stroke", hover_color); }, { "passive": true });
-            svg_class.svg.addEventListener("touchend", () => { if (isTouchDevice)
-                _line.setAttribute("stroke", stroke); }, { "passive": true });
-        }
+    }
+    event_in() {
+        this.line.setAttribute("stroke", this.hover_color_);
+    }
+    event_out() {
+        this.line.setAttribute("stroke", this.stroke_);
     }
 }
 class CreateSVGCircle {
@@ -1596,7 +1723,6 @@ class CreateSVGCircle {
     hover_fill_;
     constructor(svg_class, cx, cy, r, stroke, strokeWidth, hover_color, fill, hover_fill = true) {
         const _circle = document.createElementNS(svg_class.svg_ns, "circle");
-        this.circle = _circle;
         this.circle_ns = svg_class.svg_ns;
         this.svg_class_ = svg_class;
         this.stroke_ = stroke;
@@ -1609,27 +1735,22 @@ class CreateSVGCircle {
         _circle.setAttribute("stroke", stroke);
         _circle.setAttribute("stroke-width", strokeWidth);
         _circle.setAttribute("fill", fill);
-        if (svg_class.svg.childElementCount < svg_class.max_child_elem_count) {
+        _circle.id = `${svg_class.svg.id}${svg_class.svg.childElementCount}`;
+        this.circle = _circle;
+        if (svg_class.svg.childElementCount < svg_class.max_child_elem_count)
             svg_class.svg.appendChild(_circle);
-            svg_class.svg.addEventListener("mousemove", () => { if (!isTouchDevice)
-                _circle.setAttribute("stroke", hover_color); });
-            svg_class.svg.addEventListener("mouseout", () => { if (!isTouchDevice)
-                _circle.setAttribute("stroke", stroke); });
-            svg_class.svg.addEventListener("touchstart", () => { if (isTouchDevice)
-                _circle.setAttribute("stroke", hover_color); }, { "passive": true });
-            svg_class.svg.addEventListener("touchend", () => { if (isTouchDevice)
-                _circle.setAttribute("stroke", stroke); }, { "passive": true });
-            if (hover_fill)
-                svg_class.svg.addEventListener("mousemove", () => { if (!isTouchDevice)
-                    _circle.setAttribute("fill", hover_color); });
-            svg_class.svg.addEventListener("mouseout", () => { if (!isTouchDevice)
-                _circle.setAttribute("fill", fill); });
-            if (hover_fill)
-                svg_class.svg.addEventListener("touchstart", () => { if (isTouchDevice)
-                    _circle.setAttribute("fill", hover_color); }, { "passive": true });
-            svg_class.svg.addEventListener("touchend", () => { if (isTouchDevice)
-                _circle.setAttribute("fill", fill); }, { "passive": true });
-        }
+    }
+    event_in() {
+        if (this.hover_fill_)
+            this.circle.setAttribute("fill", this.hover_color_);
+        else
+            this.circle.setAttribute("stroke", this.hover_color_);
+    }
+    event_out() {
+        if (this.hover_fill_)
+            this.circle.setAttribute("fill", this.fill_);
+        else
+            this.circle.setAttribute("stroke", this.stroke_);
     }
 }
 class CreateSVGEllipse {
@@ -1642,7 +1763,6 @@ class CreateSVGEllipse {
     hover_fill_;
     constructor(svg_class, cx, cy, rx, ry, stroke, strokeWidth, hover_color, fill, hover_fill = true) {
         const _ellipse = document.createElementNS(svg_class.svg_ns, "ellipse");
-        this.ellipse = _ellipse;
         this.ellipse_ns = svg_class.svg_ns;
         this.svg_class_ = svg_class;
         this.stroke_ = stroke;
@@ -1656,27 +1776,22 @@ class CreateSVGEllipse {
         _ellipse.setAttribute("stroke", stroke);
         _ellipse.setAttribute("stroke-width", strokeWidth);
         _ellipse.setAttribute("fill", fill);
-        if (svg_class.svg.childElementCount < svg_class.max_child_elem_count) {
+        _ellipse.id = `${svg_class.svg.id}${svg_class.svg.childElementCount}`;
+        this.ellipse = _ellipse;
+        if (svg_class.svg.childElementCount < svg_class.max_child_elem_count)
             svg_class.svg.appendChild(_ellipse);
-            svg_class.svg.addEventListener("mousemove", () => { if (!isTouchDevice)
-                _ellipse.setAttribute("stroke", hover_color); });
-            svg_class.svg.addEventListener("mouseout", () => { if (!isTouchDevice)
-                _ellipse.setAttribute("stroke", stroke); });
-            svg_class.svg.addEventListener("touchstart", () => { if (isTouchDevice)
-                _ellipse.setAttribute("stroke", hover_color); }, { "passive": true });
-            svg_class.svg.addEventListener("touchend", () => { if (isTouchDevice)
-                _ellipse.setAttribute("stroke", stroke); }, { "passive": true });
-            if (hover_fill)
-                svg_class.svg.addEventListener("mousemove", () => { if (!isTouchDevice)
-                    _ellipse.setAttribute("fill", hover_color); });
-            svg_class.svg.addEventListener("mouseout", () => { if (!isTouchDevice)
-                _ellipse.setAttribute("fill", fill); });
-            if (hover_fill)
-                svg_class.svg.addEventListener("touchstart", () => { if (isTouchDevice)
-                    _ellipse.setAttribute("fill", hover_color); }, { "passive": true });
-            svg_class.svg.addEventListener("touchend", () => { if (isTouchDevice)
-                _ellipse.setAttribute("fill", fill); }, { "passive": true });
-        }
+    }
+    event_in() {
+        if (this.hover_fill_)
+            this.ellipse.setAttribute("fill", this.hover_color_);
+        else
+            this.ellipse.setAttribute("stroke", this.hover_color_);
+    }
+    event_out() {
+        if (this.hover_fill_)
+            this.ellipse.setAttribute("fill", this.fill_);
+        else
+            this.ellipse.setAttribute("stroke", this.stroke_);
     }
 }
 class CreateSVGLineDrag extends CreateSVGLine {
@@ -1704,10 +1819,10 @@ class CreateSVGDelete {
         this.path_2 = new CreateSVGPath(svg_class, d_2, stroke, strokeWidth, hover_color, fill, hover_fill);
     }
     clickFunction(instance, self) {
-        this.svg_class_.svg.addEventListener("click", () => {
-            self.removeCamera(instance);
-            self.showCameras();
-        });
+        // this.svg_class_.svg.addEventListener("click",()=>{
+        //     self.removeCamera(instance);
+        //     self.showCameras();
+        // });
     }
 }
 class CreateSVGCameraExperimental {
@@ -1734,9 +1849,6 @@ class CreateSVGCameraExperimental {
             new CreateSVGLine(svg_class, `${x1}`, `${x2}`, `${y1}`, `${y2}`, stroke, strokeWidth, hover_color);
             console.log(x1, y1, x2, y2, "#########", elems_1, elems_2);
         }
-    }
-    clickFunction(instance, func) {
-        this.svg_class_.svg.addEventListener("click", () => { func(instance); });
     }
 }
 class CreateSVGCameraIcon {
@@ -1770,12 +1882,24 @@ class CreateSVGCameraProjection {
             this.lines.push(new CreateSVGLine(svg_class, `${x1}`, `${y1}`, `${x2}`, `${y2}`, stroke, strokeWidth, hover_color));
         }
     }
-    clickFunction(instance, projection_type, self) {
-        this.svg_class_.svg.addEventListener("click", () => {
-            self.changeProjType(instance, projection_type);
-            self.showCameras();
-        });
+    start_event() {
+        for (const line of this.lines)
+            line.event_in();
+        this.path_1.event_in();
+        this.path_2.event_in();
     }
+    end_event() {
+        for (const line of this.lines)
+            line.event_out();
+        this.path_1.event_out();
+        this.path_2.event_out();
+    }
+    // clickFunction(instance : number,projection_type : _PROJ_TYPE_,self : CameraIndicator) {
+    //     this.svg_class_.svg.addEventListener("click",()=>{
+    //         self.changeProjType(instance, projection_type);
+    //         self.showCameras();
+    //     });
+    // }
     remove() {
         this.svg_class_.svg.removeChild(this.path_1.path);
         this.svg_class_.svg.removeChild(this.path_2.path);
@@ -1789,19 +1913,19 @@ class SVG_Indicator {
     tooltip_class;
     svg_container;
     tooltip_container;
-    constructor(container, max_child_elem_count, tooltip_text = "Generic", respect_animate = true) {
+    constructor(container, id, max_child_elem_count, tooltip_text = "Generic", respect_animate = true) {
         const sub_container = document.createElement("div");
         sub_container.style.margin = "10px";
         container.appendChild(sub_container);
-        this.svg_class = new CreateSVG(sub_container, "20", "20", max_child_elem_count);
+        this.svg_class = new CreateSVG(sub_container, "20", "20", id, max_child_elem_count);
         this.tooltip_class = new CreateToolTip(container, sub_container, tooltip_text, 5, 100, respect_animate);
         this.svg_container = sub_container;
         this.tooltip_container = container;
     }
 }
 class Other_SVG_Indicator extends SVG_Indicator {
-    constructor(container, max_child_elem_count, tooltip_text = "Generic", hori_pos_ = "right_10px", vert_pos_ = "top_0px", tooltip_position = "left") {
-        super(container, max_child_elem_count, tooltip_text, true);
+    constructor(container, id, max_child_elem_count, tooltip_text = "Generic", hori_pos_ = "right_10px", vert_pos_ = "top_0px", tooltip_position = "left") {
+        super(container, id, max_child_elem_count, tooltip_text, true);
         this.svg_container.style.display = "inline";
         this.svg_container.style.position = "absolute";
         const vert_pos = vert_pos_.split("_");
@@ -1833,8 +1957,8 @@ class Other_SVG_Indicator extends SVG_Indicator {
 class CreateCameraProjection_SVG_Indicator extends Other_SVG_Indicator {
     projection;
     text;
-    constructor(container, hori_pos = "right_40px", vert_pos = "top_0px", tooltip_postition = "left") {
-        super(container, 6, "", hori_pos, vert_pos, tooltip_postition);
+    constructor(container, id, hori_pos = "right_40px", vert_pos = "top_0px", tooltip_postition = "left") {
+        super(container, id, 6, "", hori_pos, vert_pos, tooltip_postition);
         this.tooltip_class.tooltip_text_elem.innerHTML = `${MODIFIED_PARAMS._PROJ_TYPE}`;
         this.projection = undefined;
         this.loadCameraIcon();
@@ -1848,67 +1972,99 @@ class CreateCameraProjection_SVG_Indicator extends Other_SVG_Indicator {
             this.projection = new CreateSVGCameraProjection(this.svg_class, "M 9 3, L 17 3, L 17 10, L 9 10, Z", "M 1 8, L 13 8, L 13 19, L 1 19, Z", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         }
     }
-    clickFunction() {
-        this.svg_class.svg.addEventListener("click", () => {
-            if (typeof this.projection === "undefined")
-                return;
+    remove() {
+        if (this.projection)
             this.projection.remove();
-            if (MODIFIED_PARAMS._PROJ_TYPE === "Orthographic")
-                MODIFIED_PARAMS._PROJ_TYPE = "Perspective";
-            else if (MODIFIED_PARAMS._PROJ_TYPE === "Perspective")
-                MODIFIED_PARAMS._PROJ_TYPE = "Orthographic";
-            this.loadCameraIcon();
-        });
+    }
+    start_event() {
+        if (this.projection)
+            this.projection.start_event();
+    }
+    end_event() {
+        if (this.projection)
+            this.projection.end_event();
     }
 }
 class CreateCross_SVG_Indicator extends Other_SVG_Indicator {
-    constructor(container, text, hori_pos = "right_10px", vert_pos = "top_0px", tooltip_postition = "left") {
-        super(container, 2, text, hori_pos, vert_pos, tooltip_postition);
-        new CreateSVGLine(this.svg_class, "1", "10", "19", "10", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "10", "1", "10", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
+    line_1;
+    line_2;
+    constructor(container, id, text, hori_pos = "right_10px", vert_pos = "top_0px", tooltip_postition = "left") {
+        super(container, id, 2, text, hori_pos, vert_pos, tooltip_postition);
+        this.line_1 = new CreateSVGLine(this.svg_class, "1", "10", "19", "10", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
+        this.line_2 = new CreateSVGLine(this.svg_class, "10", "1", "10", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
     }
-    clickFunction(func) {
-        this.svg_container.addEventListener("click", func);
+    start_event() {
+        this.line_1.event_in();
+        this.line_2.event_in();
+    }
+    end_event() {
+        this.line_1.event_out();
+        this.line_2.event_out();
     }
 }
 class CreateUndo_SVG_Indicator extends Other_SVG_Indicator {
-    constructor(container, text, hori_pos = "right_10px", vert_pos = "top_0px", tooltip_postition = "left") {
-        super(container, 3, text, hori_pos, vert_pos, tooltip_postition);
+    paths;
+    constructor(container, id, text, hori_pos = "right_10px", vert_pos = "top_0px", tooltip_postition = "left") {
+        super(container, id, 3, text, hori_pos, vert_pos, tooltip_postition);
         const svg_helper = new CreateSVGHelper();
+        this.paths = [];
         const outer_curved_path = svg_helper.generateSVGArc(10, 10, 14, 12, 20, 0, 180, "Z");
-        new CreateSVGPath(this.svg_class, outer_curved_path, svg_objects_color, svg_objects_strokeWidth, svg_hover_color, svg_objects_color, true);
+        this.paths.push(new CreateSVGPath(this.svg_class, outer_curved_path, svg_objects_color, svg_objects_strokeWidth, svg_hover_color, svg_objects_color, true));
         const inner_curved_path = svg_helper.generateSVGArc(7, 10, 14, 12, 20, 0, 180, "Z");
-        new CreateSVGPath(this.svg_class, inner_curved_path, svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
-        new CreateSVGPath(this.svg_class, "M 2 4, L 8 6, L 8 2, Z", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, svg_objects_color, true);
+        this.paths.push(new CreateSVGPath(this.svg_class, inner_curved_path, svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false));
+        this.paths.push(new CreateSVGPath(this.svg_class, "M 2 4, L 8 6, L 8 2, Z", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, svg_objects_color, true));
     }
-    clickFunction(func) {
-        this.svg_container.addEventListener("click", func);
+    start_event() {
+        for (const path of this.paths)
+            path.event_in();
+    }
+    end_event() {
+        for (const path of this.paths)
+            path.event_out();
     }
 }
 class CreateRedo_SVG_Indicator extends Other_SVG_Indicator {
-    constructor(container, text, hori_pos = "right_10px", vert_pos = "top_0px", tooltip_postition = "left") {
-        super(container, 3, text, hori_pos, vert_pos, tooltip_postition);
+    paths;
+    constructor(container, id, text, hori_pos = "right_10px", vert_pos = "top_0px", tooltip_postition = "left") {
+        super(container, id, 3, text, hori_pos, vert_pos, tooltip_postition);
         const svg_helper = new CreateSVGHelper();
+        this.paths = [];
         const outer_curved_path = svg_helper.generateSVGArc(10, 10, 14, 12, 20, 180, 180, "Z");
-        new CreateSVGPath(this.svg_class, outer_curved_path, svg_objects_color, svg_objects_strokeWidth, svg_hover_color, svg_objects_color, true);
+        this.paths.push(new CreateSVGPath(this.svg_class, outer_curved_path, svg_objects_color, svg_objects_strokeWidth, svg_hover_color, svg_objects_color, true));
         const inner_curved_path = svg_helper.generateSVGArc(13, 10, 14, 12, 20, 180, 180, "Z");
-        new CreateSVGPath(this.svg_class, inner_curved_path, svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
-        new CreateSVGPath(this.svg_class, "M 18 4, L 12 6, L 12 2, Z", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, svg_objects_color, true);
+        this.paths.push(new CreateSVGPath(this.svg_class, inner_curved_path, svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false));
+        this.paths.push(new CreateSVGPath(this.svg_class, "M 18 4, L 12 6, L 12 2, Z", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, svg_objects_color, true));
     }
-    clickFunction(func) {
-        this.svg_container.addEventListener("click", func);
+    start_event() {
+        for (const path of this.paths)
+            path.event_in();
+    }
+    end_event() {
+        for (const path of this.paths)
+            path.event_out();
     }
 }
 class CreateDelete_SVG_Indicator extends Other_SVG_Indicator {
-    constructor(container, text, hori_pos = "right_10px", vert_pos = "top_0px", tooltip_postition = "left") {
-        super(container, 8, text, hori_pos, vert_pos, tooltip_postition);
-        new CreateSVGPath(this.svg_class, "M 3 5, L 4 3, L 7 3, L 9 1, L 11 1, L 13 3, L 16 3, L 17 5", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, svg_objects_color, true);
-        new CreateSVGPath(this.svg_class, "M 3 7, L 5 19, L 15 19, L 17 7", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, svg_objects_color, true);
-        new CreateSVGLine(this.svg_class, "7.5", "9", "7.5", "16", svg_vert_bar_color, svg_objects_strokeWidth, elem_col);
-        new CreateSVGLine(this.svg_class, "12.5", "9", "12.5", "16", svg_vert_bar_color, svg_objects_strokeWidth, elem_col);
+    paths;
+    lines;
+    constructor(container, id, text, hori_pos = "right_10px", vert_pos = "top_0px", tooltip_postition = "left") {
+        super(container, id, 8, text, hori_pos, vert_pos, tooltip_postition);
+        this.paths.push(new CreateSVGPath(this.svg_class, "M 3 5, L 4 3, L 7 3, L 9 1, L 11 1, L 13 3, L 16 3, L 17 5", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, svg_objects_color, true));
+        this.paths.push(new CreateSVGPath(this.svg_class, "M 3 7, L 5 19, L 15 19, L 17 7", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, svg_objects_color, true));
+        this.lines.push(new CreateSVGLine(this.svg_class, "7.5", "9", "7.5", "16", svg_vert_bar_color, svg_objects_strokeWidth, elem_col));
+        this.lines.push(new CreateSVGLine(this.svg_class, "12.5", "9", "12.5", "16", svg_vert_bar_color, svg_objects_strokeWidth, elem_col));
     }
-    clickFunction(func) {
-        this.svg_container.addEventListener("click", func);
+    start_event() {
+        for (const path of this.paths)
+            path.event_in();
+        for (const line of this.lines)
+            line.event_in();
+    }
+    end_event() {
+        for (const path of this.paths)
+            path.event_out();
+        for (const line of this.lines)
+            line.event_out();
     }
 }
 class CreateSubMenu {
@@ -1922,48 +2078,139 @@ class CreateSubMenu {
         main_menu.appendChild(this.submenu);
     }
 }
+class CreateForm {
+    form;
+    container;
+    width;
+    constructor(container_, width) {
+        this.container = container_;
+        this.form = document.createElement("form");
+        this.form.style.margin = "10px";
+        this.container.appendChild(this.form);
+        this.width = width;
+    }
+}
+class CreateInputField {
+    form_class;
+    input;
+    label;
+    constructor(form_class, type = "text", textContent = type, id_ = _Miscellanous.getRanHex(16)) {
+        this.form_class = form_class;
+        const form = this.form_class.form;
+        const clear_fix_div = document.createElement("div");
+        clear_fix_div.style.overflow = "auto";
+        this.label = document.createElement("label");
+        this.label.setAttribute("for", id_);
+        this.label.className = "sub_menu_label";
+        this.label.textContent = textContent;
+        this.label.style.float = "left";
+        this.input = document.createElement("input");
+        this.input.type = type;
+        this.input.id = id_;
+        this.input.className = "sub_menu_input";
+        this.input.style.float = "right";
+        clear_fix_div.appendChild(this.label);
+        clear_fix_div.appendChild(this.input);
+        form.appendChild(clear_fix_div);
+    }
+}
+class CreateXYZInputField {
+    form_class;
+    para;
+    labelX;
+    inputX;
+    labelY;
+    inputY;
+    labelZ;
+    inputZ;
+    constructor(form_class, textContent = "Number x_y_z", instance) {
+        this.form_class = form_class;
+        const form = this.form_class.form;
+        const clear_fix_div = document.createElement("div");
+        clear_fix_div.style.overflow = "auto";
+        this.para = document.createElement("p");
+        this.para.className = "sub_menu_xyz_para";
+        this.para.textContent = textContent;
+        this.para.style.float = "left";
+        this.labelX = document.createElement("label");
+        this.labelX.setAttribute("for", `${instance}_x`);
+        this.labelX.textContent = textContent + "X : ";
+        this.labelX.style.float = "right";
+        this.labelX.style.width = "10px";
+        this.inputX = document.createElement("input");
+        this.inputX.type = "number";
+        this.inputX.id = `${instance}_x`;
+        this.inputX.className = "sub_menu_xyz_input";
+        this.inputX.style.float = "right";
+        this.labelY = document.createElement("label");
+        this.labelY.setAttribute("for", `${instance}_y`);
+        this.labelY.className = "sub_menu_label";
+        this.labelY.textContent = textContent + " Y : ";
+        this.labelY.style.float = "right";
+        this.labelY.style.width = "10px";
+        this.inputY = document.createElement("input");
+        this.inputY.type = "number";
+        this.inputY.id = `${instance}_y`;
+        this.inputY.className = "sub_menu_xyz_input";
+        this.inputY.style.float = "right";
+        this.labelZ = document.createElement("label");
+        this.labelZ.setAttribute("for", `${instance}_z`);
+        this.labelZ.className = "sub_menu_label";
+        this.labelZ.textContent = textContent + " Z : ";
+        this.labelZ.style.float = "right";
+        this.labelZ.style.width = "10px";
+        this.inputZ = document.createElement("input");
+        this.inputZ.type = "number";
+        this.inputZ.id = `${instance}_z`;
+        this.inputZ.className = "sub_menu_xyz_input";
+        this.inputZ.style.float = "right";
+        clear_fix_div.appendChild(this.para);
+        clear_fix_div.appendChild(this.inputZ);
+        clear_fix_div.appendChild(this.labelZ);
+        clear_fix_div.appendChild(this.inputY);
+        clear_fix_div.appendChild(this.labelY);
+        clear_fix_div.appendChild(this.inputX);
+        clear_fix_div.appendChild(this.labelX);
+        form.appendChild(clear_fix_div);
+    }
+}
 class CreateToolTip {
     tooltip_container_elem;
     tooltip_elem;
     tooltip_text_elem;
+    tooltip_text_elem_id;
     vert_padding;
     width;
     tooltip_text_elem_orientation = "default";
+    respect_anim;
     default_positioning;
+    call_func;
     constructor(tooltip_container, tooltip, tooltip_text, vert_padding = 5, width, respect_animate = true) {
         this.tooltip_container_elem = tooltip_container;
         tooltip.style.position = "relative";
         tooltip.style.display = "inline-block";
         this.tooltip_elem = tooltip;
-        const tooltip_text_element = document.createElement("span");
-        this.tooltip_text_elem = tooltip_text_element;
-        tooltip_text_element.style.position = "absolute";
-        tooltip_text_element.style.visibility = "hidden";
-        tooltip_text_element.innerHTML = tooltip_text;
-        tooltip_text_element.style.backgroundColor = svg_objects_color;
-        tooltip_text_element.style.textAlign = "center";
-        tooltip_text_element.style.width = `${width}px`;
-        this.width = width;
-        tooltip_text_element.style.zIndex = `${Number(window.getComputedStyle(tooltip).zIndex) + 10}`;
-        tooltip_text_element.style.borderRadius = "5px";
-        tooltip_text_element.style.padding = `${vert_padding}px 0`;
+        this.tooltip_text_elem = document.createElement("span");
+        this.tooltip_text_elem.style.position = "absolute";
+        this.tooltip_text_elem.style.visibility = "hidden";
+        this.tooltip_text_elem.innerHTML = tooltip_text;
+        this.tooltip_text_elem.style.backgroundColor = svg_objects_color;
+        this.tooltip_text_elem.style.textAlign = "center";
+        this.tooltip_text_elem.style.width = `${width}px`;
+        this.tooltip_text_elem.style.zIndex = `${Number(window.getComputedStyle(tooltip).zIndex) + 10}`;
+        this.tooltip_text_elem.style.borderRadius = "5px";
+        this.tooltip_text_elem.style.padding = `${vert_padding}px 0`;
         this.vert_padding = vert_padding;
+        this.width = width;
         this.default_positioning = {
-            top: window.getComputedStyle(tooltip_text_element).top,
-            bottom: window.getComputedStyle(tooltip_text_element).bottom,
-            left: window.getComputedStyle(tooltip_text_element).left,
-            right: window.getComputedStyle(tooltip_text_element).right,
-            marginLeft: window.getComputedStyle(tooltip_text_element).marginLeft,
+            top: window.getComputedStyle(this.tooltip_text_elem).top,
+            bottom: window.getComputedStyle(this.tooltip_text_elem).bottom,
+            left: window.getComputedStyle(this.tooltip_text_elem).left,
+            right: window.getComputedStyle(this.tooltip_text_elem).right,
+            marginLeft: window.getComputedStyle(this.tooltip_text_elem).marginLeft,
         };
-        tooltip.appendChild(tooltip_text_element);
-        tooltip.addEventListener("mouseover", () => { if (!isTouchDevice && (main_menu_animate || !respect_animate))
-            tooltip_text_element.style.visibility = "visible"; });
-        tooltip.addEventListener("mouseout", () => { if (!isTouchDevice && (main_menu_animate || !respect_animate))
-            tooltip_text_element.style.visibility = "hidden"; });
-        tooltip.addEventListener("touchstart", () => { if (isTouchDevice && (main_menu_animate || !respect_animate))
-            tooltip_text_element.style.visibility = "visible"; }, { 'passive': true });
-        tooltip.addEventListener("touchend", () => { if (isTouchDevice && (main_menu_animate || !respect_animate))
-            tooltip_text_element.style.visibility = "hidden"; }, { 'passive': true });
+        this.respect_anim = respect_animate;
+        tooltip.appendChild(this.tooltip_text_elem);
     }
     change_vert_padding(vert_padding) {
         this.tooltip_text_elem.style.padding = `${vert_padding}px 0`;
@@ -1988,15 +2235,17 @@ class CreateToolTip {
         this.toDefault();
         this.tooltip_text_elem.style.top = `-${this.vert_padding}px`;
         this.tooltip_text_elem.style.right = "105%";
-        this.tooltip_text_elem_orientation = "right";
-        this.tooltip_text_elem.className = "tooltiptext_right";
+        this.tooltip_text_elem_orientation = "left";
+        this.tooltip_text_elem.className = "tooltiptext_left";
+        this.call_func = () => { };
     }
     right_tooltip() {
         this.toDefault();
         this.tooltip_text_elem.style.top = `-${this.vert_padding}px`;
         this.tooltip_text_elem.style.left = "105%";
-        this.tooltip_text_elem_orientation = "left";
-        this.tooltip_text_elem.className = "tooltiptext_left";
+        this.tooltip_text_elem_orientation = "right";
+        this.tooltip_text_elem.className = "tooltiptext_right";
+        this.call_func = () => { };
     }
     top_tooltip() {
         this.toDefault();
@@ -2004,24 +2253,13 @@ class CreateToolTip {
         this.tooltip_text_elem.style.left = "50%";
         this.tooltip_text_elem.className = "tooltiptext_top";
         this.tooltip_text_elem.style.margin = "5px 0";
-        this.tooltip_elem.addEventListener("mousemove", () => {
-            if (!isTouchDevice) {
-                const half_width = this.width / 2;
-                const container_width = Number(window.getComputedStyle(this.tooltip_container_elem).width.split("px")[0]);
-                const helper = this.vertical_tooltip_helper(half_width, container_width);
-                this.tooltip_text_elem.style.marginLeft = `-${half_width - helper.before + helper.after}px`;
-                root.style.setProperty("--margin-left-percent", `${(half_width - helper.before + helper.after) / this.width * 100}%`);
-            }
-        });
-        this.tooltip_elem.addEventListener("touchstart", () => {
-            if (isTouchDevice) {
-                const half_width = this.width / 2;
-                const container_width = Number(window.getComputedStyle(this.tooltip_container_elem).width.split("px")[0]);
-                const helper = this.vertical_tooltip_helper(half_width, container_width);
-                this.tooltip_text_elem.style.marginLeft = `-${half_width - helper.before + helper.after}px`;
-                root.style.setProperty("--margin-left-percent", `${(half_width - helper.before + helper.after) / this.width * 100}%`);
-            }
-        }, { 'passive': true });
+        this.call_func = () => {
+            const half_width = this.width / 2;
+            const container_width = Number(window.getComputedStyle(this.tooltip_container_elem).width.split("px")[0]);
+            const helper = this.vertical_tooltip_helper(half_width, container_width);
+            this.tooltip_text_elem.style.marginLeft = `-${half_width - helper.before + helper.after}px`;
+            root.style.setProperty("--margin-left-percent", `${(half_width - helper.before + helper.after) / this.width * 100}%`);
+        };
     }
     bottom_tooltip() {
         this.toDefault();
@@ -2029,30 +2267,32 @@ class CreateToolTip {
         this.tooltip_text_elem.style.left = "50%";
         this.tooltip_text_elem.className = "tooltiptext_bottom";
         this.tooltip_text_elem.style.margin = "5px 0";
-        this.tooltip_elem.addEventListener("mousemove", () => {
-            if (!isTouchDevice) {
-                const half_width = this.width / 2;
-                const container_width = Number(window.getComputedStyle(this.tooltip_container_elem).width.split("px")[0]);
-                const helper = this.vertical_tooltip_helper(half_width, container_width);
-                this.tooltip_text_elem.style.marginLeft = `-${half_width - helper.before + helper.after}px`;
-                root.style.setProperty("--margin-left-percent", `${(half_width - helper.before + helper.after) / this.width * 100}%`);
-            }
-        });
-        this.tooltip_elem.addEventListener("touchstart", () => {
-            if (isTouchDevice) {
-                const half_width = this.width / 2;
-                const container_width = Number(window.getComputedStyle(this.tooltip_container_elem).width.split("px")[0]);
-                const helper = this.vertical_tooltip_helper(half_width, container_width);
-                this.tooltip_text_elem.style.marginLeft = `-${half_width - helper.before + helper.after}px`;
-                root.style.setProperty("--margin-left-percent", `${(half_width - helper.before + helper.after) / this.width * 100}%`);
-            }
-        }, { 'passive': true });
+        this.call_func = () => {
+            const half_width = this.width / 2;
+            const container_width = Number(window.getComputedStyle(this.tooltip_container_elem).width.split("px")[0]);
+            const helper = this.vertical_tooltip_helper(half_width, container_width);
+            this.tooltip_text_elem.style.marginLeft = `-${half_width - helper.before + helper.after}px`;
+            root.style.setProperty("--margin-left-percent", `${(half_width - helper.before + helper.after) / this.width * 100}%`);
+        };
     }
     vertical_tooltip_helper(half_width, container_width) {
         const tooltip_margin_right = Number(window.getComputedStyle(this.tooltip_elem).marginRight.split("px")[0]);
         const before = half_width > this.tooltip_elem.offsetLeft ? half_width - this.tooltip_elem.offsetLeft : 0;
         const after = half_width > (container_width - this.tooltip_elem.offsetLeft - tooltip_margin_right) ? half_width - tooltip_margin_right : 0;
         return { before: before, after: after };
+    }
+    call_function_in() {
+        this.call_func();
+        if (!isTouchDevice && (main_menu_animate || !this.respect_anim))
+            this.tooltip_text_elem.style.visibility = "visible";
+        if (isTouchDevice && (main_menu_animate || !this.respect_anim))
+            this.tooltip_text_elem.style.visibility = "visible";
+    }
+    call_function_out() {
+        if (!isTouchDevice && (main_menu_animate || !this.respect_anim))
+            this.tooltip_text_elem.style.visibility = "hidden";
+        if (isTouchDevice && (main_menu_animate || !this.respect_anim))
+            this.tooltip_text_elem.style.visibility = "hidden";
     }
 }
 class DrawCanvas {
@@ -2064,7 +2304,6 @@ class DrawCanvas {
             window.location.assign(href);
         });
         window.addEventListener("resize", () => {
-            console.log("resized");
             const _last = window.innerWidth > MODIFIED_PARAMS._LAST_CANVAS_WIDTH;
             const _last_helper = window.innerWidth > (MODIFIED_PARAMS._LAST_CANVAS_WIDTH + 15 + MODIFIED_PARAMS._SIDE_BAR_WIDTH);
             const _last_modifier = MODIFIED_PARAMS._CANVAS_WIDTH - MODIFIED_PARAMS._LAST_CANVAS_WIDTH >= 0;
@@ -2075,7 +2314,6 @@ class DrawCanvas {
             MODIFIED_PARAMS._CANVAS_HEIGHT = Math.abs(window.innerHeight - 50 - nav_height);
             main_nav.style.width = `${window.innerWidth - 15}px`;
             this.drawCanvas(false);
-            console.log(MODIFIED_PARAMS);
         });
     }
     drawCanvas(set_last_canvas_width = true) {
@@ -2094,7 +2332,7 @@ class DrawCanvas {
         const main_menu_height = MODIFIED_PARAMS._CANVAS_HEIGHT + 2 * canvas_border_width;
         main_menu.style.height = `${main_menu_height}px`;
         if (!isTouchDevice) {
-            const svg_canvas_main_menu = new CreateSVG(svg_container, "10", `${main_menu_height}`);
+            const svg_canvas_main_menu = new CreateSVG(svg_container, "10", `${main_menu_height}`, "main_menu_line_drag", 1);
             const svg_canvas_main_menu_line_drag = new CreateSVGLineDrag(svg_canvas_main_menu, "0", "0", "0", `${main_menu_height}`, svg_vert_bar_color, "14", svg_hover_color);
             svg_canvas_main_menu_line_drag.dragFunction(this.canvas_main_menu_drag_function);
             svg_canvas_main_menu_line_drag.changeAcceleration(10);
