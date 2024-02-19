@@ -1,6 +1,19 @@
 // window.parent.addEventListener("message", (e) => window.parent.postMessage(e.data));
 window.parent.addEventListener("message", (e) => { if (e.data === "Editing")
     edit(); });
+let _Point = null;
+let _Line = null;
+let _Polygon = null;
+let _Rectangle = null;
+let _Ellipse = null;
+let _Circle = null;
+let _Pyramid = null;
+let _Cone = null;
+let _Prism = null;
+let _Cylinder = null;
+let _Cuboid = null;
+let _Sphere = null;
+let _Torus = null;
 function edit() {
     while (main_menu.firstChild)
         main_menu.removeChild(main_menu.firstChild);
@@ -26,21 +39,21 @@ function edit() {
     object_container_div.appendChild(object_div_2d);
     object_container_div.appendChild(object_div_3d);
     /* 1D Shapes */
-    new CreatePoint_SVG_Indicator(object_div_1d, "point");
-    new CreateLine_SVG_Indicator(object_div_1d, "line");
+    _Point = new CreatePoint_SVG_Indicator(object_div_1d, "point");
+    _Line = new CreateLine_SVG_Indicator(object_div_1d, "line");
     /* 2D Shapes */
-    new CreatePolygon_SVG_Indicator(object_div_2d, "polygon");
-    new CreateRectangle_SVG_Indicator(object_div_2d, "rectangle");
-    new CreateEllipse_SVG_Indicator(object_div_2d, "ellipse");
-    new CreateCircle_SVG_Indicator(object_div_2d, "circle");
+    _Polygon = new CreatePolygon_SVG_Indicator(object_div_2d, "polygon");
+    _Rectangle = new CreateRectangle_SVG_Indicator(object_div_2d, "rectangle");
+    _Ellipse = new CreateEllipse_SVG_Indicator(object_div_2d, "ellipse");
+    _Circle = new CreateCircle_SVG_Indicator(object_div_2d, "circle");
     /* 3D Shapes */
-    new Pyramid_SVG_Indicator(object_div_3d, "pyramid");
-    new Cone_SVG_Indicator(object_div_3d, "cone");
-    new Prism_SVG_Indicator(object_div_3d, "prism");
-    new Cylinder_SVG_Indicator(object_div_3d, "cylinder");
-    new Cuboid_SVG_Indicator(object_div_3d, "cuboid");
-    new Sphere_SVG_Indicator(object_div_3d, "sphere");
-    new Torus_SVG_Indicator(object_div_3d, "torus");
+    _Pyramid = new CreatePyramid_SVG_Indicator(object_div_3d, "pyramid");
+    _Cone = new CreateCone_SVG_Indicator(object_div_3d, "cone");
+    _Prism = new CreatePrism_SVG_Indicator(object_div_3d, "prism");
+    _Cylinder = new CreateCylinder_SVG_Indicator(object_div_3d, "cylinder");
+    _Cuboid = new CreateCuboid_SVG_Indicator(object_div_3d, "cuboid");
+    _Sphere = new CreateSphere_SVG_Indicator(object_div_3d, "sphere");
+    _Torus = new CreateTorus_SVG_Indicator(object_div_3d, "torus");
     sub_menu = new CreateSubMenu().submenu;
     basicDrawFunction();
 }
@@ -53,235 +66,326 @@ class Shape_SVG_Indicator extends SVG_Indicator {
 /* Shape SVG Icons */
 /* 1D Shapes */
 class CreatePoint_SVG_Indicator extends Shape_SVG_Indicator {
+    point;
     constructor(container, id) {
         super(container, id, 1, "Point");
-        new CreateSVGCircle(this.svg_class, "10", "10", "2", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, svg_objects_color);
-        this.svg_container.addEventListener("click", () => {
-            console.log(_ObjectRendering.instance, "###################");
-            _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
-            _ObjectRendering.addObjects(new CreatePoint());
-            _ObjectRendering.renderWorld();
-            const rendered_object = _ObjectRendering.renderObject();
-            _Draw.drawObject(rendered_object);
-        });
+        this.point = new CreateSVGCircle(this.svg_class, "10", "10", "2", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, svg_objects_color);
+    }
+    start_event() {
+        this.point.event_in();
+        this.tooltip_class.call_function_in();
+        this.hovered = true;
+    }
+    end_event() {
+        this.point.event_out();
+        this.tooltip_class.call_function_out();
+        this.hovered = false;
     }
 }
 class CreateLine_SVG_Indicator extends Shape_SVG_Indicator {
+    line;
     constructor(container, id) {
         super(container, id, 1, "Line");
-        new CreateSVGLine(this.svg_class, "1", "19", "19", "1", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        this.svg_container.addEventListener("click", () => {
-            console.log(_ObjectRendering.instance, "###################");
-            _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
-            _ObjectRendering.addObjects(new CreateLine());
-            _ObjectRendering.renderWorld();
-            const rendered_object = _ObjectRendering.renderObject();
-            _Draw.drawObject(rendered_object);
-        });
+        this.line = new CreateSVGLine(this.svg_class, "1", "19", "19", "1", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
+    }
+    start_event() {
+        this.line.event_in();
+        this.tooltip_class.call_function_in();
+        this.hovered = true;
+    }
+    end_event() {
+        this.line.event_out();
+        this.tooltip_class.call_function_out();
+        this.hovered = false;
     }
 }
 /* 1D Shapes */
 /* 2D Shapes */
 class CreatePolygon_SVG_Indicator extends Shape_SVG_Indicator {
+    lines;
     constructor(container, id) {
         super(container, id, 3, "Polygon");
-        new CreateSVGLine(this.svg_class, "1", "19", "10", "1", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "10", "1", "19", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "1", "19", "19", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        this.svg_container.addEventListener("click", () => {
-            console.log(_ObjectRendering.instance, "###################");
-            _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
-            _ObjectRendering.addObjects(new CreatePolygon());
-            _ObjectRendering.renderWorld();
-            const rendered_object = _ObjectRendering.renderObject();
-            _Draw.drawObject(rendered_object);
-        });
+        this.lines = [];
+        this.lines.push(new CreateSVGLine(this.svg_class, "1", "19", "10", "1", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "10", "1", "19", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "1", "19", "19", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+    }
+    start_event() {
+        for (const line of this.lines)
+            line.event_in();
+        this.tooltip_class.call_function_in();
+        this.hovered = true;
+    }
+    end_event() {
+        for (const line of this.lines)
+            line.event_out();
+        this.tooltip_class.call_function_out();
+        this.hovered = false;
     }
 }
 class CreateEllipse_SVG_Indicator extends Shape_SVG_Indicator {
+    ellipse;
     constructor(container, id) {
         super(container, id, 1, "Ellipse");
-        new CreateSVGEllipse(this.svg_class, "10", "10", "9", "5", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
-        this.svg_container.addEventListener("click", () => {
-            console.log(_ObjectRendering.instance, "###################");
-            _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
-            _ObjectRendering.addObjects(new CreateEllipse());
-            _ObjectRendering.renderWorld();
-            const rendered_object = _ObjectRendering.renderObject();
-            _Draw.drawObject(rendered_object);
-        });
+        this.ellipse = new CreateSVGEllipse(this.svg_class, "10", "10", "9", "5", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
+    }
+    start_event() {
+        this.ellipse.event_in();
+        this.tooltip_class.call_function_in();
+        this.hovered = true;
+    }
+    end_event() {
+        this.ellipse.event_out();
+        this.tooltip_class.call_function_out();
+        this.hovered = false;
     }
 }
 class CreateCircle_SVG_Indicator extends Shape_SVG_Indicator {
+    circle;
     constructor(container, id) {
         super(container, id, 1, "Circle");
-        new CreateSVGCircle(this.svg_class, "10", "10", "9", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
-        this.svg_container.addEventListener("click", () => {
-            console.log(_ObjectRendering.instance, "###################");
-            _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
-            _ObjectRendering.addObjects(new CreateCircle());
-            _ObjectRendering.renderWorld();
-            const rendered_object = _ObjectRendering.renderObject();
-            _Draw.drawObject(rendered_object);
-        });
+        this.circle = new CreateSVGCircle(this.svg_class, "10", "10", "9", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
+    }
+    start_event() {
+        this.circle.event_in();
+        this.tooltip_class.call_function_in();
+        this.hovered = true;
+    }
+    end_event() {
+        this.circle.event_out();
+        this.tooltip_class.call_function_out();
+        this.hovered = false;
     }
 }
 class CreateRectangle_SVG_Indicator extends Shape_SVG_Indicator {
+    lines;
     constructor(container, id) {
         super(container, id, 4, "Rectangle");
-        new CreateSVGLine(this.svg_class, "1", "1", "19", "1", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "1", "19", "19", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "1", "1", "1", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "19", "1", "19", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        this.svg_container.addEventListener("click", () => {
-            console.log(_ObjectRendering.instance, "###################");
-            _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
-            _ObjectRendering.addObjects(new CreateRectangle());
-            _ObjectRendering.renderWorld();
-            const rendered_object = _ObjectRendering.renderObject();
-            _Draw.drawObject(rendered_object);
-        });
+        this.lines = [];
+        this.lines.push(new CreateSVGLine(this.svg_class, "1", "1", "19", "1", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "1", "19", "19", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "1", "1", "1", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "19", "1", "19", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+    }
+    start_event() {
+        for (const line of this.lines)
+            line.event_in();
+        this.tooltip_class.call_function_in();
+        this.hovered = true;
+    }
+    end_event() {
+        for (const line of this.lines)
+            line.event_out();
+        this.tooltip_class.call_function_out();
+        this.hovered = false;
     }
 }
 /* 2D Shapes */
 /* 3D Shapes */
-class Pyramid_SVG_Indicator extends Shape_SVG_Indicator {
+class CreatePyramid_SVG_Indicator extends Shape_SVG_Indicator {
+    lines;
     constructor(container, id) {
         super(container, id, 6, "Pyramid");
-        new CreateSVGLine(this.svg_class, "1", "19", "10", "1", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "10", "1", "19", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "10", "1", "10", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "1", "19", "10", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "10", "12", "19", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "1", "19", "19", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        this.svg_container.addEventListener("click", () => {
-            console.log(_ObjectRendering.instance, "###################");
-            _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
-            _ObjectRendering.addObjects(new CreatePyramid());
-            _ObjectRendering.renderWorld();
-            const rendered_object = _ObjectRendering.renderObject();
-            _Draw.drawObject(rendered_object);
-        });
+        this.lines = [];
+        this.lines.push(new CreateSVGLine(this.svg_class, "1", "19", "10", "1", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "10", "1", "19", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "10", "1", "10", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "1", "19", "10", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "10", "12", "19", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "1", "19", "19", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+    }
+    start_event() {
+        for (const line of this.lines)
+            line.event_in();
+        this.tooltip_class.call_function_in();
+        this.hovered = true;
+    }
+    end_event() {
+        for (const line of this.lines)
+            line.event_out();
+        this.tooltip_class.call_function_out();
+        this.hovered = false;
     }
 }
-class Cone_SVG_Indicator extends Shape_SVG_Indicator {
+class CreateCone_SVG_Indicator extends Shape_SVG_Indicator {
+    lines;
+    ellipse;
     constructor(container, id) {
         super(container, id, 3, "Cone");
-        new CreateSVGLine(this.svg_class, "1", "16", "10", "1", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "10", "1", "19", "16", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGEllipse(this.svg_class, "10", "16", "9", "3", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
-        this.svg_container.addEventListener("click", () => {
-            console.log(_ObjectRendering.instance, "###################");
-            _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
-            _ObjectRendering.addObjects(new CreateCone());
-            _ObjectRendering.renderWorld();
-            const rendered_object = _ObjectRendering.renderObject();
-            _Draw.drawObject(rendered_object);
-        });
+        this.lines = [];
+        this.lines.push(new CreateSVGLine(this.svg_class, "1", "16", "10", "1", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "10", "1", "19", "16", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.ellipse = new CreateSVGEllipse(this.svg_class, "10", "16", "9", "3", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
+    }
+    start_event() {
+        for (const line of this.lines)
+            line.event_in();
+        this.ellipse.event_in();
+        this.tooltip_class.call_function_in();
+        this.hovered = true;
+    }
+    end_event() {
+        for (const line of this.lines)
+            line.event_out();
+        this.ellipse.event_out();
+        this.tooltip_class.call_function_out();
+        this.hovered = false;
     }
 }
-class Prism_SVG_Indicator extends Shape_SVG_Indicator {
+class CreatePrism_SVG_Indicator extends Shape_SVG_Indicator {
+    lines;
     constructor(container, id) {
         super(container, id, 9, "Prism");
-        new CreateSVGLine(this.svg_class, "3", "8", "10", "1", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "10", "1", "17", "8", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "3", "8", "17", "8", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "3", "8", "3", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "10", "1", "10", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "17", "8", "17", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "3", "19", "10", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "10", "12", "17", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "3", "19", "17", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        this.svg_container.addEventListener("click", () => {
-            console.log(_ObjectRendering.instance, "###################");
-            _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
-            _ObjectRendering.addObjects(new CreatePrism());
-            _ObjectRendering.renderWorld();
-            const rendered_object = _ObjectRendering.renderObject();
-            _Draw.drawObject(rendered_object);
-        });
+        this.lines = [];
+        this.lines.push(new CreateSVGLine(this.svg_class, "3", "8", "10", "1", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "10", "1", "17", "8", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "3", "8", "17", "8", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "3", "8", "3", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "10", "1", "10", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "17", "8", "17", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "3", "19", "10", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "10", "12", "17", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "3", "19", "17", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+    }
+    start_event() {
+        for (const line of this.lines)
+            line.event_in();
+        this.tooltip_class.call_function_in();
+        this.hovered = true;
+    }
+    end_event() {
+        for (const line of this.lines)
+            line.event_out();
+        this.tooltip_class.call_function_out();
+        this.hovered = false;
     }
 }
-class Cylinder_SVG_Indicator extends Shape_SVG_Indicator {
+class CreateCylinder_SVG_Indicator extends Shape_SVG_Indicator {
+    ellipses;
+    lines;
     constructor(container, id) {
         super(container, id, 4, "Cylinder");
-        new CreateSVGEllipse(this.svg_class, "10", "4", "7", "3", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
-        new CreateSVGEllipse(this.svg_class, "10", "16", "7", "3", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
-        new CreateSVGLine(this.svg_class, "3", "4", "3", "16", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "17", "4", "17", "16", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        this.svg_container.addEventListener("click", () => {
-            console.log(_ObjectRendering.instance, "###################");
-            _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
-            _ObjectRendering.addObjects(new CreateCylinder());
-            _ObjectRendering.renderWorld();
-            const rendered_object = _ObjectRendering.renderObject();
-            _Draw.drawObject(rendered_object);
-        });
+        this.ellipses = [];
+        this.lines = [];
+        this.ellipses.push(new CreateSVGEllipse(this.svg_class, "10", "4", "7", "3", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false));
+        this.ellipses.push(new CreateSVGEllipse(this.svg_class, "10", "16", "7", "3", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false));
+        this.lines.push(new CreateSVGLine(this.svg_class, "3", "4", "3", "16", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "17", "4", "17", "16", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+    }
+    start_event() {
+        for (const ellipse of this.ellipses)
+            ellipse.event_in();
+        for (const line of this.lines)
+            line.event_in();
+        this.tooltip_class.call_function_in();
+        this.hovered = true;
+    }
+    end_event() {
+        for (const line of this.lines)
+            line.event_out();
+        for (const ellipse of this.ellipses)
+            ellipse.event_out();
+        this.tooltip_class.call_function_out();
+        this.hovered = false;
     }
 }
-class Cuboid_SVG_Indicator extends Shape_SVG_Indicator {
+class CreateCuboid_SVG_Indicator extends Shape_SVG_Indicator {
+    lines;
     constructor(container, id) {
         super(container, id, 12, "Cuboid");
-        new CreateSVGLine(this.svg_class, "1", "7", "12", "7", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "7", "1", "19", "1", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "1", "19", "12", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "7", "12", "19", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "1", "7", "1", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "7", "1", "7", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "12", "7", "12", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "19", "1", "19", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "1", "7", "7", "1", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "12", "7", "19", "1", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "1", "19", "7", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "12", "19", "19", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        this.svg_container.addEventListener("click", () => {
-            _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
-            _ObjectRendering.addObjects(new CreateCuboid());
-            _ObjectRendering.renderWorld();
-            const rendered_object = _ObjectRendering.renderObject();
-            _Draw.drawObject(rendered_object);
-        });
+        this.lines = [];
+        this.lines.push(new CreateSVGLine(this.svg_class, "1", "7", "12", "7", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "7", "1", "19", "1", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "1", "19", "12", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "7", "12", "19", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "1", "7", "1", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "7", "1", "7", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "12", "7", "12", "19", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "19", "1", "19", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "1", "7", "7", "1", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "12", "7", "19", "1", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "1", "19", "7", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "12", "19", "19", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+    }
+    start_event() {
+        for (const line of this.lines)
+            line.event_in();
+        this.tooltip_class.call_function_in();
+        this.hovered = true;
+    }
+    end_event() {
+        for (const line of this.lines)
+            line.event_out();
+        this.tooltip_class.call_function_out();
+        this.hovered = false;
     }
 }
-class Sphere_SVG_Indicator extends Shape_SVG_Indicator {
+class CreateSphere_SVG_Indicator extends Shape_SVG_Indicator {
+    circle;
+    ellipses;
+    paths;
     constructor(container, id) {
         super(container, id, 5, "Sphere");
-        new CreateSVGCircle(this.svg_class, "10", "10", "9", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
-        new CreateSVGEllipse(this.svg_class, "10", "10", "3", "9", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
-        new CreateSVGEllipse(this.svg_class, "10", "10", "9", "3", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
-        new CreateSVGPath(this.svg_class, "M 7 7, L 7 13", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGPath(this.svg_class, "M 13 7, L 13 13", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        this.svg_container.addEventListener("click", () => {
-            console.log(_ObjectRendering.instance, "###################");
-            _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
-            _ObjectRendering.addObjects(new CreateSphere());
-            _ObjectRendering.renderWorld();
-            const rendered_object = _ObjectRendering.renderObject();
-            _Draw.drawObject(rendered_object);
-        });
+        this.ellipses = [];
+        this.paths = [];
+        this.circle = new CreateSVGCircle(this.svg_class, "10", "10", "9", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
+        this.ellipses.push(new CreateSVGEllipse(this.svg_class, "10", "10", "3", "9", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false));
+        this.ellipses.push(new CreateSVGEllipse(this.svg_class, "10", "10", "9", "3", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false));
+        this.paths.push(new CreateSVGPath(this.svg_class, "M 7 7, L 7 13", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.paths.push(new CreateSVGPath(this.svg_class, "M 13 7, L 13 13", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+    }
+    start_event() {
+        this.circle.event_in();
+        for (const ellipse of this.ellipses)
+            ellipse.event_in();
+        for (const path of this.paths)
+            path.event_in();
+        this.tooltip_class.call_function_in();
+        this.hovered = true;
+    }
+    end_event() {
+        this.circle.event_out();
+        for (const ellipse of this.ellipses)
+            ellipse.event_out();
+        for (const path of this.paths)
+            path.event_out();
+        this.tooltip_class.call_function_out();
+        this.hovered = false;
     }
 }
-class Torus_SVG_Indicator extends Shape_SVG_Indicator {
+class CreateTorus_SVG_Indicator extends Shape_SVG_Indicator {
+    ellipses;
+    lines;
     constructor(container, id) {
         super(container, id, 10, "Torus");
-        new CreateSVGEllipse(this.svg_class, "10", "4", "7", "2", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
-        new CreateSVGEllipse(this.svg_class, "10", "16", "7", "2", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
-        new CreateSVGEllipse(this.svg_class, "10", "10", "9", "2", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
-        new CreateSVGEllipse(this.svg_class, "3", "10", "2", "6", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
-        new CreateSVGEllipse(this.svg_class, "17", "10", "2", "6", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false);
-        new CreateSVGLine(this.svg_class, "10", "6", "10", "18", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "1", "10", "5", "8", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "1", "10", "5", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "19", "10", "15", "8", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        new CreateSVGLine(this.svg_class, "19", "10", "15", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
-        this.svg_container.addEventListener("click", () => {
-            console.log(_ObjectRendering.instance, "###################");
-            _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
-            _ObjectRendering.addObjects(new CreateTorus());
-            _ObjectRendering.renderWorld();
-            const rendered_object = _ObjectRendering.renderObject();
-            _Draw.drawObject(rendered_object);
-        });
+        this.ellipses = [];
+        this.lines = [];
+        this.ellipses.push(new CreateSVGEllipse(this.svg_class, "10", "4", "7", "2", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false));
+        this.ellipses.push(new CreateSVGEllipse(this.svg_class, "10", "16", "7", "2", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false));
+        this.ellipses.push(new CreateSVGEllipse(this.svg_class, "10", "10", "9", "2", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false));
+        this.ellipses.push(new CreateSVGEllipse(this.svg_class, "3", "10", "2", "6", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false));
+        this.ellipses.push(new CreateSVGEllipse(this.svg_class, "17", "10", "2", "6", svg_objects_color, svg_objects_strokeWidth, svg_hover_color, genBackgroundColor, false));
+        this.lines.push(new CreateSVGLine(this.svg_class, "10", "6", "10", "18", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "1", "10", "5", "8", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "1", "10", "5", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "19", "10", "15", "8", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+        this.lines.push(new CreateSVGLine(this.svg_class, "19", "10", "15", "12", svg_objects_color, svg_objects_strokeWidth, svg_hover_color));
+    }
+    start_event() {
+        for (const ellipse of this.ellipses)
+            ellipse.event_in();
+        for (const line of this.lines)
+            line.event_in();
+        this.tooltip_class.call_function_in();
+        this.hovered = true;
+    }
+    end_event() {
+        for (const line of this.lines)
+            line.event_out();
+        for (const ellipse of this.ellipses)
+            ellipse.event_out();
+        this.tooltip_class.call_function_out();
+        this.hovered = false;
     }
 }
 /* 3D Shapes */

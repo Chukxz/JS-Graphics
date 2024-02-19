@@ -1395,16 +1395,22 @@ class CameraObject extends Quarternion {
 
     depthBuffer: Float64Array;
     frameBuffer: Uint8Array;
-
     cam_history : _CAMERAOBJECT_[];
     prev_h : boolean;
-    next_h : boolean;
+    next_h : boolean;    
+    delete : CreateSVGDelete | null;
+    projection : CreateSVGCameraProjection | null;
+    icon : CreateSVGCameraIcon | null;
 
     constructor () {
         super();
         this.cam_history = [];
         this.prev_h = false;
         this.next_h = false;
+        this.delete = null;
+        this.projection = null;
+        this.icon = null;
+        
         this.initializeBuffers();
         this.setCameraPos_nonIncremental([0,10,-400]);
         return this;
@@ -1609,11 +1615,9 @@ class CameraObjects extends ViewSpace {
     camera_objects_array: CameraObject[];
     instance_number: number;
     arrlen: number;
-
     selected_camera_instances: object;   
     current_camera_instance : number;
     max_camera_instance_number: number;
-
     instance_number_to_list_map: object;
 
     constructor () {
@@ -1622,9 +1626,7 @@ class CameraObjects extends ViewSpace {
         this.arrlen = 0;
         this.instance_number = 0;
         this.max_camera_instance_number = 0;
-
         this.current_camera_instance = 0;
-
         this.camera_objects_array = [];
         this.selected_camera_instances = {};        
         this.instance_number_to_list_map = {};

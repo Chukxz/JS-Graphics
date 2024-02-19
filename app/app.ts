@@ -1740,6 +1740,12 @@ class BasicSettings {
             const full_id = elem.id.split("_");
             const id = full_id[0];
 
+            if (id === "point" || id === "line"     || id === "polygon" || id === "rectangle" ||
+            id === "ellipse"   || id === "circle"   || id === "pyramid" || id === "cone"      ||
+            id === "prism"     || id === "cylinder" || id === "cuboid"  || id === "sphere"    ||
+            id === "torus") _ShapeClick.shape_click(id);
+
+
             if(id === "gen-proj"){
                 if(general_projection){
                     if(typeof general_projection.projection === "undefined") return;
@@ -1756,23 +1762,18 @@ class BasicSettings {
                 if(camera_indicator) camera_indicator.showCameras();
             }
 
-            if(id === "svg-proj"){
-                if(camera_indicator){
-                    const instance = Number(full_id[1]);
-                    camera_indicator.toggleProjType(instance);
-                    camera_indicator.showCameras();
-
-                    const svg = document.getElementById(`svg-proj_${instance}_svg`);
-                    if(svg){
-                        console.log(svg.children);
-                    }
-                }
-            }
-
-            if(id === "svg-remove"){
+            if(id === "camera-remove"){
                 if(camera_indicator){
                     const instance = Number(full_id[1]);
                     camera_indicator.removeCamera(instance);
+                    camera_indicator.showCameras();
+                }
+            }
+
+            if(id === "camera-proj"){
+                if(camera_indicator){
+                    const instance = Number(full_id[1]);
+                    camera_indicator.toggleProjType(instance);
                     camera_indicator.showCameras();
                 }
             }
@@ -1792,179 +1793,202 @@ class BasicSettings {
 
         main_menu.addEventListener("mouseover",(event)=>{
             const elem = event.target as Element;
-            const id = elem.id.split("_")[0];
+            const full_id = elem.id.split("_");
+            const id = full_id[0];
 
-            if(id === "gen-proj"){
-                if(general_projection){
-                    if(!general_projection.hovered)
-                    {
-                        general_projection.tooltip_class.call_function_in();
-                        general_projection.start_event();
-                        general_projection.hovered = true;
-                    }
+            if(id === "point") if(_Point) if(!_Point.hovered) _Point.start_event();
+            if(id === "line") if(_Line) if(!_Line.hovered) _Line.start_event();
+            if(id === "polygon") if(_Polygon) if(!_Polygon.hovered)_Polygon.start_event();
+            if(id === "rectangle") if(_Rectangle) if(!_Rectangle.hovered) _Rectangle.start_event();
+            if(id === "ellipse") if(_Ellipse) if(!_Ellipse.hovered) _Ellipse.start_event();
+            if(id === "circle") if(_Circle) if(!_Circle.hovered) _Circle.start_event();
+            if(id === "pyramid") if(_Pyramid) if(!_Pyramid.hovered) _Pyramid.start_event();
+            if(id === "cone") if(_Cone) if(!_Cone.hovered) _Cone.start_event();
+            if(id === "prism") if(_Prism) if(!_Prism.hovered) _Prism.start_event();
+            if(id === "cylinder") if(_Cylinder) if(!_Cylinder.hovered) _Cylinder.start_event();
+            if(id === "cuboid") if(_Cuboid) if(!_Cuboid.hovered) _Cuboid.start_event();
+            if(id === "sphere") if(_Sphere) if(!_Sphere.hovered) _Sphere.start_event();
+            if(id === "torus") if(_Torus) if(!_Torus.hovered) _Torus.start_event();
+
+            if(id === "gen-proj") if(general_projection) if(!general_projection.hovered) general_projection.start_event();
+            if(id === "cross") if(cross_indicator) if(!cross_indicator.hovered) cross_indicator.start_event();
+
+            if(id === "camera-remove"){
+                if(camera_indicator){
+                    const instance = Number(full_id[1]);
+                    const index = _CAMERA.instance_number_to_list_map[instance];
+                    const remove = _CAMERA.camera_objects_array[index].delete;
+
+                    if(remove) if(!remove.hovered) remove.start_event();
                 }
             }
 
-            if(id === "cross") {
-                if(cross_indicator) {
-                    if(!cross_indicator.hovered)
-                    {
-                        cross_indicator.tooltip_class.call_function_in();
-                        cross_indicator.start_event();
-                        cross_indicator.hovered = true;
-                    }
+            if(id === "camera-proj"){
+                if(camera_indicator){
+                    const instance = Number(full_id[1]);
+                    const index = _CAMERA.instance_number_to_list_map[instance];
+                    const projection = _CAMERA.camera_objects_array[index].projection;
+
+                    if(projection) if(!projection.hovered) projection.start_event();
                 }
             }
+
+            if(id === "camera-icon"){
+                if(camera_indicator){
+                    const instance = Number(full_id[1]);
+                    const index = _CAMERA.instance_number_to_list_map[instance];
+                    const icon = _CAMERA.camera_objects_array[index].icon;
+
+                    if(icon) if(!icon.hovered) icon.start_event();
+                }
+            }
+
+            if(id === "camera-para"){}
             
-            if(id === "undo"){
-                if(undo){
-                    if(!undo.hovered)
-                    {
-                        undo.tooltip_class.call_function_in();
-                        undo.start_event();
-                        undo.hovered = true;
-                    }
-
-                }
-            }
-
-            if(id === "redo"){
-                if(redo){
-                    if(!redo.hovered)
-                    {
-                        redo.tooltip_class.call_function_in();
-                        redo.start_event();
-                        redo.hovered = true;
-                    }
-                }
-            }
+            if(id === "undo") if(undo) if(!undo.hovered) undo.start_event();
+            if(id === "redo") if(redo) if(!redo.hovered) redo.start_event();
         });
 
         main_menu.addEventListener("mouseout",(event)=>{
             const elem = event.target as Element;
-            const id = elem.id.split("_")[0];
+            const full_id = elem.id.split("_");
+            const id = full_id[0];
 
-            if(general_projection){
-                if(general_projection.hovered && id !== "gen-proj"){
-                    general_projection.hovered = false;
-                    general_projection.tooltip_class.call_function_out();
-                    general_projection.end_event();
-                }
-            }
+            if(_Point) if(_Point.hovered && id === "point") _Point.end_event();
+            if(_Line) if(_Line.hovered && id === "line") _Line.end_event();
+            if(_Polygon) if(_Polygon.hovered && id === "polygon") _Polygon.end_event();
+            if(_Rectangle) if(_Rectangle.hovered && id === "rectangle") _Rectangle.end_event();
+            if(_Ellipse) if(_Ellipse.hovered && id === "ellipse") _Ellipse.end_event();
+            if(_Circle) if(_Circle.hovered && id === "circle") _Circle.end_event();
+            if(_Pyramid) if(_Pyramid.hovered && id === "pyramid") _Pyramid.end_event();
+            if(_Cone) if(_Cone.hovered && id === "cone") _Cone.end_event();
+            if(_Prism) if(_Prism.hovered && id === "prism") _Prism.end_event();
+            if(_Cylinder) if(_Cylinder.hovered && id === "cylinder") _Cylinder.end_event();
+            if(_Cuboid) if(_Cuboid.hovered && id === "cuboid") _Cuboid.end_event();
+            if(_Sphere) if(_Sphere.hovered && id === "sphere") _Sphere.end_event();
+            if(_Torus) if(_Torus.hovered && id === "torus") _Torus.end_event();
 
-            if(cross_indicator){
-                if(cross_indicator.hovered && id !== "cross"){
-                    cross_indicator.hovered = false;
-                    cross_indicator.tooltip_class.call_function_out();
-                    cross_indicator.end_event();
+            if(general_projection) if(general_projection.hovered && id !== "gen-proj") general_projection.end_event();
+            if(cross_indicator) if(cross_indicator.hovered && id !== "cross") cross_indicator.end_event();
+
+            if(camera_indicator){
+                const instance = Number(full_id[1]);
+                const index = _CAMERA.instance_number_to_list_map[instance];
+                const camera_object = _CAMERA.camera_objects_array[index];
+
+                if(camera_object){
+                    const remove = camera_object.delete;
+                    const projection = camera_object.projection;
+                    const icon = camera_object.icon;
+
+                    if(remove) if(remove.hovered && id === "camera-remove") remove.end_event();
+                    if(projection) if(projection.hovered && id === "camera-proj") projection.end_event();
+                    if(icon) if(icon.hovered && id === "camera-icon") icon.end_event();
                 }
             }
             
-            if(undo){
-                if(undo.hovered && id !== "undo"){
-                    undo.hovered = false;
-                    undo.tooltip_class.call_function_out();
-                    undo.end_event();
-                }
-            }
-
-            if(redo){
-                if(redo.hovered && id !== "redo"){
-                    redo.hovered = false;
-                    redo.tooltip_class.call_function_out();
-                    redo.end_event();
-                }
-            }            
+            if(undo) if(undo.hovered && id !== "undo") undo.end_event();
+            if(redo) if(redo.hovered && id !== "redo") redo.end_event();   
         });
         
         main_menu.addEventListener("touchstart",(event)=>{
             const elem = event.target as Element;
-            const id = elem.id.split("_")[0];
-            console.log(event.target,"******************",id); 
+            const full_id = elem.id.split("_");
+            const id = full_id[0];
 
-            if(id === "gen-proj"){
-                if(general_projection){
-                    if(!general_projection.hovered)
-                    {
-                        general_projection.tooltip_class.call_function_in();
-                        general_projection.start_event();
-                        general_projection.hovered = true;
-                    }
+            if(id === "point") if(_Point) if(!_Point.hovered) _Point.start_event();
+            if(id === "line") if(_Line) if(!_Line.hovered) _Line.start_event();
+            if(id === "polygon") if(_Polygon) if(!_Polygon.hovered)_Polygon.start_event();
+            if(id === "rectangle") if(_Rectangle) if(!_Rectangle.hovered) _Rectangle.start_event();
+            if(id === "ellipse") if(_Ellipse) if(!_Ellipse.hovered) _Ellipse.start_event();
+            if(id === "circle") if(_Circle) if(!_Circle.hovered) _Circle.start_event();
+            if(id === "pyramid") if(_Pyramid) if(!_Pyramid.hovered) _Pyramid.start_event();
+            if(id === "cone") if(_Cone) if(!_Cone.hovered) _Cone.start_event();
+            if(id === "prism") if(_Prism) if(!_Prism.hovered) _Prism.start_event();
+            if(id === "cylinder") if(_Cylinder) if(!_Cylinder.hovered) _Cylinder.start_event();
+            if(id === "cuboid") if(_Cuboid) if(!_Cuboid.hovered) _Cuboid.start_event();
+            if(id === "sphere") if(_Sphere) if(!_Sphere.hovered) _Sphere.start_event();
+            if(id === "torus") if(_Torus) if(!_Torus.hovered) _Torus.start_event();
+
+            if(id === "gen-proj") if(general_projection) if(!general_projection.hovered) general_projection.start_event();
+            if(id === "cross") if(cross_indicator) if(!cross_indicator.hovered) cross_indicator.start_event();
+
+            if(id === "camera-remove"){
+                if(camera_indicator){
+                    const instance = Number(full_id[1]);
+                    const index = _CAMERA.instance_number_to_list_map[instance];
+                    const remove = _CAMERA.camera_objects_array[index].delete;
+
+                    if(remove) if(!remove.hovered) remove.start_event();
                 }
             }
 
-            if(id === "cross") {
-                if(cross_indicator) {
-                    if(!cross_indicator.hovered)
-                    {
-                        cross_indicator.tooltip_class.call_function_in();
-                        cross_indicator.start_event();
-                        cross_indicator.hovered = true;
-                    }
+            if(id === "camera-proj"){
+                if(camera_indicator){
+                    const instance = Number(full_id[1]);
+                    const index = _CAMERA.instance_number_to_list_map[instance];
+                    const projection = _CAMERA.camera_objects_array[index].projection;
+
+                    if(projection) if(!projection.hovered) projection.start_event();
                 }
             }
+
+            if(id === "camera-icon"){
+                if(camera_indicator){
+                    const instance = Number(full_id[1]);
+                    const index = _CAMERA.instance_number_to_list_map[instance];
+                    const icon = _CAMERA.camera_objects_array[index].icon;
+
+                    if(icon) if(!icon.hovered) icon.start_event();
+                }
+            }
+
+            if(id === "camera-para"){}
             
-            if(id === "undo"){
-                if(undo){
-                    if(!undo.hovered)
-                    {
-                        undo.tooltip_class.call_function_in();
-                        undo.start_event();
-                        undo.hovered = true;
-                    }
-
-                }
-            }
-
-            if(id === "redo"){
-                if(redo){
-                    if(!redo.hovered)
-                    {
-                        redo.tooltip_class.call_function_in();
-                        redo.start_event();
-                        redo.hovered = true;
-                    }
-                }
-            }
-
+            if(id === "undo") if(undo) if(!undo.hovered) undo.start_event();
+            if(id === "redo") if(redo) if(!redo.hovered) redo.start_event();
         },{"passive":true});
 
         main_menu.addEventListener("touchend",(event)=>{
             const elem = event.target as Element;
-            const id = elem.id.split("_")[0];
+            const full_id = elem.id.split("_");
+            const id = full_id[0];
 
-            if(general_projection){
-                if(general_projection.hovered && id !== "gen-proj"){
-                    general_projection.hovered = false;
-                    general_projection.tooltip_class.call_function_out();
-                    general_projection.end_event();
-                }
-            }
+            if(_Point) if(_Point.hovered && id === "point") _Point.end_event();
+            if(_Line) if(_Line.hovered && id === "line") _Line.end_event();
+            if(_Polygon) if(_Polygon.hovered && id === "polygon") _Polygon.end_event();
+            if(_Rectangle) if(_Rectangle.hovered && id === "rectangle") _Rectangle.end_event();
+            if(_Ellipse) if(_Ellipse.hovered && id === "ellipse") _Ellipse.end_event();
+            if(_Circle) if(_Circle.hovered && id === "circle") _Circle.end_event();
+            if(_Pyramid) if(_Pyramid.hovered && id === "pyramid") _Pyramid.end_event();
+            if(_Cone) if(_Cone.hovered && id === "cone") _Cone.end_event();
+            if(_Prism) if(_Prism.hovered && id === "prism") _Prism.end_event();
+            if(_Cylinder) if(_Cylinder.hovered && id === "cylinder") _Cylinder.end_event();
+            if(_Cuboid) if(_Cuboid.hovered && id === "cuboid") _Cuboid.end_event();
+            if(_Sphere) if(_Sphere.hovered && id === "sphere") _Sphere.end_event();
+            if(_Torus) if(_Torus.hovered && id === "torus") _Torus.end_event();
 
-            if(cross_indicator){
-                if(cross_indicator.hovered && id !== "cross"){
-                    cross_indicator.hovered = false;
-                    cross_indicator.tooltip_class.call_function_out();
-                    cross_indicator.end_event();
+            if(general_projection) if(general_projection.hovered && id !== "gen-proj") general_projection.end_event();
+            if(cross_indicator) if(cross_indicator.hovered && id !== "cross") cross_indicator.end_event();
+
+            if(camera_indicator){
+                const instance = Number(full_id[1]);
+                const index = _CAMERA.instance_number_to_list_map[instance];
+                const camera_object = _CAMERA.camera_objects_array[index];
+
+                if(camera_object){
+                    const remove = camera_object.delete;
+                    const projection = camera_object.projection;
+                    const icon = camera_object.icon;
+
+                    if(remove) if(remove.hovered && id === "camera-remove") remove.end_event();
+                    if(projection) if(projection.hovered && id === "camera-proj") projection.end_event();
+                    if(icon) if(icon.hovered && id === "camera-icon") icon.end_event();
                 }
             }
             
-            if(undo){
-                if(undo.hovered && id !== "undo"){
-                    undo.hovered = false;
-                    undo.tooltip_class.call_function_out();
-                    undo.end_event();
-                }
-            }
-
-            if(redo){
-                if(redo.hovered && id !== "redo"){
-                    redo.hovered = false;
-                    redo.tooltip_class.call_function_out();
-                    redo.end_event();
-                }
-            }        
-
+            if(undo) if(undo.hovered && id !== "undo") undo.end_event();
+            if(redo) if(redo.hovered && id !== "redo") redo.end_event();
         },{"passive":true});
     }
 
@@ -2289,11 +2313,25 @@ class CreateSVGDelete {
     svg_class_: CreateSVG;
     path_1: CreateSVGPath;
     path_2: CreateSVGPath;
+    hovered : boolean;
 
     constructor (svg_class: CreateSVG, d_1: string,d_2: string,stroke: string,strokeWidth: string,hover_color: string,fill = "none",hover_fill = false) {
         this.svg_class_ = svg_class;
+        this.hovered = false;
         this.path_1 = new CreateSVGPath(svg_class, d_1, stroke, strokeWidth, hover_color, fill, hover_fill);
         this.path_2 = new CreateSVGPath(svg_class, d_2, stroke, strokeWidth, hover_color, fill, hover_fill)
+    }
+
+    start_event(){
+        this.path_1.event_in();
+        this.path_2.event_in();
+        this.hovered = true;
+    }
+
+    end_event(){
+        this.path_1.event_out();
+        this.path_2.event_out();
+        this.hovered = false;
     }
 }
 
@@ -2334,9 +2372,21 @@ class CreateSVGCameraExperimental {
 
 class CreateSVGCameraIcon{
     path : CreateSVGPath;
+    hovered : boolean;
     constructor(svg_class: CreateSVG,stroke: string,strokeWidth: string,hover_color: string,fill = "none",hover_fill = false){
+        this.hovered = false;
         const path_string = "M 18 4, L 12 10, L 12 3, L 1 1, L 1 19, L 12 17, L 12 10, L 18 16";
         this.path = new CreateSVGPath(svg_class, path_string, stroke, svg_objects_strokeWidth, svg_hover_color, fill, hover_fill);
+    }
+
+    start_event(){
+        this.path.event_in();
+        this.hovered = true;
+    }
+
+    end_event(){
+        this.path.event_out();
+        this.hovered = false;
     }
 
     // clickFunction(instance : number,func: (instance_number_input : number) => void) {
@@ -2349,9 +2399,11 @@ class CreateSVGCameraProjection{
     path_1: CreateSVGPath;
     path_2: CreateSVGPath;
     lines : CreateSVGLine[];
+    hovered : boolean;
 
     constructor (svg_class: CreateSVG,d_1: string,d_2: string,stroke: string,strokeWidth: string,hover_color: string,fill = "none",hover_fill = false) {
         this.svg_class_ = svg_class;
+        this.hovered = false;
         this.path_1 = new CreateSVGPath(svg_class, d_1, stroke, strokeWidth, hover_color, fill, hover_fill);
         this.path_2 = new CreateSVGPath(svg_class, d_2, stroke, strokeWidth, hover_color, fill, hover_fill);
         this.lines = [];
@@ -2374,12 +2426,14 @@ class CreateSVGCameraProjection{
         for(const line of this.lines) line.event_in();
         this.path_1.event_in();
         this.path_2.event_in();
+        this.hovered = true;
     }
 
     end_event(){
         for(const line of this.lines) line.event_out();
         this.path_1.event_out();
         this.path_2.event_out();
+        this.hovered = false;
     }
 
     remove(){
@@ -2468,11 +2522,17 @@ class CreateCameraProjection_SVG_Indicator extends Other_SVG_Indicator{
     }
 
     start_event(){
-        if(this.projection) this.projection.start_event();
+        if(this.projection) {
+            this.projection.start_event();
+            this.tooltip_class.call_function_in();
+            this.hovered = true;
+        }
     }
 
     end_event(){
         if(this.projection) this.projection.end_event();
+        this.tooltip_class.call_function_out();
+        this.hovered = false;
     }
 }
 
@@ -2488,11 +2548,15 @@ class CreateCross_SVG_Indicator extends Other_SVG_Indicator {
     start_event(){
         this.line_1.event_in();
         this.line_2.event_in();
+        this.tooltip_class.call_function_in();
+        this.hovered = true;
     }
 
     end_event(){
         this.line_1.event_out();
         this.line_2.event_out();
+        this.tooltip_class.call_function_out();
+        this.hovered = false;
     }
 }
 
@@ -2514,10 +2578,14 @@ class CreateUndo_SVG_Indicator extends Other_SVG_Indicator{
 
     start_event(){
         for(const path of this.paths) path.event_in();
+        this.tooltip_class.call_function_in();
+        this.hovered = true;
     }
 
     end_event(){
         for(const path of this.paths) path.event_out();
+        this.tooltip_class.call_function_out();
+        this.hovered = false;
     }
 
     // clickFunction(func: () => void) {
@@ -2543,10 +2611,14 @@ class CreateRedo_SVG_Indicator extends Other_SVG_Indicator{
 
     start_event(){
         for(const path of this.paths) path.event_in();
+        this.tooltip_class.call_function_in();
+        this.hovered = true;
     }
 
     end_event(){
         for(const path of this.paths) path.event_out();
+        this.tooltip_class.call_function_out();
+        this.hovered = false;
     }
 
     // clickFunction(func: () => void) {
@@ -2570,11 +2642,15 @@ class CreateDelete_SVG_Indicator extends Other_SVG_Indicator{
     start_event(){
         for(const path of this.paths) path.event_in();
         for(const line of this.lines) line.event_in();
+        this.tooltip_class.call_function_in();
+        this.hovered = true;
     }
 
     end_event(){
         for(const path of this.paths) path.event_out();
         for(const line of this.lines) line.event_out();
+        this.tooltip_class.call_function_out();
+        this.hovered = false;
     }
     
     // clickFunction(func: () => void) {
@@ -2842,6 +2918,69 @@ class CreateToolTip {
     }
 }
 
+class ShapeClick{
+    shape : string;
+    constructor(){
+        this.shape = "";
+    }
+    
+    shape_click (shape : string){
+        this.shape = shape;
+        let ret_object : CreateMeshObject | null;
+
+        switch (this.shape){
+            case "point" :
+                ret_object = new CreatePoint();
+                break;
+            case "line" :
+                ret_object = new CreateLine();
+                break;
+            case "polygon" : 
+                ret_object = new CreatePolygon();
+                break;
+            case "rectangle" : 
+                ret_object = new  CreateRectangle();
+                break;
+            case "ellipse" : 
+                ret_object = new CreateEllipse();
+                break;
+            case "circle" : 
+                ret_object = new CreateCircle();
+                break;
+            case "pyramid" : 
+                ret_object = new CreatePyramid();
+                break;
+            case "cone" : 
+                ret_object = new CreateCone();
+                break;
+            case "prism" : 
+                ret_object = new CreatePrism();
+                break;
+            case "cylinder" : 
+                ret_object = new CreateCylinder();
+                break;
+            case "cuboid" : 
+                ret_object = new CreateCuboid();
+                break;
+            case "sphere" :
+                ret_object = new CreateSphere();
+                break;
+            case "torus" : 
+                ret_object = new CreateTorus();
+                break;
+            default : ret_object = null;
+        }
+            
+        if (ret_object){
+            console.log(_ObjectRendering.instance,"###################")
+            _ObjectRendering.changeCurrentObjectInstance(_ObjectRendering.instance);
+            _ObjectRendering.addObjects(ret_object);
+            _ObjectRendering.renderWorld();
+            const rendered_object = _ObjectRendering.renderObject();
+            _Draw.drawObject(rendered_object);
+        }
+    }
+}
 
 class DrawCanvas {
     protected static drawCount = 0;
@@ -2927,6 +3066,7 @@ class DrawCanvas {
     }
 }
 
+const _ShapeClick = new ShapeClick();
 // From math_lib.ts/mathlib.js file
 const _PROJ: Projection = new Projection();
 const _CAMERA: CameraObjects = new CameraObjects();

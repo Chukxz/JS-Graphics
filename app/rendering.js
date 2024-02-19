@@ -103,26 +103,26 @@ class CameraIndicator extends CreateSubMenuContent {
         }
         cam.addEventListener("click", () => { this.clickCamera(instance); });
         const projection_type = _CAMERA.camera_objects_array[index].instance._PROJ_TYPE;
-        const svg_class_rm = new CreateSVG(cam_div, "20", "20", "svg-remove_" + instance, 6);
+        const svg_class_rm = new CreateSVG(cam_div, "20", "20", "camera-remove_" + instance, 6);
         svg_class_rm.svg.style.marginTop = "18px";
         svg_class_rm.svg.style.float = "right";
-        new CreateSVGDelete(svg_class_rm, "M 3 3, L 17 17", "M 3 17, L 17 3", _col, svg_objects_strokeWidth, _h_col);
-        const svg_class_proj = new CreateSVG(cam_div, "20", "20", "svg-proj_" + instance, 6);
+        _CAMERA.camera_objects_array[index].delete = new CreateSVGDelete(svg_class_rm, "M 3 3, L 17 17", "M 3 17, L 17 3", _col, svg_objects_strokeWidth, _h_col);
+        const svg_class_proj = new CreateSVG(cam_div, "20", "20", "camera-proj_" + instance, 6);
         svg_class_proj.svg.style.marginTop = "18px";
         svg_class_proj.svg.style.float = "right";
         svg_class_proj.svg.style.marginRight = "2px";
         if (projection_type === "Orthographic") {
-            new CreateSVGCameraProjection(svg_class_proj, "M 7 2, L 18 2, L 18 12, L 7 12, Z", "M 2 8, L 13 8, L 13 18, L 2 18, Z", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
+            _CAMERA.camera_objects_array[index].projection = new CreateSVGCameraProjection(svg_class_proj, "M 7 2, L 18 2, L 18 12, L 7 12, Z", "M 2 8, L 13 8, L 13 18, L 2 18, Z", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         }
         else if (projection_type === "Perspective") {
-            new CreateSVGCameraProjection(svg_class_proj, "M 9 3, L 17 3, L 17 10, L 9 10, Z", "M 1 8, L 13 8, L 13 19, L 1 19, Z", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
+            _CAMERA.camera_objects_array[index].projection = new CreateSVGCameraProjection(svg_class_proj, "M 9 3, L 17 3, L 17 10, L 9 10, Z", "M 1 8, L 13 8, L 13 19, L 1 19, Z", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         }
         const svg_class_cam_icon = new CreateSVG(cam_div, "20", "20", "camera-icon_" + instance, 1);
         svg_class_cam_icon.svg.style.marginTop = "18px";
         svg_class_cam_icon.svg.style.float = "right";
         svg_class_cam_icon.svg.style.marginRight = "2px";
         svg_class_cam_icon.svg.style.display = "none";
-        new CreateSVGCameraIcon(svg_class_cam_icon, svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
+        _CAMERA.camera_objects_array[index].icon = new CreateSVGCameraIcon(svg_class_cam_icon, svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
     }
     removeCamera(instance) {
         _CAMERA.deleteCameraObject(instance);

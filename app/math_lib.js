@@ -1222,11 +1222,17 @@ class CameraObject extends Quarternion {
     cam_history;
     prev_h;
     next_h;
+    delete;
+    projection;
+    icon;
     constructor() {
         super();
         this.cam_history = [];
         this.prev_h = false;
         this.next_h = false;
+        this.delete = null;
+        this.projection = null;
+        this.icon = null;
         this.initializeBuffers();
         this.setCameraPos_nonIncremental([0, 10, -400]);
         return this;
