@@ -1,43 +1,43 @@
 // window.parent.addEventListener("message", (e) => window.parent.postMessage(e.data));
 window.parent.addEventListener("message", (e) => { if (e.data === "Editing")
     edit(); });
-let _Point = null;
-let _Line = null;
-let _Polygon = null;
-let _Rectangle = null;
-let _Ellipse = null;
-let _Circle = null;
-let _Pyramid = null;
-let _Cone = null;
-let _Prism = null;
-let _Cylinder = null;
-let _Cuboid = null;
-let _Sphere = null;
-let _Torus = null;
 function edit() {
     while (main_menu.firstChild)
         main_menu.removeChild(main_menu.firstChild);
     create_main_menu_divider = true;
+    cross_indicator = new CreateCross_SVG_Indicator(main_menu, "cross", "Add Objects");
     const menu_header = document.createElement("p");
-    menu_header.textContent = "Mesh Objects";
     menu_header.style.paddingLeft = "10px";
     main_menu.appendChild(menu_header);
+    menu_header.textContent = "Objects";
+    menu_header.style.fontWeight = "bold";
     const object_container_div = document.createElement("div");
     object_container_div.className = "container_div";
     object_container_div.style.zIndex = "inherit";
+    object_container_div.style.position = "absolute";
+    const mesh_sample_container_div = document.createElement("div");
+    mesh_sample_container_div.className = "container_div";
+    mesh_sample_container_div.style.zIndex = "inherit";
+    mesh_sample_container_div.style.display = "none";
+    mesh_sample_container_div.id = "mesh-container";
+    mesh_sample_container_div.style.position = "absolute";
+    mesh_sample_container_div.style.zIndex = `${Number(window.getComputedStyle(object_container_div).zIndex) + 10}`;
     if (svg_main_menu_divider_top < 0)
         svg_main_menu_divider_top = main_menu_height + svg_main_menu_divider_top;
     root.style.setProperty("--container-div-height", `${svg_main_menu_divider_top - 80}px`);
-    object_container_div.style.paddingTop = "30px";
     object_container_div.style.overflowX = "hidden";
     object_container_div.style.overflowY = "auto";
+    mesh_sample_container_div.style.paddingTop = "30px";
+    mesh_sample_container_div.style.overflowX = "hidden";
+    mesh_sample_container_div.style.overflowY = "auto";
     main_menu.appendChild(object_container_div);
+    main_menu.appendChild(mesh_sample_container_div);
     const object_div_1d = document.createElement("div");
     const object_div_2d = document.createElement("div");
     const object_div_3d = document.createElement("div");
-    object_container_div.appendChild(object_div_1d);
-    object_container_div.appendChild(object_div_2d);
-    object_container_div.appendChild(object_div_3d);
+    mesh_sample_container_div.appendChild(object_div_1d);
+    mesh_sample_container_div.appendChild(object_div_2d);
+    mesh_sample_container_div.appendChild(object_div_3d);
     /* 1D Shapes */
     _Point = new CreatePoint_SVG_Indicator(object_div_1d, "point");
     _Line = new CreateLine_SVG_Indicator(object_div_1d, "line");

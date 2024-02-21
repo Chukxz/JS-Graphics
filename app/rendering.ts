@@ -1,27 +1,23 @@
 window.parent.addEventListener("message",(e) => { if(e.data === "Rendering") render(); });
 
-let general_projection : CreateCameraProjection_SVG_Indicator | null = null;
-let cross_indicator : CreateCross_SVG_Indicator | null = null;
-let undo : CreateUndo_SVG_Indicator | null = null;
-let redo : CreateRedo_SVG_Indicator | null = null;
-let camera_indicator : CameraIndicator | null = null;
-
 function render() {
     while(main_menu.firstChild)main_menu.removeChild(main_menu.firstChild);
     create_main_menu_divider = true;
-  
-    general_projection = new CreateCameraProjection_SVG_Indicator(main_menu,"gen-proj");
-    cross_indicator = new CreateCross_SVG_Indicator(main_menu,"cross","Add Camera",);
 
+    general_projection = new CreateCameraProjection_SVG_Indicator(main_menu,"gen-proj");
+    cross_indicator = new CreateCross_SVG_Indicator(main_menu,"cross","Add Cameras");
+  
     const menu_header = document.createElement("p");
-    menu_header.className = "custom_menu_header with_cross_hairs";
-    menu_header.textContent = "Camera Objects";
     menu_header.style.paddingLeft = "10px";
     main_menu.appendChild(menu_header);
+    menu_header.className = "custom_menu_header with_cross_hairs";
+    menu_header.textContent = "Cameras";
+    menu_header.style.fontWeight = "bold";
 
     const overall_camera_div = document.createElement("div");
     overall_camera_div.id = "overall_camera_div";
     overall_camera_div.className = "container_div";
+    overall_camera_div.style.position = "absolute";
     overall_camera_div.style.zIndex = "inherit";
     
     if(svg_main_menu_divider_top < 0) svg_main_menu_divider_top = main_menu_height + svg_main_menu_divider_top;
@@ -38,24 +34,10 @@ function render() {
     basicDrawFunction();
 }
 
-class CreateSubMenuContent{
-    sub_menu_container : HTMLDivElement;
-    input_form : CreateForm;
-
-    constructor(container : HTMLDivElement){
-        this.sub_menu_container = document.createElement("div");
-        this.sub_menu_container.style.margin = "40px 0 0 10px";
-        container.appendChild(this.sub_menu_container);
-
-        this.input_form = new CreateForm(container, main_menu_width);
-    }
-}
-
 class CameraIndicator extends CreateSubMenuContent {
     camera_objects: CameraObject[];
     camera_container: HTMLDivElement;
     menu_container : HTMLDivElement;
-    instance_para : HTMLParagraphElement;
     look_at_pos : CreateXYZInputField;
     cam_pos : CreateXYZInputField;
 
@@ -63,8 +45,6 @@ class CameraIndicator extends CreateSubMenuContent {
         super(menu_container);
         this.camera_container = container;
         this.menu_container = menu_container;
-        this.instance_para = document.createElement("p");
-        this.sub_menu_container.appendChild(this.instance_para);
         this.showCameras();
     }
 
@@ -77,7 +57,7 @@ class CameraIndicator extends CreateSubMenuContent {
         while(this.camera_container.firstChild) this.camera_container.removeChild(this.camera_container.firstChild);
         this.camera_objects = _CAMERA.camera_objects_array;
         const sub_container = document.createElement("div");
-        sub_container.style.margin = "10px";
+        sub_container.style.margin = "2px 10px";
         this.camera_container.appendChild(sub_container);
 
         var index = 0;

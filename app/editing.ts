@@ -1,47 +1,48 @@
 // window.parent.addEventListener("message", (e) => window.parent.postMessage(e.data));
 
 window.parent.addEventListener("message",(e) => { if(e.data === "Editing") edit(); });
-
-let _Point : CreatePoint_SVG_Indicator | null = null;
-let _Line : CreateLine_SVG_Indicator | null = null;
-let _Polygon : CreatePolygon_SVG_Indicator | null = null;
-let _Rectangle : CreateRectangle_SVG_Indicator | null = null;
-let _Ellipse : CreateEllipse_SVG_Indicator | null = null;
-let _Circle : CreateCircle_SVG_Indicator | null = null;
-let _Pyramid : CreatePyramid_SVG_Indicator | null = null;
-let _Cone :  CreateCone_SVG_Indicator | null = null;
-let _Prism : CreatePrism_SVG_Indicator | null = null;
-let _Cylinder : CreateCylinder_SVG_Indicator | null = null;
-let _Cuboid : CreateCuboid_SVG_Indicator | null = null;
-let _Sphere : CreateSphere_SVG_Indicator | null = null;
-let _Torus : CreateTorus_SVG_Indicator | null = null;
-
 function edit() {
     while(main_menu.firstChild) main_menu.removeChild(main_menu.firstChild);
     create_main_menu_divider = true;
 
+    cross_indicator = new CreateCross_SVG_Indicator(main_menu,"cross","Add Objects");
+
     const menu_header = document.createElement("p");
-    menu_header.textContent = "Mesh Objects";
     menu_header.style.paddingLeft = "10px";
     main_menu.appendChild(menu_header);
+    menu_header.textContent = "Objects";
+    menu_header.style.fontWeight = "bold";
 
     const object_container_div = document.createElement("div");
     object_container_div.className = "container_div";
     object_container_div.style.zIndex = "inherit";
+    object_container_div.style.position = "absolute";
+    
+    const mesh_sample_container_div = document.createElement("div");
+    mesh_sample_container_div.className = "container_div";
+    mesh_sample_container_div.style.zIndex = "inherit";
+    mesh_sample_container_div.style.display = "none";
+    mesh_sample_container_div.id = "mesh-container";
+    mesh_sample_container_div.style.position = "absolute";
+    mesh_sample_container_div.style.zIndex = `${Number(window.getComputedStyle(object_container_div).zIndex)+10}`;
+
     if(svg_main_menu_divider_top < 0) svg_main_menu_divider_top = main_menu_height + svg_main_menu_divider_top;
     root.style.setProperty("--container-div-height",`${svg_main_menu_divider_top - 80}px`);
-    object_container_div.style.paddingTop = "30px"
     object_container_div.style.overflowX = "hidden";
     object_container_div.style.overflowY = "auto";
+    mesh_sample_container_div.style.paddingTop = "30px";
+    mesh_sample_container_div.style.overflowX = "hidden";
+    mesh_sample_container_div.style.overflowY = "auto";
     main_menu.appendChild(object_container_div);
+    main_menu.appendChild(mesh_sample_container_div);
 
     const object_div_1d = document.createElement("div");
     const object_div_2d = document.createElement("div");
     const object_div_3d = document.createElement("div");
 
-    object_container_div.appendChild(object_div_1d);
-    object_container_div.appendChild(object_div_2d);
-    object_container_div.appendChild(object_div_3d);
+    mesh_sample_container_div.appendChild(object_div_1d);
+    mesh_sample_container_div.appendChild(object_div_2d);
+    mesh_sample_container_div.appendChild(object_div_3d);
 
     /* 1D Shapes */
     _Point = new CreatePoint_SVG_Indicator(object_div_1d,"point");
