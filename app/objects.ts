@@ -10,6 +10,7 @@ class CreateObject {
     object_scaling_array : _3D_VEC_;
     points_list: Point3D[];
     object_state : string;
+    selected : boolean;
 
     constructor () {
         this.object_rotation_angle = 10;
@@ -23,6 +24,7 @@ class CreateObject {
         this.object_scaling_array = [1,1,1];
         this.points_list = [];
         this.object_state = "local";
+        this.selected = false;
     }
 }
 class CreateMeshObject extends CreateObject {
@@ -36,6 +38,7 @@ class CreateMeshObject extends CreateObject {
     bounding_box : _BOUNDING_BOX_;
     bounding_sphere : _BOUNDING_SPHERE_;
     indices : _MIN_MAX_XYZ_INDEX_;
+    blank : boolean;
 
     constructor (width: number,height: number,depth: number,start_vertex: number) {
         super();
@@ -46,6 +49,7 @@ class CreateMeshObject extends CreateObject {
         this._is_degenerate_ = false;
         this.vert_st = start_vertex;
         this.shape = "Generic";
+        this.blank = false;
     }
 
     reconstructMesh() { return this; }
@@ -975,7 +979,7 @@ class CreateGrid extends CreateMeshObject {
 
 class ObjectRendering extends Miscellanous {
     instance: number;
-    objects: CreateMeshObject[];
+    objects: MeshObjectHelper;
     instance_number_to_list_map: {}
     selected_object_instances: Set<number>;
     current_object_instance: number;
@@ -983,8 +987,7 @@ class ObjectRendering extends Miscellanous {
     constructor () {
         super();
         this.instance = 0;
-        this.objects = [];
-        this.instance_number_to_list_map = {};
+        this.objects = new MeshObjectHelper;
         this.selected_object_instances = new Set();
         this.current_object_instance = 0;
     }
@@ -992,50 +995,38 @@ class ObjectRendering extends Miscellanous {
     changeCurrentObjectInstance(value: number) { this.current_object_instance = value; }
 
     getCurrentObjectInstance() {
-        return this.objects[this.instance_number_to_list_map[this.current_object_instance]];
+        return this.objects.object_dict[this.current_object_instance].object;
     }
 
-    private deleteObjectHelper(instance_number_input: number,index: number) {
-        this.objects.splice(index,1);
-        delete this.instance_number_to_list_map[instance_number_input];
-
-        for(const key in this.instance_number_to_list_map) {
-            if(Number(key) > instance_number_input) {
-                this.instance_number_to_list_map[key] = this.instance_number_to_list_map[key] - 1;
-            }
-        }
-
-        if(instance_number_input in this.selected_object_instances) this.selected_object_instances.delete(instance_number_input);
+    private deleteObjectHelper(instance_number_input: number) {
+        this.objects.deleteObject(instance_number_input);
+        if(instance_number_input === this.current_object_instance) this.current_object_instance = Number(Object.keys(this.objects.object_dict)[0]);
     }
 
     addObjects(object: CreateMeshObject) {
         object.calculatePoints();
-        this.objects.push(object);
+        this.objects.createObject(object);
         this.instance_number_to_list_map[this.instance] = this.instance;
         this.instance++;
     }
 
     removeObject(object_instance: number) {
-        const index = this.instance_number_to_list_map[object_instance];
-        this.deleteObjectHelper(object_instance,index);
+        this.deleteObjectHelper(object_instance);
     }
 
     delete_all_objects() {
-        this.objects = [];
-        this.instance_number_to_list_map = {};
+        this.objects.object_dict = {};
     }
 
     select_object(selected_instance: number) {
-        const selection = this.instance_number_to_list_map[selected_instance];
-        this.selected_object_instances.add(selection);
+        this.selected_object_instances.add(selected_instance);
     }
 
     select_multiple_objects(selected_instances: number[]) { for(const instance of selected_instances) this.select_object(instance); }
 
-    select_all_objects() { for(const index in this.objects) { this.select_object(Number(index)) }; }
+    select_all_objects() { for(const instance in this.objects.object_dict) { this.select_object(Number(instance)) }; }
 
     deselect_object(selected_instance: number) {
-        const selection = this.instance_number_to_list_map[selected_instance];
         this.selected_object_instances.delete(selected_instance);
     }
 

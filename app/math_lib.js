@@ -955,6 +955,95 @@ class MeshDataStructure {
         return { mesh: new_mesh, points: triangulated_points_list };
     }
 }
+class ObjectHelper {
+    instance;
+    prev;
+    next;
+    object_dict;
+    constructor() {
+        this.instance = 0;
+        this.prev = null;
+        this.next = null;
+        this.object_dict = {};
+    }
+    createObject(object) {
+        if (this.prev !== null)
+            this.object_dict[this.prev].next = this.instance;
+        this.object_dict[this.instance] = { object: object, prev: this.prev, next: this.next };
+        this.prev = this.instance;
+        this.instance++;
+    }
+    moveObject(instance, end, direction = "d") {
+        const object = this.object_dict[instance].object;
+        this.deleteObject(instance);
+        const prev = this.object_dict[end].prev;
+        const next = this.object_dict[end].next;
+        switch (direction) {
+            case "u":
+                if (prev !== null)
+                    this.object_dict[prev].next = instance;
+                this.object_dict[instance] = { object: object, prev: prev, next: end };
+                this.object_dict[end].prev = instance;
+                break;
+            case "d":
+                this.object_dict[end].next = instance;
+                this.object_dict[instance] = { object: object, prev: end, next: next };
+                if (next !== null)
+                    this.object_dict[next].prev = instance;
+                break;
+        }
+    }
+    deleteObject(instance) {
+        const prev = this.object_dict[instance].prev;
+        const next = this.object_dict[instance].next;
+        if (prev !== null) {
+            if (this.object_dict[prev])
+                this.object_dict[prev].next = next;
+        }
+        if (next !== null) {
+            if (this.object_dict[next])
+                this.object_dict[next].prev = prev;
+        }
+        delete this.object_dict[instance];
+    }
+    getDirection(start_instance, current_instance) {
+        var link = this.object_dict[start_instance].prev;
+        while (link !== null) {
+            if (link === current_instance)
+                return "u";
+            else
+                link = this.object_dict[link].prev;
+        }
+        link = this.object_dict[start_instance].next;
+        while (link !== null) {
+            if (link === current_instance)
+                return "d";
+            else
+                link = this.object_dict[link].next;
+        }
+        return "u";
+    }
+}
+class CamObjectHelper extends ObjectHelper {
+    object_dict;
+    constructor() {
+        super();
+        this.object_dict = {};
+    }
+    createObject(object) {
+        super.createObject(object);
+    }
+}
+class MeshObjectHelper extends ObjectHelper {
+    object_dict;
+    constructor() {
+        super();
+        this.object_dict = {};
+    }
+    createObject(object) {
+        super.createObject(object);
+    }
+}
 class Miscellanous {
     constructor() { }
     // rad_to_deg();
@@ -2113,7 +2202,7 @@ class Projection {
         this.setProjectionParam();
     }
     setProjectionParam() {
-        const projection_type = _CAMERA.camera_objects_array[_CAMERA.instance_number_to_list_map[_CAMERA.current_camera_instance]].instance._PROJ_TYPE;
+        const projection_type = _CAMERA.camera_objects.object_dict[_CAMERA.current_camera_instance].object.instance._PROJ_TYPE;
         if (projection_type === "Orthographic")
             this.orthographicProjection();
         else if (projection_type === "Perspective")
@@ -2179,17 +2268,21 @@ class CameraObject extends Quarternion {
     cam_history;
     prev_h;
     next_h;
+    selected;
     delete;
     projection;
     icon;
+    blank;
     constructor() {
         super();
         this.cam_history = [];
         this.prev_h = false;
         this.next_h = false;
+        this.selected = false;
         this.delete = null;
         this.projection = null;
         this.icon = null;
+        this.blank = false;
         this.initializeBuffers();
         this.setCameraPos_nonIncremental([0, 10, -400]);
         return this;
@@ -2366,108 +2459,55 @@ class NDCSpace {
 }
 const _NDCSpace = new NDCSpace();
 class CameraObjects extends ViewSpace {
-    camera_objects_array;
-    instance_number;
-    arrlen;
-    selected_camera_instances;
+    camera_objects;
     current_camera_instance;
-    max_camera_instance_number;
-    instance_number_to_list_map;
+    max_camera_instance;
     constructor() {
         super();
-        this.arrlen = 0;
-        this.instance_number = 0;
-        this.max_camera_instance_number = 0;
         this.current_camera_instance = 0;
-        this.camera_objects_array = [];
-        this.selected_camera_instances = {};
-        this.instance_number_to_list_map = {};
+        this.max_camera_instance = 0;
+        this.camera_objects = new CamObjectHelper();
         this.createNewCameraObject();
     }
     changeCurrentInstanceNumber(instance_number) {
-        if (instance_number in this.instance_number_to_list_map)
+        if (instance_number in this.camera_objects.object_dict)
             this.current_camera_instance = instance_number;
     }
     changeProjType(projection_type) {
-        this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]].changeProjType(projection_type);
+        this.camera_objects[this.current_camera_instance].object.changeProjType(projection_type);
         MODIFIED_PARAMS._PROJ_TYPE = projection_type;
     }
     createNewCameraObject() {
-        this.max_camera_instance_number = this.instance_number;
-        this.camera_objects_array[this.arrlen] = new CameraObject();
-        this.camera_objects_array[this.arrlen].instance.instance_number = this.instance_number;
-        this.instance_number_to_list_map[this.instance_number] = this.arrlen;
-        this.current_camera_instance = this.instance_number;
-        this.instance_number++;
-        this.arrlen++;
-        this.select_camera_instance(this.instance_number - 1);
+        this.current_camera_instance = this.camera_objects.instance;
+        this.max_camera_instance = this.camera_objects.instance;
+        this.camera_objects.createObject(new CameraObject());
     }
     createNewMultipleCameraObjects = (num) => { if (num > 0)
         while (num > 0) {
             this.createNewCameraObject();
             num--;
         } };
-    deleteCameraObjectHelper(instance_number_input, index) {
-        this.camera_objects_array.splice(index, 1);
-        delete this.instance_number_to_list_map[instance_number_input];
-        for (const key in this.instance_number_to_list_map) {
-            if (Number(key) > instance_number_input) {
-                this.instance_number_to_list_map[key] = this.instance_number_to_list_map[key] - 1;
-            }
-        }
-        if (instance_number_input in this.selected_camera_instances)
-            delete this.selected_camera_instances[instance_number_input];
+    deleteCameraObjectHelper(instance_number_input) {
+        this.camera_objects.deleteObject(instance_number_input);
         if (instance_number_input === this.current_camera_instance)
-            this.current_camera_instance = Number(Object.keys(this.selected_camera_instances)[0]);
-        if (Object.keys(this.selected_camera_instances).length === 0) {
-            const first_instance = Object.keys(this.instance_number_to_list_map)[0];
-            const first_index = Number(this.instance_number_to_list_map[first_instance]);
-            this.selected_camera_instances[first_instance] = first_index;
-            this.current_camera_instance = Number(first_instance);
-        }
+            this.current_camera_instance = Number(Object.keys(this.camera_objects.object_dict)[0]);
     }
     // won't delete if there is only one camera object left
     deleteCameraObject(instance_number_input) {
-        if (this.arrlen === 1)
+        if (Object.keys(this.camera_objects.object_dict).length === 1)
             return;
-        if (instance_number_input <= this.max_camera_instance_number) {
-            const index = this.instance_number_to_list_map[instance_number_input];
-            this.deleteCameraObjectHelper(instance_number_input, index);
-            this.arrlen = this.camera_objects_array.length;
+        if (instance_number_input <= this.max_camera_instance) {
+            this.deleteCameraObjectHelper(instance_number_input);
         }
     }
     // doesn't delete the first camera object
     deleteAllCameraObjects() {
-        for (const key in this.instance_number_to_list_map) {
-            const index = this.instance_number_to_list_map[key];
-            if (index > 0) {
-                this.deleteCameraObjectHelper(Number(key), index);
-            }
-        }
-        this.arrlen = this.camera_objects_array.length;
-    }
-    deleteAllSelectedCameraObjects() {
-        for (const key in this.selected_camera_instances) {
-            const index = this.selected_camera_instances[key];
-            this.deleteCameraObjectHelper(Number(key), index);
-            this.arrlen = this.camera_objects_array.length;
-        }
-    }
-    select_camera_instance(instance_number_input) {
-        if (instance_number_input <= this.max_camera_instance_number) {
-            const selection = this.instance_number_to_list_map[instance_number_input];
-            this.selected_camera_instances[instance_number_input] = selection;
-        }
-    }
-    deselect_camera_instance(instance_number_input) {
-        if (instance_number_input <= this.max_camera_instance_number) {
-            if (instance_number_input in this.selected_camera_instances) {
-                delete this.selected_camera_instances[instance_number_input];
-            }
+        for (const key in this.camera_objects.object_dict) {
+            this.deleteCameraObject(Number(key));
         }
     }
     render(vertex) {
-        const current_camera = this.camera_objects_array[this.instance_number_to_list_map[this.current_camera_instance]];
+        const current_camera = this.camera_objects.object_dict[this.current_camera_instance].object;
         const world_to_camera_space = current_camera.worldToCamera(vertex);
         const proj_div = _NDCSpace.project(world_to_camera_space, current_camera.instance._PROJ_TYPE);
         return proj_div;

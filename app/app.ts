@@ -55,7 +55,7 @@ var isTouchDeviceToggleable = true;
 const TouchMouseEventId = "Clicking";
 
 var sub_menu : HTMLDivElement | undefined = undefined;
-var create_main_menu_divider = false;
+var create_main_menu_divider = true;
 let svg_main_menu_divider: CreateSVG | undefined = undefined;
 let svg_main_menu_divider_line_drag: CreateSVGLineDrag | undefined = undefined;
 let svg_main_menu_divider_top = Math.min(-100, -window.innerHeight/3);
@@ -182,7 +182,25 @@ type _BOUNDING_SPHERE_ = {center : Point3D, radius : number};
 
 type _WINDOW_EDGE_ = "top" | "bottom" | "left" | "right";
 
-type _SUPPORTED_INPUT_TYPES_ = "text" | "number" | "radio" | "checkbox" | "file"
+type _SUPPORTED_INPUT_TYPES_ = "text" | "number" | "radio" | "checkbox" | "file";
+
+type _OBJECTEDGE_ = {
+    object : CameraObject | CreateObject;
+    prev: number | null;
+    next: number | null;
+}
+
+type _CAMOBJECTEDGE_ = {
+    object: CameraObject;
+    prev: number | null;
+    next: number | null;
+}
+
+type _MESHOBJECTEDGE_ = {
+    object: CreateMeshObject;
+    prev: number | null;
+    next: number | null;
+}
 
 enum Nav_list{
     Editing = "Editing",
@@ -192,7 +210,7 @@ enum Nav_list{
     Rendering = "Rendering",
 }
 
-const start_nav = Nav_list.Editing;
+const start_nav = Nav_list.Rendering;
 
 enum Handedness{
     left = 1,
@@ -452,7 +470,7 @@ const implementDrag = function () {
 };
 
 const camera_ui_handler = () =>{
-    const c_len = `${_CAMERA.instance_number}`.length;
+    const c_len = `${_CAMERA.camera_objects.instance}`.length;
     const accom_1 = 170 + (c_len * 10);
     const accom_2 = 150 + (c_len * 10);
 
@@ -494,7 +512,6 @@ const canvas_main_menu_drag_function = (deltaX: number,deltaY: number) => {
 const main_menu_divider_drag_function = (deltaX: number,deltaY: number) => {
     if(typeof svg_main_menu_divider === "undefined") return;
     if(typeof svg_main_menu_divider_line_drag === "undefined") return;
-    svg_main_menu_divider.svg.style.position = "absolute";
 
     const main_menu_height = Number(window.getComputedStyle(main_menu).height.split("px")[0]);
     const _top = Number(window.getComputedStyle(svg_main_menu_divider.svg).top.split("px")[0]);
@@ -559,13 +576,14 @@ const basicDrawFunction = (set_last_canvas_width = true) => {
     root.style.setProperty("--custom-sub-menu-xyz-input-width",`${(main_menu_width - 70 - l_xyz_width) / 3}px`);
 
     if(create_main_menu_divider === true) {
-        svg_main_menu_divider = new CreateSVG(main_menu,`${main_menu_width - 2*main_menu_border_width}`,"10","main_menu_divider_",1);
+        svg_main_menu_divider = new CreateSVG(main_menu,`${main_menu_width - 2*main_menu_border_width}`,"10","main-menu-divider_",1);
+        svg_main_menu_divider.svg.style.position = "absolute";
         create_main_menu_divider = false;
     }
 
-    if(typeof svg_main_menu_divider !== "undefined") {
+    if(typeof svg_main_menu_divider !== "undefined" && create_main_menu_divider === false) {
         svg_main_menu_divider.remove();
-        svg_main_menu_divider.init(main_menu,`${main_menu_width - 2*main_menu_border_width}`,"10","main_menu_divider_",1);
+        svg_main_menu_divider.init(`${main_menu_width - 2*main_menu_border_width}`,"10");
         svg_main_menu_divider.svg.style.position = "absolute";
         svg_main_menu_divider_line_drag = new CreateSVGLineDrag(svg_main_menu_divider,"0","0",`${main_menu_width - 2*main_menu_border_width}`,`0`,svg_vert_bar_color,"14",svg_hover_color);
         svg_main_menu_divider_line_drag.dragFunction(main_menu_divider_drag_function);
@@ -728,10 +746,26 @@ class BasicSettings {
                 }
                 
                 if(MODIFIED_PARAMS._ACTIVE === "Editing"){
-                    const mesh_container = document.getElementById("mesh-container");
-                    if(mesh_container){
-                        if(mesh_container.style.display === "none")  mesh_container.style.display = "block";
-                        if(mesh_container.style.display === "block") mesh_container.style.display = "none";
+                    if(mesh_sample_container_div){
+                        if(mesh_sample_container_div.style.display === "none") {
+                            if(cross_indicator) cross_indicator.svg_sub_container.className = "animate";
+                            setTimeout(()=>{
+                                if(cross_indicator && mesh_sample_container_div){
+                                    mesh_sample_container_div.style.display = "block";
+                                    cross_indicator.tooltip_class.tooltip_text_elem.textContent = "Close Objects";
+                                }
+                            },800);
+                        }   
+                        else if(mesh_sample_container_div.style.display === "block") 
+                        {
+                            if(cross_indicator) cross_indicator.svg_sub_container.className = "rev-animate";
+                            setTimeout(()=>{
+                                if(cross_indicator && mesh_sample_container_div){
+                                    mesh_sample_container_div.style.display = "none";
+                                    cross_indicator.tooltip_class.tooltip_text_elem.textContent = "Add Objects";
+                                }
+                            },800);
+                        }
                     }
                 }
             }
@@ -790,8 +824,7 @@ class BasicSettings {
             if(id === "camera-remove"){
                 if(camera_indicator){
                     const instance = Number(full_id[1]);
-                    const index = _CAMERA.instance_number_to_list_map[instance];
-                    const remove = _CAMERA.camera_objects_array[index].delete;
+                    const remove = _CAMERA.camera_objects.object_dict[instance].object.delete;
 
                     if(remove) if(!remove.hovered) remove.start_event();
                 }
@@ -800,8 +833,7 @@ class BasicSettings {
             if(id === "camera-proj"){
                 if(camera_indicator){
                     const instance = Number(full_id[1]);
-                    const index = _CAMERA.instance_number_to_list_map[instance];
-                    const projection = _CAMERA.camera_objects_array[index].projection;
+                    const projection = _CAMERA.camera_objects.object_dict[instance].object.projection;
 
                     if(projection) if(!projection.hovered) projection.start_event();
                 }
@@ -810,15 +842,15 @@ class BasicSettings {
             if(id === "camera-icon"){
                 if(camera_indicator){
                     const instance = Number(full_id[1]);
-                    const index = _CAMERA.instance_number_to_list_map[instance];
-                    const icon = _CAMERA.camera_objects_array[index].icon;
+                    const icon = _CAMERA.camera_objects.object_dict[instance].object.icon;
 
                     if(icon) if(!icon.hovered) icon.start_event();
                 }
             }
 
             if(id === "camera-para"){}
-            
+
+            if(id === "main-menu-divider") if(svg_main_menu_divider_line_drag) svg_main_menu_divider_line_drag.event_in();            
             if(id === "undo") if(undo) if(!undo.hovered) undo.start_event();
             if(id === "redo") if(redo) if(!redo.hovered) redo.start_event();
         });
@@ -847,8 +879,7 @@ class BasicSettings {
 
             if(camera_indicator){
                 const instance = Number(full_id[1]);
-                const index = _CAMERA.instance_number_to_list_map[instance];
-                const camera_object = _CAMERA.camera_objects_array[index];
+                const camera_object =_CAMERA.camera_objects.object_dict[instance].object;
 
                 if(camera_object){
                     const remove = camera_object.delete;
@@ -861,6 +892,7 @@ class BasicSettings {
                 }
             }
             
+            if(id === "main-menu-divider") if(svg_main_menu_divider_line_drag) svg_main_menu_divider_line_drag.event_out();
             if(undo) if(undo.hovered && id !== "undo") undo.end_event();
             if(redo) if(redo.hovered && id !== "redo") redo.end_event();   
         });
@@ -890,8 +922,7 @@ class BasicSettings {
             if(id === "camera-remove"){
                 if(camera_indicator){
                     const instance = Number(full_id[1]);
-                    const index = _CAMERA.instance_number_to_list_map[instance];
-                    const remove = _CAMERA.camera_objects_array[index].delete;
+                    const remove =_CAMERA.camera_objects.object_dict[instance].object.delete;
 
                     if(remove) if(!remove.hovered) remove.start_event();
                 }
@@ -900,8 +931,7 @@ class BasicSettings {
             if(id === "camera-proj"){
                 if(camera_indicator){
                     const instance = Number(full_id[1]);
-                    const index = _CAMERA.instance_number_to_list_map[instance];
-                    const projection = _CAMERA.camera_objects_array[index].projection;
+                    const projection = _CAMERA.camera_objects.object_dict[instance].object.projection;
 
                     if(projection) if(!projection.hovered) projection.start_event();
                 }
@@ -910,8 +940,7 @@ class BasicSettings {
             if(id === "camera-icon"){
                 if(camera_indicator){
                     const instance = Number(full_id[1]);
-                    const index = _CAMERA.instance_number_to_list_map[instance];
-                    const icon = _CAMERA.camera_objects_array[index].icon;
+                    const icon =_CAMERA.camera_objects.object_dict[instance].object.icon;
 
                     if(icon) if(!icon.hovered) icon.start_event();
                 }
@@ -919,6 +948,7 @@ class BasicSettings {
 
             if(id === "camera-para"){}
             
+            if(id === "main-menu-divider") if(svg_main_menu_divider_line_drag) svg_main_menu_divider_line_drag.event_in(); 
             if(id === "undo") if(undo) if(!undo.hovered) undo.start_event();
             if(id === "redo") if(redo) if(!redo.hovered) redo.start_event();
         },{"passive":true});
@@ -947,8 +977,7 @@ class BasicSettings {
 
             if(camera_indicator){
                 const instance = Number(full_id[1]);
-                const index = _CAMERA.instance_number_to_list_map[instance];
-                const camera_object = _CAMERA.camera_objects_array[index];
+                const camera_object = _CAMERA.camera_objects.object_dict[instance].object;
 
                 if(camera_object){
                     const remove = camera_object.delete;
@@ -961,6 +990,7 @@ class BasicSettings {
                 }
             }
             
+            if(id === "main-menu-divider") if(svg_main_menu_divider_line_drag) svg_main_menu_divider_line_drag.event_out(); 
             if(undo) if(undo.hovered && id !== "undo") undo.end_event();
             if(redo) if(redo.hovered && id !== "redo") redo.end_event();
         },{"passive":true});
@@ -1064,24 +1094,26 @@ class CreateSVG {
     svg_ns: string;
     max_child_elem_count: number;
     container_: HTMLElement;
+    id_ : string;
 
     constructor (container: HTMLElement,width: string,height: string,id:string,max_child_element_count = 1) {
-        this.init(container,width,height,id,max_child_element_count);
+        this.max_child_elem_count = max_child_element_count;
+        this.container_ = container;
+        this.id_ = id;
+        this.init(width,height);
     }
 
-    init(container: HTMLElement,width: string,height: string,id:string,max_child_element_count = 1) {
+    init(width: string,height: string) {
         const svgNS = "http://www.w3.org/2000/svg";
         const _svg = document.createElementNS(svgNS,"svg");
         this.svg = _svg;
         this.svg_ns = svgNS;
-        this.max_child_elem_count = max_child_element_count;
-        this.container_ = container;
 
         _svg.setAttribute("width",width);
         _svg.setAttribute("height",height);
-        _svg.id = `${id}_svg`;
+        _svg.id = `${this.id_}_svg`;
 
-        container.appendChild(_svg);
+        this.container_.appendChild(_svg);
     }
 
     remove() {
@@ -1281,8 +1313,15 @@ class CreateSVGEllipse {
 class CreateSVGLineDrag extends CreateSVGLine {
     implement_drag: IMPL_DRAG_;
 
-    constructor (svg_class: CreateSVG,x1: string,y1: string,x2: string,y2: string,stroke: string,strokeWidth: string,hover_color: string) {
+    constructor (svg_class: CreateSVG,x1: string,y1: string,x2: string,y2: string,stroke: string,strokeWidth: string,hover_color: string,custom_event_listeners = false) {
         super(svg_class,x1,y1,x2,y2,stroke,strokeWidth,hover_color);
+
+        if(custom_event_listeners){
+            this.svg_class_.svg.addEventListener("mouseenter",()=>{this.event_in()});  
+            this.svg_class_.svg.addEventListener("mouseleave",()=>{this.event_out()}); 
+            this.svg_class_.svg.addEventListener("touchstart",()=>{this.event_in()},{"passive":true}); 
+            this.svg_class_.svg.addEventListener("touchend",()=>{this.event_out()},{"passive":true});    
+        }
     }
 
     dragFunction(func: (deltaX: number,deltaY: number) => void) {
@@ -1439,17 +1478,21 @@ class SVG_Indicator {
     svg_class: CreateSVG;
     tooltip_class: CreateToolTip;
     svg_container: HTMLDivElement;
+    svg_sub_container : HTMLDivElement;
     tooltip_container: HTMLDivElement;
     hovered : boolean;
 
     constructor (container: HTMLDivElement,id :string, max_child_elem_count: number,tooltip_text = "Generic",respect_animate = true) {
         const sub_container = document.createElement("div");
         sub_container.style.margin = "10px";
+        this.svg_sub_container = document.createElement("div");
+        sub_container.appendChild(this.svg_sub_container);
         container.appendChild(sub_container);
-        this.svg_class = new CreateSVG(sub_container,"20","20",id,max_child_elem_count);
+        this.svg_class = new CreateSVG(this.svg_sub_container,"20","20",id,max_child_elem_count);
         this.tooltip_class = new CreateToolTip(container,sub_container,tooltip_text,5,100,respect_animate);
         this.svg_container = sub_container;
         this.tooltip_container = container;
+        this.svg_container = sub_container;
         this.hovered = false;
     }
 }
@@ -2033,7 +2076,7 @@ class DrawCanvas {
 
 
         svg_canvas_main_menu = new CreateSVG(svg_container,"10",`${main_menu_height}`,"main_menu_line_drag",1);
-        svg_canvas_main_menu_line_drag = new CreateSVGLineDrag(svg_canvas_main_menu,"0","0","0",`${main_menu_height}`,svg_vert_bar_color,"14",svg_hover_color);
+        svg_canvas_main_menu_line_drag = new CreateSVGLineDrag(svg_canvas_main_menu,"0","0","0",`${main_menu_height}`,svg_vert_bar_color,"14",svg_hover_color,true);
         svg_canvas_main_menu_line_drag.dragFunction(canvas_main_menu_drag_function);
         svg_canvas_main_menu_line_drag.changeAcceleration(10);
 
@@ -2087,6 +2130,7 @@ let _Cuboid : CreateCuboid_SVG_Indicator | null = null;
 let _Sphere : CreateSphere_SVG_Indicator | null = null;
 let _Torus : CreateTorus_SVG_Indicator | null = null;
 
+let mesh_sample_container_div : HTMLDivElement | null = null;
 let general_projection : CreateCameraProjection_SVG_Indicator | null = null;
 let cross_indicator : CreateCross_SVG_Indicator | null = null;
 let undo : CreateUndo_SVG_Indicator | null = null;

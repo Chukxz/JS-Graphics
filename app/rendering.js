@@ -1,5 +1,67 @@
 window.parent.addEventListener("message", (e) => { if (e.data === "Rendering")
     render(); });
+class GetNumberFromString {
+    string_;
+    number_;
+    convertible_;
+    res;
+    constructor(_string_) {
+        this.string_ = _string_;
+        this.number_ = Number(_string_);
+        if (Number.isFinite(this.number_))
+            this.convertible_ = true;
+        if (this.convertible_ === true)
+            if (this.string_ !== `${this.number_}`)
+                this.convertible_ = false;
+        this.res = this.convertible_ === true ? this.number_ : null;
+    }
+}
+class Dragging {
+    start_instance_number;
+    current_instance_number;
+    direction;
+    show;
+    constructor() {
+        this.direction = "d";
+        this.start_instance_number = -1;
+        this.current_instance_number = -1;
+    }
+    drag(ev, instance_number) {
+        this.start_instance_number = instance_number;
+    }
+    allowDrop(ev) {
+        ev.preventDefault();
+        const id_list = ev.target.id.split("_");
+        if (id_list.length > 1) {
+            const potential_instance = id_list[1];
+            const check_instance = new GetNumberFromString(potential_instance).res;
+            if (check_instance !== null) {
+                this.current_instance_number = check_instance;
+                this.direction = _CAMERA.camera_objects.getDirection(this.start_instance_number, this.current_instance_number);
+                this.insertObject(true);
+                if (camera_indicator)
+                    camera_indicator.showCameras();
+            }
+        }
+    }
+    drop(ev) {
+        this.insertObject(false);
+        if (camera_indicator)
+            camera_indicator.showCameras();
+    }
+    insertObject(blank) { }
+}
+class CameraDragging extends Dragging {
+    constructor() { super(); }
+    insertObject(blank) {
+        if (blank)
+            _CAMERA.camera_objects.object_dict[this.start_instance_number].object.blank = true;
+        else
+            _CAMERA.camera_objects.object_dict[this.start_instance_number].object.blank = false;
+        _CAMERA.camera_objects.moveObject(this.start_instance_number, this.current_instance_number, this.direction);
+    }
+}
+const cam_dragging = new CameraDragging();
 function render() {
     while (main_menu.firstChild)
         main_menu.removeChild(main_menu.firstChild);
@@ -8,10 +70,10 @@ function render() {
     cross_indicator = new CreateCross_SVG_Indicator(main_menu, "cross", "Add Cameras");
     const menu_header = document.createElement("p");
     menu_header.style.paddingLeft = "10px";
-    main_menu.appendChild(menu_header);
     menu_header.className = "custom_menu_header with_cross_hairs";
     menu_header.textContent = "Cameras";
     menu_header.style.fontWeight = "bold";
+    main_menu.appendChild(menu_header);
     const overall_camera_div = document.createElement("div");
     overall_camera_div.id = "overall_camera_div";
     overall_camera_div.className = "container_div";
@@ -30,7 +92,6 @@ function render() {
     basicDrawFunction();
 }
 class CameraIndicator extends CreateSubMenuContent {
-    camera_objects;
     camera_container;
     menu_container;
     look_at_pos;
@@ -48,27 +109,32 @@ class CameraIndicator extends CreateSubMenuContent {
     showCameras() {
         while (this.camera_container.firstChild)
             this.camera_container.removeChild(this.camera_container.firstChild);
-        this.camera_objects = _CAMERA.camera_objects_array;
         const sub_container = document.createElement("div");
+        sub_container.id = "camera-container";
         sub_container.style.margin = "2px 10px";
         this.camera_container.appendChild(sub_container);
-        var index = 0;
-        for (const camera_object of this.camera_objects) {
-            this.showCamera(sub_container, camera_object, index);
-            index++;
+        sub_container.addEventListener("dragover", (ev) => { cam_dragging.allowDrop(ev); });
+        sub_container.addEventListener("drop", (ev) => { cam_dragging.drop(ev); });
+        console.log("showing");
+        for (const camera_object_instance in _CAMERA.camera_objects.object_dict) {
+            ;
+            this.showCamera(sub_container, camera_object_instance);
         }
         camera_ui_handler();
         this.refreshInstance(_CAMERA.current_camera_instance);
         //this.svg_class.svg.addEventListener("click", (()=>console.log(tooltip_text)))
     }
-    showCamera(sub_container, camera, index) {
+    showCamera(sub_container, camera_instance) {
+        const camera = _CAMERA.camera_objects.object_dict[camera_instance].object;
+        const instance = camera.instance.instance_number;
+        const blank = camera.blank;
         const cam_div = document.createElement("div");
         cam_div.style.clear = "both";
         cam_div.className = "camera_div";
+        cam_div.draggable = true;
         sub_container.appendChild(cam_div);
         const cam = document.createElement("p");
         cam.className = "camera";
-        const instance = camera.instance.instance_number;
         cam.id = `camera-para_${instance}`;
         cam.textContent = "";
         cam.style.color = "#fff";
@@ -76,55 +142,58 @@ class CameraIndicator extends CreateSubMenuContent {
         cam.style.cursor = "pointer";
         cam.style.overflowX = "clip";
         cam.style.float = "left";
-        cam.style.backgroundColor = elem_hover_col;
+        if (blank)
+            cam.style.backgroundColor = svg_vert_bar_color;
+        else
+            cam.style.backgroundColor = elem_hover_col;
         cam.style.borderRadius = "8px";
         cam_div.appendChild(cam);
+        cam_div.addEventListener("dragstart", (ev) => { cam_dragging.drag(ev, instance); });
         let _col = elem_hover_col;
         let _h_col = svg_del_color;
-        if (this.camera_objects.length === 1) {
+        if (Object.keys(_CAMERA.camera_objects).length === 1) {
             _col = svg_vert_bar_color;
             _h_col = svg_vert_bar_color;
         }
         cam.addEventListener("click", () => { this.clickCamera(instance); });
-        const projection_type = _CAMERA.camera_objects_array[index].instance._PROJ_TYPE;
+        const projection_type = _CAMERA.camera_objects.object_dict[instance].object.instance._PROJ_TYPE;
         const svg_class_rm = new CreateSVG(cam_div, "20", "20", "camera-remove_" + instance, 6);
         svg_class_rm.svg.style.marginTop = "18px";
         svg_class_rm.svg.style.float = "right";
-        _CAMERA.camera_objects_array[index].delete = new CreateSVGDelete(svg_class_rm, "M 3 3, L 17 17", "M 3 17, L 17 3", _col, svg_objects_strokeWidth, _h_col);
+        _CAMERA.camera_objects.object_dict[instance].object.delete = new CreateSVGDelete(svg_class_rm, "M 3 3, L 17 17", "M 3 17, L 17 3", _col, svg_objects_strokeWidth, _h_col);
         const svg_class_proj = new CreateSVG(cam_div, "20", "20", "camera-proj_" + instance, 6);
         svg_class_proj.svg.style.marginTop = "18px";
         svg_class_proj.svg.style.float = "right";
         svg_class_proj.svg.style.marginRight = "2px";
         if (projection_type === "Orthographic") {
-            _CAMERA.camera_objects_array[index].projection = new CreateSVGCameraProjection(svg_class_proj, "M 7 2, L 18 2, L 18 12, L 7 12, Z", "M 2 8, L 13 8, L 13 18, L 2 18, Z", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
+            _CAMERA.camera_objects.object_dict[instance].object.projection = new CreateSVGCameraProjection(svg_class_proj, "M 7 2, L 18 2, L 18 12, L 7 12, Z", "M 2 8, L 13 8, L 13 18, L 2 18, Z", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         }
         else if (projection_type === "Perspective") {
-            _CAMERA.camera_objects_array[index].projection = new CreateSVGCameraProjection(svg_class_proj, "M 9 3, L 17 3, L 17 10, L 9 10, Z", "M 1 8, L 13 8, L 13 19, L 1 19, Z", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
+            _CAMERA.camera_objects.object_dict[instance].object.projection = new CreateSVGCameraProjection(svg_class_proj, "M 9 3, L 17 3, L 17 10, L 9 10, Z", "M 1 8, L 13 8, L 13 19, L 1 19, Z", svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
         }
         const svg_class_cam_icon = new CreateSVG(cam_div, "20", "20", "camera-icon_" + instance, 1);
         svg_class_cam_icon.svg.style.marginTop = "18px";
         svg_class_cam_icon.svg.style.float = "right";
         svg_class_cam_icon.svg.style.marginRight = "2px";
         svg_class_cam_icon.svg.style.display = "none";
-        _CAMERA.camera_objects_array[index].icon = new CreateSVGCameraIcon(svg_class_cam_icon, svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
+        _CAMERA.camera_objects.object_dict[instance].object.icon = new CreateSVGCameraIcon(svg_class_cam_icon, svg_objects_color, svg_objects_strokeWidth, svg_hover_color);
     }
     removeCamera(instance) {
         _CAMERA.deleteCameraObject(instance);
     }
     toggleProjType(instance) {
-        const index = _CAMERA.instance_number_to_list_map[instance];
-        const projection_type = _CAMERA.camera_objects_array[index].instance._PROJ_TYPE;
+        const projection_type = _CAMERA.camera_objects.object_dict[instance].object.instance._PROJ_TYPE;
         if (projection_type === "Orthographic") {
-            _CAMERA.camera_objects_array[index].instance._PROJ_TYPE = "Perspective";
+            _CAMERA.camera_objects.object_dict[instance].object.instance._PROJ_TYPE = "Perspective";
         }
         else if (projection_type === "Perspective") {
-            _CAMERA.camera_objects_array[index].instance._PROJ_TYPE = "Orthographic";
+            _CAMERA.camera_objects.object_dict[instance].object.instance._PROJ_TYPE = "Orthographic";
         }
         _PROJ.setProjectionParam();
     }
     clickCamera(instance) {
         this.refreshInstance(instance);
-        console.log(_CAMERA.instance_number_to_list_map, _CAMERA.current_camera_instance);
+        console.log(_CAMERA.camera_objects.object_dict, _CAMERA.current_camera_instance);
     }
 }
 function gridRender() {
@@ -234,7 +303,7 @@ class Draw {
         const b = this.yToCanvas(_b);
         const r = this.xToCanvas(_r);
         const l = this.xToCanvas(_l);
-        const projection_type = _CAMERA.camera_objects_array[_CAMERA.instance_number_to_list_map[_CAMERA.current_camera_instance]].instance._PROJ_TYPE;
+        const projection_type = _CAMERA.camera_objects[_CAMERA.current_camera_instance].instance._PROJ_TYPE;
         if (projection_type === "Orthographic")
             console.log(t, b, r, l, "orth t_b_r_l");
         if (projection_type === "Perspective")

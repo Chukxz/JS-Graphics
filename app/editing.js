@@ -8,18 +8,18 @@ function edit() {
     cross_indicator = new CreateCross_SVG_Indicator(main_menu, "cross", "Add Objects");
     const menu_header = document.createElement("p");
     menu_header.style.paddingLeft = "10px";
-    main_menu.appendChild(menu_header);
+    menu_header.className = "custom_menu_header with_cross_hairs";
     menu_header.textContent = "Objects";
     menu_header.style.fontWeight = "bold";
+    main_menu.appendChild(menu_header);
     const object_container_div = document.createElement("div");
     object_container_div.className = "container_div";
     object_container_div.style.zIndex = "inherit";
     object_container_div.style.position = "absolute";
-    const mesh_sample_container_div = document.createElement("div");
+    mesh_sample_container_div = document.createElement("div");
     mesh_sample_container_div.className = "container_div";
     mesh_sample_container_div.style.zIndex = "inherit";
     mesh_sample_container_div.style.display = "none";
-    mesh_sample_container_div.id = "mesh-container";
     mesh_sample_container_div.style.position = "absolute";
     mesh_sample_container_div.style.zIndex = `${Number(window.getComputedStyle(object_container_div).zIndex) + 10}`;
     if (svg_main_menu_divider_top < 0)

@@ -329,3 +329,46 @@ canvas {
 .sub_menu_xyz_input {
     width: var(--custom-sub-menu-xyz-input-width);
 }
+
+
+/* Animate */
+
+.animate {
+    animation-name: rotate_elem;
+    animation-duration: 500ms;
+    animation-timing-function: ease-in-out;
+    animation-delay: 100ms;
+    animation-iteration-count: 1;
+    animation-direction: normal;
+    animation-fill-mode: both;
+}
+
+@keyframes rotate_elem {
+    to {
+        -ms-transform: rotate(45deg);
+        /* IE 9 */
+        -webkit-transform: rotate(45deg);
+        /* Chrome, Safari, Opera */
+        transform: rotate(45deg);
+    }
+}
+
+.rev-animate {
+    animation-name: rev_rotate_elem;
+    animation-duration: 500ms;
+    animation-timing-function: ease-in-out;
+    animation-delay: 100ms;
+    animation-iteration-count: 1;
+    animation-direction: reverse;
+    animation-fill-mode: both;
+}
+
+@keyframes rev_rotate_elem {
+    to {
+        -ms-transform: rotate(45deg);
+        /* IE 9 */
+        -webkit-transform: rotate(45deg);
+        /* Chrome, Safari, Opera */
+        transform: rotate(45deg);
+    }
+}
