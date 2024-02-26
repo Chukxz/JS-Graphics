@@ -1810,10 +1810,12 @@ class DrawCanvas {
         const canvas_border_width = Number(window.getComputedStyle(canvas).borderWidth.split("px")[0]);
         const main_menu_height = MODIFIED_PARAMS._CANVAS_HEIGHT + 2 * canvas_border_width;
         main_menu.style.height = `${main_menu_height}px`;
-        svg_canvas_main_menu = new CreateSVG(svg_container, "10", `${main_menu_height}`, "main_menu_line_drag", 1);
-        svg_canvas_main_menu_line_drag = new CreateSVGLineDrag(svg_canvas_main_menu, "0", "0", "0", `${main_menu_height}`, svg_vert_bar_color, "14", svg_hover_color, true);
-        svg_canvas_main_menu_line_drag.dragFunction(canvas_main_menu_drag_function);
-        svg_canvas_main_menu_line_drag.changeAcceleration(10);
+        if (isTouchDevice === false) {
+            svg_canvas_main_menu = new CreateSVG(svg_container, "10", `${main_menu_height}`, "main_menu_line_drag", 1);
+            svg_canvas_main_menu_line_drag = new CreateSVGLineDrag(svg_canvas_main_menu, "0", "0", "0", `${main_menu_height}`, svg_vert_bar_color, "14", svg_hover_color, true);
+            svg_canvas_main_menu_line_drag.dragFunction(canvas_main_menu_drag_function);
+            svg_canvas_main_menu_line_drag.changeAcceleration(10);
+        }
         basicDrawFunction(set_last_canvas_width);
         DrawCanvas.drawCount++;
         // console.log("Screen Orientation : ",screen.orientation)
