@@ -974,20 +974,25 @@ class ObjectHelper {
         this.instance++;
     }
     moveObject(instance, end, direction = "d") {
-        const object = this.object_dict[instance].object;
+        const object_inst = this.object_dict[instance];
+        if (!object_inst)
+            return;
+        const object_end = this.object_dict[end];
+        if (!object_end)
+            return;
         this.deleteObject(instance);
-        const prev = this.object_dict[end].prev;
-        const next = this.object_dict[end].next;
+        const prev = object_end.prev;
+        const next = object_end.next;
         switch (direction) {
             case "u":
                 if (prev !== null)
                     this.object_dict[prev].next = instance;
-                this.object_dict[instance] = { object: object, prev: prev, next: end };
-                this.object_dict[end].prev = instance;
+                this.object_dict[instance] = { object: object_inst.object, prev: prev, next: end };
+                object_end.prev = instance;
                 break;
             case "d":
-                this.object_dict[end].next = instance;
-                this.object_dict[instance] = { object: object, prev: end, next: next };
+                object_end.next = instance;
+                this.object_dict[instance] = { object: object_inst.object, prev: end, next: next };
                 if (next !== null)
                     this.object_dict[next].prev = instance;
                 break;

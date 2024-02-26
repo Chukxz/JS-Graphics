@@ -61,6 +61,7 @@ class CameraDragging extends Dragging{
         if(blank) _CAMERA.camera_objects.object_dict[this.start_instance_number].object.blank = true;
         else _CAMERA.camera_objects.object_dict[this.start_instance_number].object.blank = false;
         _CAMERA.camera_objects.moveObject(this.start_instance_number, this.current_instance_number, this.direction);
+        console.log(this.direction,this.start_instance_number,this.current_instance_number)
     }
 }
 

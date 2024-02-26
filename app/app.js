@@ -657,20 +657,23 @@ class BasicSettings {
                     cross_indicator.end_event();
             if (camera_indicator) {
                 const instance = Number(full_id[1]);
-                const camera_object = _CAMERA.camera_objects.object_dict[instance].object;
-                if (camera_object) {
-                    const remove = camera_object.delete;
-                    const projection = camera_object.projection;
-                    const icon = camera_object.icon;
-                    if (remove)
-                        if (remove.hovered && id === "camera-remove")
-                            remove.end_event();
-                    if (projection)
-                        if (projection.hovered && id === "camera-proj")
-                            projection.end_event();
-                    if (icon)
-                        if (icon.hovered && id === "camera-icon")
-                            icon.end_event();
+                const camera_ = _CAMERA.camera_objects.object_dict[instance];
+                if (camera_) {
+                    const camera_object = camera_.object;
+                    if (camera_object) {
+                        const remove = camera_object.delete;
+                        const projection = camera_object.projection;
+                        const icon = camera_object.icon;
+                        if (remove)
+                            if (remove.hovered && id === "camera-remove")
+                                remove.end_event();
+                        if (projection)
+                            if (projection.hovered && id === "camera-proj")
+                                projection.end_event();
+                        if (icon)
+                            if (icon.hovered && id === "camera-icon")
+                                icon.end_event();
+                    }
                 }
             }
             if (id === "main-menu-divider")
@@ -838,20 +841,23 @@ class BasicSettings {
                     cross_indicator.end_event();
             if (camera_indicator) {
                 const instance = Number(full_id[1]);
-                const camera_object = _CAMERA.camera_objects.object_dict[instance].object;
-                if (camera_object) {
-                    const remove = camera_object.delete;
-                    const projection = camera_object.projection;
-                    const icon = camera_object.icon;
-                    if (remove)
-                        if (remove.hovered && id === "camera-remove")
-                            remove.end_event();
-                    if (projection)
-                        if (projection.hovered && id === "camera-proj")
-                            projection.end_event();
-                    if (icon)
-                        if (icon.hovered && id === "camera-icon")
-                            icon.end_event();
+                const camera_ = _CAMERA.camera_objects.object_dict[instance];
+                if (camera_) {
+                    const camera_object = camera_.object;
+                    if (camera_object) {
+                        const remove = camera_object.delete;
+                        const projection = camera_object.projection;
+                        const icon = camera_object.icon;
+                        if (remove)
+                            if (remove.hovered && id === "camera-remove")
+                                remove.end_event();
+                        if (projection)
+                            if (projection.hovered && id === "camera-proj")
+                                projection.end_event();
+                        if (icon)
+                            if (icon.hovered && id === "camera-icon")
+                                icon.end_event();
+                    }
                 }
             }
             if (id === "main-menu-divider")

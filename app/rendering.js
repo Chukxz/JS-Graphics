@@ -59,6 +59,7 @@ class CameraDragging extends Dragging {
         else
             _CAMERA.camera_objects.object_dict[this.start_instance_number].object.blank = false;
         _CAMERA.camera_objects.moveObject(this.start_instance_number, this.current_instance_number, this.direction);
+        console.log(this.direction, this.start_instance_number, this.current_instance_number);
     }
 }
 const cam_dragging = new CameraDragging();
