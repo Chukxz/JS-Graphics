@@ -162,12 +162,11 @@ class CameraIndicator extends CreateSubMenuContent {
         else cam.style.backgroundColor = elem_hover_col;
         cam.style.borderRadius = "8px";
         cam_div.appendChild(cam);
-        
         cam_div.addEventListener("dragstart",(ev)=>{cam_dragging.drag(ev, instance)});
 
         let _col = elem_hover_col;
         let _h_col = svg_del_color;
-        if(Object.keys(_CAMERA.camera_objects).length === 1) {
+        if(Object.keys(_CAMERA.camera_objects.object_dict).length === 1) {
             _col = svg_vert_bar_color;
             _h_col = svg_vert_bar_color;
         }

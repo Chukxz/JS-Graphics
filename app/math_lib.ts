@@ -1070,9 +1070,9 @@ class ObjectHelper{
         this.object_dict = {};
     }
     
-    createObject(object : CreateObject | CameraObject){
+    createObject(object : CameraObject | CreateMeshObject){
         if(this.prev !== null) this.object_dict[this.prev].next = this.instance;
-        this.object_dict[this.instance] = {object : object , prev : this.prev, next : this.next}
+        this.object_dict[this.instance] = {object : object , prev : this.prev, next : this.next};
         this.prev = this.instance;
         this.instance++;
     }
@@ -1125,10 +1125,9 @@ class ObjectHelper{
 }
 
 class CamObjectHelper extends ObjectHelper{
-    object_dict: { [ins: number]: _CAMOBJECTEDGE_};
+    declare object_dict: { [ins: number]: _CAMOBJECTEDGE_};
     constructor(){
         super();
-        this.object_dict = {};
     }
 
     createObject(object: CameraObject): void {
@@ -1137,10 +1136,9 @@ class CamObjectHelper extends ObjectHelper{
 }
 
 class MeshObjectHelper extends ObjectHelper{
-    object_dict: { [ins: number]: _MESHOBJECTEDGE_};
+    declare object_dict: { [ins: number]: _MESHOBJECTEDGE_};
     constructor(){
         super();
-        this.object_dict = {};
     }
 
     createObject(object: CreateMeshObject): void {
@@ -2524,7 +2522,6 @@ interface _CAMERAOBJECT_ {
 }
 
 class CameraObject extends Quarternion {
-
     instance : _CAMERAOBJECT_ = {
         history_id : 0,
         time_id : 0,
@@ -2554,8 +2551,9 @@ class CameraObject extends Quarternion {
     icon : CreateSVGCameraIcon | null;
     blank : boolean;
 
-    constructor () {
+    constructor (instance_number : number) {
         super();
+        this.instance.instance_number = instance_number;
         this.cam_history = [];
         this.prev_h = false;
         this.next_h = false;
@@ -2790,7 +2788,7 @@ class CameraObjects extends ViewSpace {
     createNewCameraObject() {
         this.current_camera_instance = this.camera_objects.instance;
         this.max_camera_instance = this.camera_objects.instance;
-        this.camera_objects.createObject(new CameraObject());
+        this.camera_objects.createObject(new CameraObject(this.current_camera_instance));
     }
 
     createNewMultipleCameraObjects = (num: number) => { if(num > 0) while(num > 0) { this.createNewCameraObject(); num--; } }

@@ -185,7 +185,7 @@ type _WINDOW_EDGE_ = "top" | "bottom" | "left" | "right";
 type _SUPPORTED_INPUT_TYPES_ = "text" | "number" | "radio" | "checkbox" | "file";
 
 type _OBJECTEDGE_ = {
-    object : CameraObject | CreateObject;
+    object : CameraObject | CreateMeshObject;
     prev: number | null;
     next: number | null;
 }

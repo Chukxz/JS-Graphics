@@ -1025,20 +1025,16 @@ class ObjectHelper {
     }
 }
 class CamObjectHelper extends ObjectHelper {
-    object_dict;
     constructor() {
         super();
-        this.object_dict = {};
     }
     createObject(object) {
         super.createObject(object);
     }
 }
 class MeshObjectHelper extends ObjectHelper {
-    object_dict;
     constructor() {
         super();
-        this.object_dict = {};
     }
     createObject(object) {
         super.createObject(object);
@@ -2273,8 +2269,9 @@ class CameraObject extends Quarternion {
     projection;
     icon;
     blank;
-    constructor() {
+    constructor(instance_number) {
         super();
+        this.instance.instance_number = instance_number;
         this.cam_history = [];
         this.prev_h = false;
         this.next_h = false;
@@ -2480,7 +2477,7 @@ class CameraObjects extends ViewSpace {
     createNewCameraObject() {
         this.current_camera_instance = this.camera_objects.instance;
         this.max_camera_instance = this.camera_objects.instance;
-        this.camera_objects.createObject(new CameraObject());
+        this.camera_objects.createObject(new CameraObject(this.current_camera_instance));
     }
     createNewMultipleCameraObjects = (num) => { if (num > 0)
         while (num > 0) {
