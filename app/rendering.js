@@ -28,6 +28,7 @@ class Dragging {
     }
     drag(ev, instance_number) {
         this.start_instance_number = instance_number;
+        _CAMERA.camera_objects.object_dict[this.start_instance_number].object.blank = true;
     }
     allowDrop(ev) {
         ev.preventDefault();
@@ -36,30 +37,27 @@ class Dragging {
             const potential_instance = id_list[1];
             const check_instance = new GetNumberFromString(potential_instance).res;
             if (check_instance !== null) {
-                this.current_instance_number = check_instance;
-                this.direction = _CAMERA.camera_objects.getDirection(this.start_instance_number, this.current_instance_number);
-                this.insertObject(true);
-                if (camera_indicator)
-                    camera_indicator.showCameras();
+                this.direction = _CAMERA.camera_objects.getDirection(this.start_instance_number, check_instance);
+                if (check_instance !== this.current_instance_number) {
+                    this.current_instance_number = check_instance;
+                    this.insertObject();
+                }
             }
         }
     }
     drop(ev) {
-        this.insertObject(false);
+        this.insertObject();
+        _CAMERA.camera_objects.object_dict[this.start_instance_number].object.blank = false;
         if (camera_indicator)
             camera_indicator.showCameras();
     }
-    insertObject(blank) { }
+    insertObject() { }
 }
 class CameraDragging extends Dragging {
     constructor() { super(); }
-    insertObject(blank) {
-        if (blank)
-            _CAMERA.camera_objects.object_dict[this.start_instance_number].object.blank = true;
-        else
-            _CAMERA.camera_objects.object_dict[this.start_instance_number].object.blank = false;
+    insertObject() {
         _CAMERA.camera_objects.moveObject(this.start_instance_number, this.current_instance_number, this.direction);
-        console.log(this.direction, this.start_instance_number, this.current_instance_number);
+        console.log(this.direction, this.start_instance_number, this.current_instance_number, _CAMERA.camera_objects.object_dict[this.start_instance_number].object.blank);
     }
 }
 const cam_dragging = new CameraDragging();
@@ -107,7 +105,7 @@ class CameraIndicator extends CreateSubMenuContent {
         this.instance_para.innerHTML = `Camera : ${instance}`;
         _CAMERA.current_camera_instance = instance;
     }
-    showCameras() {
+    showCameras(additional = true) {
         while (this.camera_container.firstChild)
             this.camera_container.removeChild(this.camera_container.firstChild);
         const sub_container = document.createElement("div");
@@ -116,13 +114,12 @@ class CameraIndicator extends CreateSubMenuContent {
         this.camera_container.appendChild(sub_container);
         sub_container.addEventListener("dragover", (ev) => { cam_dragging.allowDrop(ev); });
         sub_container.addEventListener("drop", (ev) => { cam_dragging.drop(ev); });
-        console.log("showing");
         for (const camera_object_instance in _CAMERA.camera_objects.object_dict) {
             ;
             this.showCamera(sub_container, camera_object_instance);
         }
-        camera_ui_handler();
         this.refreshInstance(_CAMERA.current_camera_instance);
+        camera_ui_handler();
         //this.svg_class.svg.addEventListener("click", (()=>console.log(tooltip_text)))
     }
     showCamera(sub_container, camera_instance) {

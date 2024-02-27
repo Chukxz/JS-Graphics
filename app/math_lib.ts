@@ -1097,6 +1097,7 @@ class ObjectHelper{
             this.object_dict[instance] = {object : object_inst.object, prev : end, next : next};
             if(next !== null) this.object_dict[next].prev = instance;
             break;
+            default : return;
         }
       }
       
@@ -1131,6 +1132,7 @@ class CamObjectHelper extends ObjectHelper{
     declare object_dict: { [ins: number]: _CAMOBJECTEDGE_};
     constructor(){
         super();
+        this.object_dict = {};
     }
 
     createObject(object: CameraObject): void {
@@ -1142,6 +1144,7 @@ class MeshObjectHelper extends ObjectHelper{
     declare object_dict: { [ins: number]: _MESHOBJECTEDGE_};
     constructor(){
         super();
+        this.object_dict = {};
     }
 
     createObject(object: CreateMeshObject): void {

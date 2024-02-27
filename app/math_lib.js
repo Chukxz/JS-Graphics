@@ -996,6 +996,7 @@ class ObjectHelper {
                 if (next !== null)
                     this.object_dict[next].prev = instance;
                 break;
+            default: return;
         }
     }
     deleteObject(instance) {
@@ -1032,6 +1033,7 @@ class ObjectHelper {
 class CamObjectHelper extends ObjectHelper {
     constructor() {
         super();
+        this.object_dict = {};
     }
     createObject(object) {
         super.createObject(object);
@@ -1040,6 +1042,7 @@ class CamObjectHelper extends ObjectHelper {
 class MeshObjectHelper extends ObjectHelper {
     constructor() {
         super();
+        this.object_dict = {};
     }
     createObject(object) {
         super.createObject(object);
