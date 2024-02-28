@@ -2517,4 +2517,88 @@ class Point3D {
 
 
 
+class ObjectHelper{
+    instance : number;
+    prev : number | null;
+    next : number | null;
+    object_dict : {[ins : number] : _OBJECTEDGE_};
+    start_instance : number;
+    
+    constructor(){
+        this.instance = 0;
+        this.prev = null;
+        this.next = null;
+        this.object_dict = {};
+        this.start_instance = 0;
+    }
+    
+    updateObjectDict(){
+        const len = Object.keys(this.object_dict).length;
+        if(this.prev !== null) this.object_dict[this.prev].next = this.instance;
+        this.object_dict[this.instance] = {index : len, prev : this.prev, next : this.next};
+        this.prev = this.instance;
+        this.instance++;
+    }
+      
+    moveObject (instance : number, end : number, direction : "u" | "d" = "d"){
+        const object_inst = this.object_dict[instance];
+        console.log(this.object_dict);
+        console.log(object_inst, this.object_dict[end]);
+        if(!object_inst) return;
+        const object_end = this.object_dict[end];
+        if(!object_end) return;
+        this.deleteObjectInstance(instance);
+        const prev = object_end.prev;
+        const next = object_end.next;
+        console.log(this.object_dict);
+        console.log(prev, next);
+      
+        switch(direction){
+          case "u":
+            if(prev !== null) this.object_dict[prev].next = instance;
+            this.object_dict[instance] = {index : object_inst.index, prev : prev, next : end};
+            object_end.prev = instance;
+            break;
+          case "d":
+            object_end.next = instance;
+            this.object_dict[instance] = {index : object_inst.index, prev : end, next : next};
+            if(next !== null) this.object_dict[next].prev = instance;
+            break;
+            default : return;
+        }
+      }
+      
+    deleteObjectInstance(instance : number){
+        const prev = this.object_dict[instance].prev;
+        const next = this.object_dict[instance].next;
+        if(prev !== null){
+          if(this.object_dict[prev]) this.object_dict[prev].next = next;
+        }
+        if(next !== null){
+          if(this.object_dict[next]) this.object_dict[next].prev = prev;
+        }
+        delete this.object_dict[instance];
+      }
+
+      getDirection(start_instance : number, current_instance : number) : "u" | "d" {
+        var link = this.object_dict[start_instance].prev;
+        while (link !== null){
+            if (link === current_instance) return "u";
+            else link = this.object_dict[link].prev;
+        }
+        link = this.object_dict[start_instance].next;
+        while (link !== null){
+            if (link === current_instance) return "d";
+            else link = this.object_dict[link].next;
+        }
+        return "u";
+      }
+}
+
+const helper = new ObjectHelper();
+helper.object_dict = {0 : {index : 0, prev : null, next : null},1 : {index : 1, prev : 1, next : 2},2 : {index : 2, prev : 1, next : null}}
+
+
+
+
 })()

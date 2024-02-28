@@ -38,6 +38,7 @@ class CreateMeshObject extends CreateObject {
     bounding_sphere;
     indices;
     blank;
+    instance;
     constructor(width, height, depth, start_vertex) {
         super();
         this.mesh = new MeshDataStructure();
@@ -48,6 +49,7 @@ class CreateMeshObject extends CreateObject {
         this.vert_st = start_vertex;
         this.shape = "Generic";
         this.blank = false;
+        this.instance = 0;
     }
     reconstructMesh() { return this; }
     initMesh() { return this; }
@@ -875,45 +877,54 @@ class CreateGrid extends CreateMeshObject {
 /* Grid Object */
 class ObjectRendering extends Miscellanous {
     instance;
-    objects;
-    instance_number_to_list_map;
+    objects_dict;
+    objects_list;
     selected_object_instances;
     current_object_instance;
     constructor() {
         super();
         this.instance = 0;
-        this.objects = new MeshObjectHelper;
+        this.objects_dict = new ObjectHelper;
+        this.objects_list = [];
         this.selected_object_instances = new Set();
         this.current_object_instance = 0;
     }
     changeCurrentObjectInstance(value) { this.current_object_instance = value; }
     getCurrentObjectInstance() {
-        return this.objects.object_dict[this.current_object_instance].object;
+        return this.objects_list[this.objects_dict.object_dict[this.current_object_instance].index];
     }
     deleteObjectHelper(instance_number_input) {
-        this.objects.deleteObject(instance_number_input);
+        const index = this.objects_dict.object_dict[instance_number_input].index;
+        this.objects_list.splice(index, 1);
+        this.objects_dict.deleteObjectInstance(instance_number_input);
+        for (const index in this.objects_list) {
+            const _mesh_object = this.objects_list[index];
+            const instance = _mesh_object.instance;
+            this.objects_dict.object_dict[instance].index = Number(index);
+        }
         if (instance_number_input === this.current_object_instance)
-            this.current_object_instance = Number(Object.keys(this.objects.object_dict)[0]);
+            this.current_object_instance = Number(Object.keys(this.objects_dict.object_dict)[0]);
     }
     addObjects(object) {
+        object.instance = this.instance;
         object.calculatePoints();
-        this.objects.createObject(object);
-        this.instance_number_to_list_map[this.instance] = this.instance;
+        this.objects_dict.updateObjectDict();
         this.instance++;
     }
     removeObject(object_instance) {
         this.deleteObjectHelper(object_instance);
     }
     delete_all_objects() {
-        this.objects.object_dict = {};
+        this.objects_dict.object_dict = {};
+        this.objects_list = [];
     }
     select_object(selected_instance) {
         this.selected_object_instances.add(selected_instance);
     }
     select_multiple_objects(selected_instances) { for (const instance of selected_instances)
         this.select_object(instance); }
-    select_all_objects() { for (const instance in this.objects.object_dict) {
-        this.select_object(Number(instance));
+    select_all_objects() { for (const index in this.objects_dict.object_dict) {
+        this.select_object(Number(this.objects_list[index].instance));
     } ; }
     deselect_object(selected_instance) {
         this.selected_object_instances.delete(selected_instance);

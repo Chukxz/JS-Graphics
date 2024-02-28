@@ -3,9 +3,9 @@ class MeshDataStructure {
     face_tmp: number[];
     faces: Set<string>;
     sorted_faces: string[];
-    prev: string | null;
-    next: string | null;
-    temp: string | null;
+    private prev: string | null;
+    private next: string | null;
+    private temp: string | null;
     face_vertices_tmp: number[];
     face_indexes_tmp: number[];
     edge_no: number;
@@ -1062,46 +1062,53 @@ class ObjectHelper{
     prev : number | null;
     next : number | null;
     object_dict : {[ins : number] : _OBJECTEDGE_};
+    start_instance : number;
     
     constructor(){
         this.instance = 0;
         this.prev = null;
         this.next = null;
         this.object_dict = {};
+        this.start_instance = 0;
     }
     
-    createObject(object : CameraObject | CreateMeshObject){
+    updateObjectDict(){
+        const len = Object.keys(this.object_dict).length;
         if(this.prev !== null) this.object_dict[this.prev].next = this.instance;
-        this.object_dict[this.instance] = {object : object , prev : this.prev, next : this.next};
+        this.object_dict[this.instance] = {index : len, prev : this.prev, next : this.next};
         this.prev = this.instance;
         this.instance++;
     }
       
     moveObject (instance : number, end : number, direction : "u" | "d" = "d"){
         const object_inst = this.object_dict[instance];
+        console.log(this.object_dict);
+        console.log(object_inst, this.object_dict[end]);
         if(!object_inst) return;
         const object_end = this.object_dict[end];
         if(!object_end) return;
-        this.deleteObject(instance);
+        this.deleteObjectInstance(instance);
         const prev = object_end.prev;
         const next = object_end.next;
+        console.log(this.object_dict);
+        console.log(prev, next);
       
         switch(direction){
           case "u":
             if(prev !== null) this.object_dict[prev].next = instance;
-            this.object_dict[instance] = {object : object_inst.object, prev : prev, next : end};
+            this.object_dict[instance] = {index : object_inst.index, prev : prev, next : end};
             object_end.prev = instance;
             break;
           case "d":
             object_end.next = instance;
-            this.object_dict[instance] = {object : object_inst.object, prev : end, next : next};
+            this.object_dict[instance] = {index : object_inst.index, prev : end, next : next};
             if(next !== null) this.object_dict[next].prev = instance;
             break;
             default : return;
         }
       }
       
-    deleteObject(instance : number){
+    deleteObjectInstance(instance : number){
         const prev = this.object_dict[instance].prev;
         const next = this.object_dict[instance].next;
         if(prev !== null){
@@ -1126,30 +1133,6 @@ class ObjectHelper{
         }
         return "u";
       }
-}
-
-class CamObjectHelper extends ObjectHelper{
-    declare object_dict: { [ins: number]: _CAMOBJECTEDGE_};
-    constructor(){
-        super();
-        this.object_dict = {};
-    }
-
-    createObject(object: CameraObject): void {
-        super.createObject(object);
-    }
-}
-
-class MeshObjectHelper extends ObjectHelper{
-    declare object_dict: { [ins: number]: _MESHOBJECTEDGE_};
-    constructor(){
-        super();
-        this.object_dict = {};
-    }
-
-    createObject(object: CreateMeshObject): void {
-        super.createObject(object);
-    }
 }
 
 class Miscellanous {
@@ -2462,7 +2445,8 @@ class Projection {
     }
 
     setProjectionParam(){
-        const projection_type = _CAMERA.camera_objects.object_dict[_CAMERA.current_camera_instance].object.instance._PROJ_TYPE;
+        const camera_index = _CAMERA.camera_objects_dict.object_dict[_CAMERA.current_camera_instance].index;
+        const projection_type = _CAMERA.camera_objects_list[camera_index].instance._PROJ_TYPE;
 
         if(projection_type === "Orthographic") this.orthographicProjection();
         else if (projection_type === "Perspective") this.perspectiveProjection();
@@ -2770,7 +2754,8 @@ class NDCSpace{
 const _NDCSpace = new NDCSpace();
 
 class CameraObjects extends ViewSpace {
-    camera_objects : CamObjectHelper;
+    camera_objects_dict : ObjectHelper;
+    camera_objects_list : CameraObject[];
     current_camera_instance : number;
     max_camera_instance : number;
 
@@ -2778,35 +2763,45 @@ class CameraObjects extends ViewSpace {
         super();
         this.current_camera_instance = 0;
         this.max_camera_instance = 0;
-        this.camera_objects = new CamObjectHelper();
+        this.camera_objects_dict = new ObjectHelper();
+        this.camera_objects_list = [];
         this.createNewCameraObject();
     }
 
     changeCurrentInstanceNumber(instance_number : number){
-        if(instance_number in this.camera_objects.object_dict) this.current_camera_instance = instance_number;
+        if(instance_number in this.camera_objects_dict.object_dict) this.current_camera_instance = instance_number;
     }
 
     changeProjType(projection_type : _PROJ_TYPE_){
-        this.camera_objects[this.current_camera_instance].object.changeProjType(projection_type)
+        const index = this.camera_objects_dict.object_dict[this.current_camera_instance].index;
+        const _camera = this.camera_objects_list[Number(index)];
+        _camera.changeProjType(projection_type);
         MODIFIED_PARAMS._PROJ_TYPE = projection_type;
     }
 
     createNewCameraObject() {
-        this.current_camera_instance = this.camera_objects.instance;
-        this.max_camera_instance = this.camera_objects.instance;
-        this.camera_objects.createObject(new CameraObject(this.current_camera_instance));
+        this.current_camera_instance = this.camera_objects_dict.instance;
+        this.max_camera_instance = this.camera_objects_dict.instance;
+        this.camera_objects_list.push(new CameraObject(this.current_camera_instance));
+        this.camera_objects_dict.updateObjectDict();
     }
 
     createNewMultipleCameraObjects = (num: number) => { if(num > 0) while(num > 0) { this.createNewCameraObject(); num--; } }
 
     private deleteCameraObjectHelper(instance_number_input: number) {
-        this.camera_objects.deleteObject(instance_number_input);
-        if(instance_number_input === this.current_camera_instance) this.current_camera_instance = Number(Object.keys(this.camera_objects.object_dict)[0]);
+        const index = this.camera_objects_dict.object_dict[instance_number_input].index;
+        this.camera_objects_list.splice(index,1);
+        this.camera_objects_dict.deleteObjectInstance(instance_number_input);
+        for(const index in this.camera_objects_list){
+            const _camera = this.camera_objects_list[index];
+            const instance = _camera.instance.instance_number;
+        }
+        if(instance_number_input === this.current_camera_instance) this.current_camera_instance = Number(Object.keys(this.camera_objects_dict.object_dict)[0]);
     }
 
     // won't delete if there is only one camera object left
     deleteCameraObject(instance_number_input: number) {
-        if(Object.keys(this.camera_objects.object_dict).length === 1) return;
+        if(Object.keys(this.camera_objects_dict.object_dict).length === 1) return;
         if(instance_number_input <= this.max_camera_instance) {
             this.deleteCameraObjectHelper(instance_number_input);
         }
@@ -2814,13 +2809,14 @@ class CameraObjects extends ViewSpace {
 
     // doesn't delete the first camera object
     deleteAllCameraObjects() {
-        for(const key in this.camera_objects.object_dict) {
+        for(const key in this.camera_objects_dict.object_dict) {
             this.deleteCameraObject(Number(key));
         }
     }
 
     render(vertex: _3D_VEC_): _4D_VEC_ {
-        const current_camera = this.camera_objects.object_dict[this.current_camera_instance].object;
+        const current_camera_index = this.camera_objects_dict.object_dict[this.current_camera_instance].index;
+        const current_camera = this.camera_objects_list[current_camera_index];        
         const world_to_camera_space :  _4D_VEC_ = current_camera.worldToCamera(vertex); 
         const proj_div : _4D_VEC_ = _NDCSpace.project(world_to_camera_space,current_camera.instance._PROJ_TYPE);
         return proj_div;
